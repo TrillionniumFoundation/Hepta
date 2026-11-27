@@ -1,0 +1,137 @@
+{
+  "SOURCE_FILES_append_exactly": [
+    "tools/hia_candidate_build_catalog.json",
+    "tools/generate_hia_candidate_build.py",
+    "tools/hia_candidate_build_syscalls.S",
+    "tools/build_hia_candidate_build.py",
+    "examples/hia_bootstrap/candidate_build_policy.hepta",
+    "examples/hia_bootstrap/candidate_build_packer.hepta",
+    "tests/test_hia_candidate_build.py",
+    "tools/qualify_hia_candidate_build.py",
+    "tests/test_hia_candidate_build_qualifier.py"
+  ],
+  "always_upload_additions": [
+    "<runner.temp>/hia-candidate-build-source/",
+    "<runner.temp>/hia-candidate-build/"
+  ],
+  "generator": {
+    "argv": [
+      "python",
+      "-B",
+      "tools/generate_hia_candidate_build.py"
+    ],
+    "order": "after every fixed 55 catalog source plus source_build/sha256, before language/support; preserve both fixed catalog digest guards",
+    "outputs": [
+      "examples/hia_bootstrap/candidate_build_policy.hepta",
+      "examples/hia_bootstrap/candidate_build_packer.hepta"
+    ],
+    "unique_generator_increment": 1
+  },
+  "metadata_order": "normal owner generators, checker, language, support using the existing parent sequence; no hand-pinned generated metadata",
+  "native": {
+    "ambient_variables_must_be_absent": [
+      "HEPTA_HIA_CANDIDATE_BUILD_DEVELOPMENT_EVIDENCE",
+      "HEPTA_HIA_CANDIDATE_BUILD_COLD_FIXTURE"
+    ],
+    "argv": [
+      "python",
+      "-B",
+      "-m",
+      "tools.qualify_hia_candidate_build",
+      "--cold-report",
+      "<runner.temp>/hia-cold.json",
+      "--evidence",
+      "<runner.temp>/hia-candidate-build"
+    ],
+    "cleanup_seconds": 3,
+    "compile_seconds": 20,
+    "expected_counts": {
+      "canonical_image_and_manifest_pairs": 55,
+      "independent_vm_full_frames": 69,
+      "native_process_observations": 75
+    },
+    "fresh_evidence_required": true,
+    "group_seconds": 180,
+    "native_methods": 4,
+    "no_development_option": true,
+    "ordered_ids": [
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_complete_generated_hia_and_original_limits",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_exact_original_catalog_all_55_and_three_dedicated_exclusions",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_actual_hia_catalog_selection_and_permanent_rejection",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_packer_all_output_bytes_and_short_output_no_write",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_sha_mismatch_refuses_before_compiler_request",
+      "tests.test_hia_candidate_build.CandidateBuildNativeTests.test_all_55_real_canonical_images_and_exact_original_manifests",
+      "tests.test_hia_candidate_build.CandidateBuildNativeTests.test_complete_preflight_rejections_publish_no_bytes",
+      "tests.test_hia_candidate_build.CandidateBuildNativeTests.test_existing_installed_preflight_loader_accepts_actual_native_manifest",
+      "tests.test_hia_candidate_build.CandidateBuildNativeTests.test_runtime_has_no_file_open_exec_child_or_writable_executable_mapping"
+    ],
+    "positive_matching_cold_not_yet_executed": true,
+    "setup": "actual existing matching-cold production build, four compile receipts plus actual pack request/full-output; the component child has its own original 180+3 supervisor",
+    "source_methods": 5,
+    "status_required": "MATCHING_COLD_CANDIDATE_BUILD_COMPONENTS_PASS",
+    "total_methods": 9,
+    "whole_native": false
+  },
+  "packet_order": [
+    "7c9f8789f539b756e429529e55c8a1efec3dbf8d",
+    "e27e074e04366947d25bf98ab2c50ddfaba0d578"
+  ],
+  "prior_r1_spec": "01ca2cdb3cfd45c74f60f278b349bbb4dcdadf15",
+  "registration_not_applied_by_surface": true,
+  "resources": {
+    "MANIFEST_in_additions": [
+      "include examples/hia_bootstrap/candidate_build_policy.hepta",
+      "include examples/hia_bootstrap/candidate_build_packer.hepta"
+    ],
+    "append_exactly": [
+      "examples/hia_bootstrap/candidate_build_policy.hepta",
+      "examples/hia_bootstrap/candidate_build_packer.hepta"
+    ],
+    "candidate_preflight_entry_paths_whitelist_additions": [
+      "examples/hia_bootstrap/candidate_build_policy.hepta",
+      "examples/hia_bootstrap/candidate_build_packer.hepta"
+    ],
+    "existing_NATIVE_SOURCE_FILES_change": false,
+    "existing_SOURCE_BUILD_FILES_change": false,
+    "group": "ENTRY_BUILD_FILES",
+    "group_count": 12,
+    "post_launcher_entry_count": 4,
+    "requires_remote_entry_packet": "fcb1a8ab404d92334b471d50352f1adeac35cb91",
+    "root_owns_shared_registration": true
+  },
+  "schema": "hepta.hia.candidate-build.registration-spec.v2",
+  "scope": "EXACT_NEXT_JOINT_REGISTRATION_PLAN_NOT_APPLIED",
+  "source": {
+    "actual_local_r2_scope": "new Source12 only; original Source5 retained and original R1 passed; new matching-cold nine have not run",
+    "declared_total": 17,
+    "environment": {
+      "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE": "<runner.temp>/hia-candidate-build-source"
+    },
+    "new_qualified_source12_ids": [
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_actual_request_requires_all_nine_fields_and_original_exact_limits",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_cold_selection_is_explicit_nonempty_and_excludes_any_development_key",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_complete_observation_schema_rejects_skips_counts_ids_and_missing_frames",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_development_bootstrap_never_enters_production_receipt_verification",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_development_record_cannot_be_admitted_as_a_cold_fixture",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_frozen_input_binding_rejects_bytes_modes_duplicates_and_links",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_invalid_real_cold_input_refuses_before_fixture_or_builder",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_matching_cold_flag_requires_fresh_actual_authority_again",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_new_sources_and_each_catalog_source_are_required_without_omissions",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_original_nine_business_methods_and_exact_order_remain",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_outer_limits_exit_cleanup_and_exact_types_are_required",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests.test_qualifier_cli_cannot_select_a_development_compiler_or_fixture"
+    ],
+    "original_source5_ids": [
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_complete_generated_hia_and_original_limits",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_exact_original_catalog_all_55_and_three_dedicated_exclusions",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_actual_hia_catalog_selection_and_permanent_rejection",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_packer_all_output_bytes_and_short_output_no_write",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_sha_mismatch_refuses_before_compiler_request"
+    ],
+    "selectors": [
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests"
+    ]
+  },
+  "superseded_r1_proposal": "Candidate policy/packer are standalone build data, not NATIVE_SOURCE_FILES runtime bridges. Use the newly explicit ENTRY_BUILD_FILES family. Do not change the original SOURCE_BUILD_FILES tuple."
+}

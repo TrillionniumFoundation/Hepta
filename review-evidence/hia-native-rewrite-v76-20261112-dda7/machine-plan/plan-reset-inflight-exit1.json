@@ -1,0 +1,30 @@
+{
+  "schema": "hia.machine-plan-r2-reset-admission-failure.v1",
+  "actual_cell": "g2:142",
+  "actual_exit_code": 1,
+  "test_methods_executed": 0,
+  "failure": "manifest absent after environment reset; reader failed before suite loading",
+  "preserved_previous_source_blob": "774c74c08021ae3cac7e2f60839e896e56daf6c2",
+  "preserved_new_visible_patch_blob": "225c264e95b12e2a33eceaedb3ae5f8e668a608c",
+  "r2_full_raw_gap": true,
+  "files": [
+    {
+      "path": "run_component_controls.py",
+      "bytes": 4171,
+      "sha256": "24014d4012dced258fa84c0040e75ccbe7460bd5422abd110ba23b611c4e278e",
+      "content": "\"\"\"Strict, lossless, separately scoped component-control observation.\"\"\"\nfrom pathlib import Path\nimport argparse\nimport hashlib\nimport json\nimport os\nimport platform\nimport sys\nimport time\nimport unittest\n\nparser = argparse.ArgumentParser()\nparser.add_argument('--output', required=True, type=Path)\nparser.add_argument('--manifest', required=True, type=Path)\nparser.add_argument('--tests', nargs='+', default=['tests.test_hia_machine_plan_native'])\nparser.add_argument('--expected', type=int, required=True)\nargs = parser.parse_args()\nBASE = Path(__file__).resolve().parent\nROOT = BASE / 'source'\nOUT = args.output.resolve()\nOUT.mkdir(mode=0o700)\nsys.path.insert(0, str(ROOT))\nos.environ['PYTHONDONTWRITEBYTECODE'] = '1'\nos.environ['HEPTA_HIA_MACHINE_PLAN_DEVELOPMENT_MANIFEST'] = str(args.manifest.resolve())\nos.environ['HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE'] = str(OUT / 'fixture')\nassert not os.environ.get('HEPTA_HIA_MACHINE_PLAN_COLD_REPORT')\n\ndef sha(raw):\n    return hashlib.sha256(raw).hexdigest()\n\ndef snapshot():\n    return {p.relative_to(ROOT).as_posix(): {'bytes': p.stat().st_size, 'sha256': sha(p.read_bytes())}\n            for p in sorted(ROOT.rglob('*')) if p.is_file() and '__pycache__' not in p.parts}\n\ndef save(name, value):\n    (OUT / name).write_text(json.dumps(value, indent=2, sort_keys=True) + '\\n')\n\nbefore = snapshot()\nmanifest_bytes = args.manifest.read_bytes()\nmanifest = json.loads(manifest_bytes)\nimage = args.manifest.parent / manifest['image_path']\nimage_bytes = image.read_bytes()\nsave('source-before.json', before)\nsave('environment.json', {'python': sys.version, 'executable': sys.executable,\n     'platform': platform.platform(), 'scope': 'EXPLICIT_RETAINED_COMPILER_DEVELOPMENT',\n     'manifest': str(args.manifest), 'manifest_sha256': sha(manifest_bytes),\n     'image_sha256': sha(image_bytes), 'current_cold': False})\nnames = []\nsuite = unittest.defaultTestLoader.loadTestsFromNames(args.tests)\n\ndef ids(suite):\n    for item in suite:\n        if isinstance(item, unittest.TestSuite):\n            yield from ids(item)\n        else:\n            yield item.id()\n\nloaded = list(ids(suite))\nassert len(loaded) == args.expected and len(set(loaded)) == len(loaded), loaded\nsave('loaded-test-ids.json', loaded)\n\nclass Result(unittest.TextTestResult):\n    def startTest(self, test):\n        names.append(test.id())\n        super().startTest(test)\n\nstart = time.monotonic_ns()\nresult = unittest.TextTestRunner(verbosity=2, resultclass=Result).run(suite)\nelapsed = time.monotonic_ns() - start\nafter = snapshot()\nsave('source-after.json', after)\nunchanged = before == after and args.manifest.read_bytes() == manifest_bytes and image.read_bytes() == image_bytes\nsuccess = (result.wasSuccessful() and result.testsRun == args.expected and names == loaded\n           and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses\n           and unchanged)\nbridge = sys.modules.get('hepta.hia_machine_plan_control_native')\nunknown = 0 if bridge is None else len(bridge._UNCONFIRMED_RETIREMENTS)\nnative_tests = sys.modules.get('tests.test_hia_machine_plan_native')\nowner = None if native_tests is None else getattr(native_tests.MachinePlanNativeTests, 'native', None)\nreport = {'status': 'PASS' if success else 'FAIL', 'scope': 'COMPONENT_DEVELOPMENT_ONLY',\n          'loaded': loaded, 'executed': names, 'tests_run': result.testsRun,\n          'errors': [(x.id(), text) for x, text in result.errors],\n          'failures': [(x.id(), text) for x, text in result.failures],\n          'skips': [(x.id(), text) for x, text in result.skipped],\n          'expected_failures': [(x.id(), text) for x, text in result.expectedFailures],\n          'unexpected_successes': [x.id() for x in result.unexpectedSuccesses],\n          'source_and_inputs_unchanged': unchanged, 'elapsed_ns': elapsed,\n          'native_entries_parent_only': None if owner is None else owner.entries,\n          'unknown_retirement_count': unknown, 'manifest': manifest,\n          'current_cold': False, 'whole_backend_qualified': False}\nsave('RESULT.json', report)\nprint(json.dumps(report, sort_keys=True, indent=2))\nraise SystemExit(0 if success else 1)\n"
+    },
+    {
+      "path": "peer-controls-r1.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "content": ""
+    },
+    {
+      "path": "peer-controls-r1.stderr",
+      "bytes": 784,
+      "sha256": "eb4d04f2a9f3f4b4307c365a05598a1e29654ad9b82e7c44f6da4d842a8a3d0e",
+      "content": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v76-machine-plan-development/run_component_controls.py\", line 39, in <module>\n    manifest_bytes = args.manifest.read_bytes()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 1019, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 1013, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'control-compile-r2/manifest.json'\n"
+    }
+  ]
+}

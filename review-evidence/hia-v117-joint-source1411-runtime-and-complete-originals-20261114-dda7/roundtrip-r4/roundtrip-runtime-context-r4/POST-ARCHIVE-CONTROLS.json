@@ -1,0 +1,119 @@
+{
+  "files": [
+    {
+      "bytes": 305,
+      "git_blob": "7875f4b306f203c51d542cdee46c7889f6e2bcd2",
+      "mode": "100644",
+      "path": "freeze-runtime-raw-r4.stdout.log",
+      "sha256": "ec63492ddf254b1e19e29a126c99967a8646dc80b3c53587e1001e28db5f6e20",
+      "text": "{\"status\": \"LOCAL_COMPLETE_RAW_VERIFIED_GIT_PENDING\", \"files\": 136, \"directories\": 14, \"logical_bytes\": 4801549, \"archive\": {\"bytes\": 1441073, \"sha256\": \"05466c03d666a536972c81edb5d13e243317ffef5e6b828e9524f53ca55621ff\", \"git_blob\": \"b4d8e3b71904ace3700bc0d2411b9fad914aa19a\"}, \"parts\": 11, \"leaves\": 14}\n"
+    },
+    {
+      "bytes": 0,
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "path": "freeze-runtime-raw-r4.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "bytes": 6911,
+      "git_blob": "39d5ce568c9868df17082eb962a45ed62b355fd5",
+      "mode": "100644",
+      "path": "finalize_runtime_raw_readback_r4.py",
+      "sha256": "0bcc9a2e34b2eab0dceb9c2d945fcccd89ca39623753e103b931b41f38690b1f",
+      "text": "\"\"\"Restore produced R4 originals only from the actual saved full Git GET bodies.\"\"\"\nfrom pathlib import Path\nimport hashlib\nimport json\nimport stat\nimport subprocess\nimport time\n\nHERE=Path('/workspace/scratch/dda74a4fae35/v114-roundtrip-portable-r1')\nROOT=HERE/'handoff-runtime-context-r4'\nGET=ROOT/'git-get-restored-leaves'\nOUT=ROOT/'git-restored-originals'\ndef pin(raw):\n    return {'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),\n            'git_blob':hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\\0'+raw).hexdigest()}\ndef wire(value):return (json.dumps(value,sort_keys=True,indent=2,ensure_ascii=False)+'\\n').encode()\ndef read(path):return json.loads(path.read_bytes())\ndef save(name,value):\n    raw=wire(value)\n    with (ROOT/name).open('xb') as stream:stream.write(raw)\n    return {'name':name,**pin(raw)}\ndef payload(value):\n    result=value['structuredContent']\n    return json.loads(result['content']) if type(result.get('content')) is str else result\nrows=[]\nfor name in ('PUBLISH-PLAN-CORE.json','PUBLISH-PLAN-CORE-READBACK.json','PUBLISH-PLAN-CORE-RECIPE.json','PUBLISH-PLAN-RAW.json'):\n    rows.extend(read(ROOT/name)['entries'])\nassert len(rows)==len({row['name'] for row in rows})==25\nGET.mkdir();checked=[]\nfor row in rows:\n    name=row['name'];pub=ROOT/'publication';raw=(ROOT/name).read_bytes()\n    post=read(pub/(name+'-blob.response.json'));get=read(pub/(name+'-readback.response.json'))\n    receipt=read(pub/(name+'-receipt.json'));intent=read(pub/(name+'-blob.intent.json'))\n    assert post.get('isError') is not True and payload(post)['sha']==row['git_blob']\n    actual=get['structuredContent']['content'].encode()\n    assert get.get('isError') is not True and actual==raw and pin(actual)=={key:row[key] for key in pin(raw)}\n    assert intent['args']=={'repository_full_name':'TrillionniumFoundation/Hepta','content':actual.decode(),'encoding':'utf-8'}\n    assert receipt=={'status':'ACK_FULL_GET_MATCH',**row}\n    with (GET/name).open('xb') as stream:stream.write(actual)\n    checked.append({**row,'POST_ACK_sha_verified':True,'full_GET_bytes_verified':True,\n        'post_response':pin((pub/(name+'-blob.response.json')).read_bytes()),\n        'get_response':pin((pub/(name+'-readback.response.json')).read_bytes()),\n        'receipt':pin((pub/(name+'-receipt.json')).read_bytes())})\nfirst=save('RAW-GIT-READBACK.json',{'schema':'hepta.hia.roundtrip-runtime-all-git-readback.v1',\n    'status':'ALL_25_ORIGINAL_LEAVES_ACK_FULL_GET_RECOMPUTED','entries':checked,'count':25,\n    'transport_errors':[],'all_in_flight_completed':True,'ref_mutation':False,'product_execution':False})\ncommand=['python','-B',str(GET/'restore.py'),str(GET),str(OUT)]\nsave('RESTORE-INTENT.json',{'command':command,'source':'Actual Git GET bodies only',\n    'runtime_used_for_evidence_restore_only':'system Python stdlib; no product imports','product_execution':False})\nstart=time.monotonic_ns()\nwith (ROOT/'RESTORE.stdout.log').open('xb') as stdout,(ROOT/'RESTORE.stderr.log').open('xb') as stderr:\n    result=subprocess.run(command,stdout=stdout,stderr=stderr,check=False)\nsave('RESTORE-EXIT.json',{'returncode':result.returncode,'wall_ns':time.monotonic_ns()-start})\nassert result.returncode==0\nindex=read(GET/'RAW-INDEX.json');observed={};directories={}\nfor path in sorted(OUT.rglob('*')):\n    assert not path.is_symlink();info=path.lstat();name=path.relative_to(OUT).as_posix()\n    if stat.S_ISDIR(info.st_mode):directories[name]=stat.S_IMODE(info.st_mode);continue\n    assert stat.S_ISREG(info.st_mode);raw=path.read_bytes()\n    observed[name]={**pin(raw),'mode':f'{info.st_mode:06o}'}\n    assert raw==(HERE/name).read_bytes(),name\n    assert info.st_mode==(HERE/name).stat().st_mode,name\nassert observed==index['files'] and directories==index['directories']\nassert len(observed)==136 and sum(row['bytes'] for row in observed.values())==4801549 and len(directories)==14\nproof={'schema':'hepta.hia.roundtrip-runtime-actual-git-restore.v1','status':'FULL_PRODUCED_RAW_RESTORED_FROM_ACTUAL_GIT_GET',\n    'files':len(observed),'directories':len(directories),'logical_bytes':index['logical_bytes'],\n    'gzip':index['archive'],'all_original_bytes_modes_SHA_Git_exact':True,\n    'command':command,'returncode':result.returncode,'wall_ns':time.monotonic_ns()-start,\n    'restore_stdout':(ROOT/'RESTORE.stdout.log').read_text(),'restore_stderr':(ROOT/'RESTORE.stderr.log').read_text(),\n    'source_base_self_contained':False,'external_runtime_binaries_not_embedded':True,\n    'source_tree':'ecaf40b0a56f2a0a8548b8c6c842374e1b09aac7','product_execution':False,'whole_native':False}\nsecond=save('RESTORE-READBACK.json',proof)\ncontrols=[]\nfor path in (HERE/'freeze-runtime-raw-r4.stdout.log',HERE/'freeze-runtime-raw-r4.stderr.log',\n             HERE/'finalize_runtime_raw_readback_r4.py',ROOT/'RESTORE-INTENT.json',ROOT/'RESTORE-EXIT.json',\n             ROOT/'RESTORE.stdout.log',ROOT/'RESTORE.stderr.log'):\n    raw=path.read_bytes();controls.append({'path':path.relative_to(HERE).as_posix(),**pin(raw),\n        'mode':f'{path.stat().st_mode:06o}','text':raw.decode()})\nfor path in sorted((ROOT/'publication').glob('raw-batch-*.json')):\n    raw=path.read_bytes();controls.append({'path':path.relative_to(HERE).as_posix(),**pin(raw),\n        'mode':f'{path.stat().st_mode:06o}','text':raw.decode()})\nthird=save('POST-ARCHIVE-CONTROLS.json',{'schema':'hepta.hia.roundtrip-runtime-restore-controls.v1',\n    'status':'COMPLETE_SMALL_RESTORE_AND_BATCH_ORIGINALS','files':controls,'product_execution':False})\nfourth=save('COMPLETE-README.json',{'status':'COMPLETE_R4_SOURCE23_RUNTIME_PROBE_AND_136_PRODUCED_ORIGINALS',\n    'source_recipe_core':'1b9544c7db8f409eead924f950ac5447ed49dd7a',\n    'Source23':'Actual CPython3.14.4; exact23 IDs/46 events; original22 relative order and original16 file unchanged.',\n    'runtime_probe':'Actual qualifier owner after parent LD_LIBRARY_PATH/LD_PRELOAD removal; complete context/owner/child output binding; original180+3 cleanup/ECHILD.',\n    'raw_restoration':proof,'earlier_pending_fields':'The small core handoff and RAW-INDEX retain their truthful pre-final-transport status. This final proof records the subsequent complete actual Git restoration; none of those historical files was rewritten.',\n    'limits':'No matching-current-cold positive, Native140, VM, portable or whole/default qualification here. Separate checker6 remains5PASS/1FAIL.',\n    'external_dependencies':'The exact R3 repository base and original interpreter/library distributions remain explicit external inputs; only produced originals and four source before/after files are claimed restored.',\n    'ref_mutation':False})\nsave('PUBLISH-PLAN-FINAL-CONTROLS.json',{'entries':[first,second,third,fourth]})\nprint(json.dumps({'status':proof['status'],'files':proof['files'],'logical_bytes':proof['logical_bytes'],\n    'directories':proof['directories'],'new_entries':[first,second,third,fourth]}))\n"
+    },
+    {
+      "bytes": 567,
+      "git_blob": "74066fe4cb180a45373ea78f4b1974165d643c9e",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/RESTORE-INTENT.json",
+      "sha256": "c0da4913b43c75fc30ac8e8f69369a6a70c852f8a2a60ed0afa61c0841be24e3",
+      "text": "{\n  \"command\": [\n    \"python\",\n    \"-B\",\n    \"/workspace/scratch/dda74a4fae35/v114-roundtrip-portable-r1/handoff-runtime-context-r4/git-get-restored-leaves/restore.py\",\n    \"/workspace/scratch/dda74a4fae35/v114-roundtrip-portable-r1/handoff-runtime-context-r4/git-get-restored-leaves\",\n    \"/workspace/scratch/dda74a4fae35/v114-roundtrip-portable-r1/handoff-runtime-context-r4/git-restored-originals\"\n  ],\n  \"product_execution\": false,\n  \"runtime_used_for_evidence_restore_only\": \"system Python stdlib; no product imports\",\n  \"source\": \"Actual Git GET bodies only\"\n}\n"
+    },
+    {
+      "bytes": 46,
+      "git_blob": "9a0402e15eb4c10751e2ab3b790ceb6815db5c7e",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/RESTORE-EXIT.json",
+      "sha256": "0e7034541404df2e4965cf45ef0785372a3377092b516531549dce98f3d411a1",
+      "text": "{\n  \"returncode\": 0,\n  \"wall_ns\": 155875025\n}\n"
+    },
+    {
+      "bytes": 133,
+      "git_blob": "4d42251ec8ee3a8e26987a2c8c8791c344352139",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/RESTORE.stdout.log",
+      "sha256": "55222cbabce98a1f11c8bb976c1580eb008cca5892da719d1dbe2dbba408bfc7",
+      "text": "{\"status\": \"FULL_EVIDENCE_RESTORED\", \"files\": 136, \"directories\": 14, \"logical_bytes\": 4801549, \"source_base_self_contained\": false}\n"
+    },
+    {
+      "bytes": 0,
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/RESTORE.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "bytes": 337,
+      "git_blob": "9ac3672adfb6c5543c6b22e41b57848b8a3ceee5",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/publication/raw-batch-000.json",
+      "sha256": "e65dbe7a4eb1b98dd4f1b4b3c2d3ec1a56e98bf2cdb0ccf807bcd3fa11254109",
+      "text": "{\n  \"begin\": 0,\n  \"results\": [\n    {\n      \"name\": \"raw-part-000.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"5497d065a72b54a47b7b14d68b8adb21231cbdc6\"\n    },\n    {\n      \"name\": \"raw-part-001.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"3960501e1253ed041a24356a28dab6dadf378ac7\"\n    }\n  ],\n  \"utc_ms\": 1794621191774\n}\n"
+    },
+    {
+      "bytes": 337,
+      "git_blob": "19c376d9f022e76a52c201a73612e833541fd62a",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/publication/raw-batch-002.json",
+      "sha256": "063b97a694650ca62258824337c9e744c91a0a2502ab32d44739cc5a8f879586",
+      "text": "{\n  \"begin\": 2,\n  \"results\": [\n    {\n      \"name\": \"raw-part-002.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"77c58c12171dacc196ea81f84ec58666dd695315\"\n    },\n    {\n      \"name\": \"raw-part-003.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"ac98163f528ade67b181756f0e0fd84299c99c74\"\n    }\n  ],\n  \"utc_ms\": 1794621207876\n}\n"
+    },
+    {
+      "bytes": 337,
+      "git_blob": "612b07dbf844da8c75f390181f72d45b55d92ce8",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/publication/raw-batch-004.json",
+      "sha256": "1e021effe7f0512fcbe16d8f2ff331f824ddabf1d963c3dbfdd376058aae8efb",
+      "text": "{\n  \"begin\": 4,\n  \"results\": [\n    {\n      \"name\": \"raw-part-004.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"5f9d4986216f87b723f9d813caab5063e759b4b8\"\n    },\n    {\n      \"name\": \"raw-part-005.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"2b6c5e98d63204febc23de849e755a548b77231b\"\n    }\n  ],\n  \"utc_ms\": 1794621224272\n}\n"
+    },
+    {
+      "bytes": 337,
+      "git_blob": "f4f0e86a73bd3293873c1240e36e08c59c56ded4",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/publication/raw-batch-006.json",
+      "sha256": "54ba1cd200a0ebaf0a95b908d8cb3df1597725dbc65b5203aa363862d58cad79",
+      "text": "{\n  \"begin\": 6,\n  \"results\": [\n    {\n      \"name\": \"raw-part-006.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"74da199b9a9c905556db205d152074a0d62fcef9\"\n    },\n    {\n      \"name\": \"raw-part-007.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"2719623e7ad90dd628ba0cc9c104158baebe19ba\"\n    }\n  ],\n  \"utc_ms\": 1794621239643\n}\n"
+    },
+    {
+      "bytes": 337,
+      "git_blob": "1886788aa39e5f2ceef855d733d47e558022ecf1",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/publication/raw-batch-008.json",
+      "sha256": "d646f488f4b239d254943978c8cc8d67cce1b3889538a8519fc578e950e7b046",
+      "text": "{\n  \"begin\": 8,\n  \"results\": [\n    {\n      \"name\": \"raw-part-008.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"7d04c18dae67ef2d46980fc3d777ac3e461a807e\"\n    },\n    {\n      \"name\": \"raw-part-009.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"50f739b853669e7d786b7b84787c248c29149512\"\n    }\n  ],\n  \"utc_ms\": 1794621254569\n}\n"
+    },
+    {
+      "bytes": 336,
+      "git_blob": "851ee2d735f28d87af85a7fd8879806e1b5f372e",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/publication/raw-batch-010.json",
+      "sha256": "eb0af57559e6b80397498786f6d8f1ba048088af01da3f2a38b458ecea3e0003",
+      "text": "{\n  \"begin\": 10,\n  \"results\": [\n    {\n      \"name\": \"raw-part-010.b64\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"2898b9946e9bb7c5ff072374c216b5a92e8e34a6\"\n    },\n    {\n      \"name\": \"RAW-INDEX.json\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"b31f38fd842b01135dbf13365c6725a0204bb12a\"\n    }\n  ],\n  \"utc_ms\": 1794621269930\n}\n"
+    },
+    {
+      "bytes": 329,
+      "git_blob": "667b37202916d81b2a3bfe159a7385e4dec371b9",
+      "mode": "100644",
+      "path": "handoff-runtime-context-r4/publication/raw-batch-012.json",
+      "sha256": "315c6d5a0c334578ff6ca38eafc41dafc22c3546618393a5562579dfd9290219",
+      "text": "{\n  \"begin\": 12,\n  \"results\": [\n    {\n      \"name\": \"restore.py\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"22685eb5a19041a47e6441d2c79c5cf4a8e2b322\"\n    },\n    {\n      \"name\": \"RAW-README.md\",\n      \"status\": \"fulfilled\",\n      \"git_blob\": \"7b4fdc7e9bb10f04398e583bf77e0d9f271d7503\"\n    }\n  ],\n  \"utc_ms\": 1794621274076\n}\n"
+    }
+  ],
+  "product_execution": false,
+  "schema": "hepta.hia.roundtrip-runtime-restore-controls.v1",
+  "status": "COMPLETE_SMALL_RESTORE_AND_BATCH_ORIGINALS"
+}

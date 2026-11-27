@@ -1,0 +1,942 @@
+﻿2026-11-11T21:54:56.4530261Z Current runner version: '2.338.2'
+2026-11-11T21:54:56.4556693Z ##[group]Runner Image Provisioner
+2026-11-11T21:54:56.4557570Z Hosted Compute Agent
+2026-11-11T21:54:56.4558272Z Version: 20261028.624
+2026-11-11T21:54:56.4558915Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-11T21:54:56.4559848Z Build Date: 2026-10-28T21:51:42Z
+2026-11-11T21:54:56.4560564Z Worker ID: {e25f21ff-6733-479b-ab42-8c926ed2fcd1}
+2026-11-11T21:54:56.4561522Z Region: westus
+2026-11-11T21:54:56.4562162Z Cloud: Azure
+2026-11-11T21:54:56.4562708Z ##[endgroup]
+2026-11-11T21:54:56.4564686Z ##[group]Operating System
+2026-11-11T21:54:56.4565459Z Ubuntu
+2026-11-11T21:54:56.4565983Z 24.04.5
+2026-11-11T21:54:56.4566537Z LTS
+2026-11-11T21:54:56.4567081Z ##[endgroup]
+2026-11-11T21:54:56.4567685Z ##[group]Runner Image
+2026-11-11T21:54:56.4568381Z Image: ubuntu-24.04
+2026-11-11T21:54:56.4568954Z Version: 20261101.360.1
+2026-11-11T21:54:56.4570311Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-11T21:54:56.4572306Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-11T21:54:56.4573447Z ##[endgroup]
+2026-11-11T21:54:56.4574622Z ##[group]GITHUB_TOKEN Permissions
+2026-11-11T21:54:56.4576648Z Contents: read
+2026-11-11T21:54:56.4577298Z Metadata: read
+2026-11-11T21:54:56.4577963Z Packages: read
+2026-11-11T21:54:56.4578561Z ##[endgroup]
+2026-11-11T21:54:56.4581546Z Secret source: Actions
+2026-11-11T21:54:56.4582682Z Cache mode: write
+2026-11-11T21:54:56.4583633Z Prepare workflow directory
+2026-11-11T21:54:56.4947944Z Prepare all required actions
+2026-11-11T21:54:56.4997786Z Getting action download info
+2026-11-11T21:54:56.8751557Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-11T21:54:56.9820941Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-11T21:54:57.1717694Z Complete job name: source
+2026-11-11T21:54:57.2639879Z ##[group]Run actions/checkout@v4
+2026-11-11T21:54:57.2640815Z with:
+2026-11-11T21:54:57.2641506Z   repository: TrillionniumFoundation/Hepta
+2026-11-11T21:54:57.2645690Z   token: ***
+2026-11-11T21:54:57.2646134Z   ssh-strict: true
+2026-11-11T21:54:57.2646579Z   ssh-user: git
+2026-11-11T21:54:57.2647026Z   persist-credentials: true
+2026-11-11T21:54:57.2647531Z   clean: true
+2026-11-11T21:54:57.2647991Z   sparse-checkout-cone-mode: true
+2026-11-11T21:54:57.2648523Z   fetch-depth: 1
+2026-11-11T21:54:57.2648961Z   fetch-tags: false
+2026-11-11T21:54:57.2649402Z   show-progress: true
+2026-11-11T21:54:57.2649852Z   lfs: false
+2026-11-11T21:54:57.2650260Z   submodules: false
+2026-11-11T21:54:57.2650717Z   set-safe-directory: true
+2026-11-11T21:54:57.2651360Z   allow-unsafe-pr-checkout: false
+2026-11-11T21:54:57.2652155Z ##[endgroup]
+2026-11-11T21:54:57.5845916Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-11T21:54:57.5849414Z ##[group]Getting Git version info
+2026-11-11T21:54:57.5851041Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-11T21:54:57.5854016Z [command]/usr/bin/git version
+2026-11-11T21:54:57.5965115Z git version 2.56.0
+2026-11-11T21:54:57.5993187Z ##[endgroup]
+2026-11-11T21:54:57.6012014Z Temporarily overriding HOME='/home/runner/work/_temp/7bab4683-3bdf-48b9-924f-e9f128ad743d' before making global git config changes
+2026-11-11T21:54:57.6014214Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T21:54:57.6019488Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-11T21:54:57.6113850Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-11T21:54:57.6117810Z ##[group]Initializing the repository
+2026-11-11T21:54:57.6119656Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-11T21:54:57.6256750Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-11T21:54:57.6259665Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-11T21:54:57.6262001Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-11T21:54:57.6263309Z hint: call:
+2026-11-11T21:54:57.6263839Z hint:
+2026-11-11T21:54:57.6264473Z hint: 	git config --global init.defaultBranch <name>
+2026-11-11T21:54:57.6265647Z hint:
+2026-11-11T21:54:57.6266878Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-11T21:54:57.6268797Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-11T21:54:57.6270378Z hint:
+2026-11-11T21:54:57.6271639Z hint: 	git branch -m <name>
+2026-11-11T21:54:57.6272749Z hint:
+2026-11-11T21:54:57.6274099Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-11T21:54:57.6276156Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-11T21:54:57.6284354Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T21:54:57.6377805Z ##[endgroup]
+2026-11-11T21:54:57.6379937Z ##[group]Disabling automatic garbage collection
+2026-11-11T21:54:57.6382643Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-11T21:54:57.6431946Z ##[endgroup]
+2026-11-11T21:54:57.6433710Z ##[group]Setting up auth
+2026-11-11T21:54:57.6439061Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T21:54:57.6488888Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T21:54:57.6929037Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T21:54:57.6975401Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T21:54:57.7228053Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T21:54:57.7274813Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T21:54:57.7527941Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-11T21:54:57.7579246Z ##[endgroup]
+2026-11-11T21:54:57.7591658Z ##[group]Fetching the repository
+2026-11-11T21:54:57.7594140Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +67382498b9d60bfecf3696d8c2cb632d8f20281b:refs/remotes/origin/codex/hia-native-self-rewrite-20261111-dda7
+2026-11-11T21:55:00.5500299Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T21:55:00.5505307Z  * [new ref]         67382498b9d60bfecf3696d8c2cb632d8f20281b -> origin/codex/hia-native-self-rewrite-20261111-dda7
+2026-11-11T21:55:00.5511917Z ##[endgroup]
+2026-11-11T21:55:00.5513725Z ##[group]Determining the checkout info
+2026-11-11T21:55:00.5515487Z ##[endgroup]
+2026-11-11T21:55:00.5517121Z [command]/usr/bin/git sparse-checkout disable
+2026-11-11T21:55:00.5592813Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-11T21:55:00.5652244Z ##[group]Checking out the ref
+2026-11-11T21:55:00.5658764Z [command]/usr/bin/git checkout --progress --force -B codex/hia-native-self-rewrite-20261111-dda7 refs/remotes/origin/codex/hia-native-self-rewrite-20261111-dda7
+2026-11-11T21:55:00.9458787Z Switched to a new branch 'codex/hia-native-self-rewrite-20261111-dda7'
+2026-11-11T21:55:00.9463933Z branch 'codex/hia-native-self-rewrite-20261111-dda7' set up to track 'origin/codex/hia-native-self-rewrite-20261111-dda7'.
+2026-11-11T21:55:00.9499105Z ##[endgroup]
+2026-11-11T21:55:00.9560157Z [command]/usr/bin/git log -1 --format=%H
+2026-11-11T21:55:00.9594584Z 67382498b9d60bfecf3696d8c2cb632d8f20281b
+2026-11-11T21:55:00.9889030Z ##[group]Run actions/setup-python@v5
+2026-11-11T21:55:00.9889547Z with:
+2026-11-11T21:55:00.9890055Z   python-version: 3.14
+2026-11-11T21:55:00.9890295Z   check-latest: false
+2026-11-11T21:55:00.9893137Z   token: ***
+2026-11-11T21:55:00.9893386Z   update-environment: true
+2026-11-11T21:55:00.9893639Z   allow-prereleases: false
+2026-11-11T21:55:00.9893875Z   freethreaded: false
+2026-11-11T21:55:00.9894097Z ##[endgroup]
+2026-11-11T21:55:01.1347467Z ##[group]Installed versions
+2026-11-11T21:55:01.1455552Z (node:2325) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T21:55:01.1456962Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T21:55:01.1457743Z Successfully set up CPython (3.14.10)
+2026-11-11T21:55:01.1458538Z ##[endgroup]
+2026-11-11T21:55:01.1695650Z ##[group]Run set -eu
+2026-11-11T21:55:01.1696212Z [36;1mset -eu[0m
+2026-11-11T21:55:01.1703357Z [36;1mfor component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace slot_ledger program_execution static_budget; do[0m
+2026-11-11T21:55:01.1710667Z [36;1m  python -B -m "tools.generate_hia_$component"[0m
+2026-11-11T21:55:01.1711206Z [36;1mdone[0m
+2026-11-11T21:55:01.1711748Z [36;1mgit diff --exit-code[0m
+2026-11-11T21:55:01.1760931Z shell: /usr/bin/bash -e {0}
+2026-11-11T21:55:01.1761627Z env:
+2026-11-11T21:55:01.1762085Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:55:01.1762850Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T21:55:01.1763602Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:55:01.1764261Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:55:01.1764925Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:55:01.1765622Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T21:55:01.1766182Z ##[endgroup]
+2026-11-11T21:55:01.5403843Z core_workspace_pipeline_packer.hiaasm 23023
+2026-11-11T21:55:02.7331510Z core_workspace_facts.hiaasm 188592
+2026-11-11T21:55:02.9666446Z core_workspace_facts_packer.hiaasm 14276
+2026-11-11T21:55:05.1953663Z core_workspace_materialize.hiaasm 352913
+2026-11-11T21:55:05.4517439Z core_workspace_cli_packer.hiaasm 18054
+2026-11-11T21:55:05.7409384Z capability_renaming.hiaasm 26754
+2026-11-11T21:55:06.2167003Z core_module_graph.hiaasm 61238
+2026-11-11T21:55:07.9229798Z core_workspace_json.hiaasm 255746
+2026-11-11T21:55:08.1586140Z core_workspace_json_packer.hiaasm 14279
+2026-11-11T21:55:08.3678567Z agent_identity.hiaasm 9204
+2026-11-11T21:55:08.8744423Z agent_slice.hiaasm 66340
+2026-11-11T21:55:09.5452128Z elf_static_linker.hiaasm 96052
+2026-11-11T21:55:09.7800680Z native_filter_packer.hiaasm 14265
+2026-11-11T21:55:10.0286338Z core_json_cli_packer.hiaasm 17753
+2026-11-11T21:55:10.5015805Z agent_stdio_dispatch.hiaasm 30500
+2026-11-11T21:55:10.5016500Z agent_stdio_packer.hiaasm 32946
+2026-11-11T21:55:10.7665765Z agent_snapshot.hiaasm 19311
+2026-11-11T21:55:11.5835259Z agent_snapshot_json.hiaasm 114728
+2026-11-11T21:55:11.8300835Z agent_snapshot_json_packer.hiaasm 14271
+2026-11-11T21:55:12.1464923Z sha256_stream.hiaasm 30784
+2026-11-11T21:55:12.4087629Z native_observer_packer.hiaasm 20355
+2026-11-11T21:55:12.6994589Z sha256.hiaasm 24479
+2026-11-11T21:55:13.1630085Z json_preflight.hiaasm 56409
+2026-11-11T21:55:13.7788238Z json_decode.hiaasm 82026
+2026-11-11T21:55:14.5490058Z json_canonical.hiaasm 106345
+2026-11-11T21:55:15.6356521Z core_json_frontend.hiaasm 160831
+2026-11-11T21:55:18.4459254Z {"blocks": 1459, "bytes": 462749, "functions": {"account_nodes": "f44", "adjacent": "f28", "align8": "f42", "args": "f4", "bulk_buffer": "f49", "bulk_range_guard": "f48", "call_loan": "f106", "call_results": "f95", "cast_integer": "f89", "chain_bytes_drop": "f86", "chain_bytes_head": "f87", "chain_bytes_is_empty": "f88", "chain_bytes_pop": "f85", "chain_bytes_push": "f84", "chain_drop_call": "f80", "chain_drop_helper": "f81", "chain_instruction": "f83", "chain_store_transfer": "f82", "check_calls": "f12", "check_graph": "f11", "checked_integer": "f46", "cli_begin": "f107", "cli_finish": "f109", "cli_to": "f108", "compile": "f0", "copy_argument": "f16", "decimal": "f31", "define": "f8", "discover_blocks": "f119", "edge": "f5", "elf_begin": "f40", "elf_finish": "f41", "elf_section": "f43", "emit": "f25", "emit4": "f24", "emit8": "f23", "emit_bytes": "f45", "expect": "f27", "explicit_trap": "f102", "export_loader_hook": "f124", "export_wrapper": "f122", "exports_finish": "f123", "fail": "f35", "fix_all": "f22", "frame": "f15", "function_start": "f14", "get": "f37", "guard_failure": "f110", "identifier": "f111", "instruction": "f6", "instruction_ahead": "f117", "instruction_effects": "f92", "integer_type": "f96", "integer_width": "f99", "is_word": "f32", "keyword": "f33", "load_var": "f17", "loan_access": "f52", "loan_ancestor": "f53", "loan_argument": "f60", "loan_borrow": "f56", "loan_call": "f58", "loan_finish": "f57", "loan_incoming": "f59", "loan_live": "f51", "loan_operation": "f54", "loan_produce": "f55", "loan_transfer": "f61", "lookup_identifier": "f113", "match": "f34", "mem": "f20", "next_token": "f30", "normalize": "f19", "operation": "f7", "operation_dispatch": "f50", "owned_allocate_libc": "f74", "owned_branch": "f70", "owned_define_outputs": "f69", "owned_drop_libc": "f75", "owned_elf_finish": "f79", "owned_elf_relocations": "f78", "owned_immediate": "f72", "owned_import": "f73", "owned_instruction": "f77", "owned_move_buffer": "f76", "owned_patch": "f71", "owned_read_outputs": "f68", "owner_call_consume": "f65", "owner_consume": "f64", "owner_free": "f62", "owner_produce": "f63", "owner_type": "f67", "parse_block": "f3", "parse_effects": "f90", "parse_function": "f1", "parse_params": "f2", "put": "f36", "read_block_name": "f118", "read_exports": "f120", "read_function_name": "f114", "read_result_types": "f93", "read_return_loans": "f103", "read_type": "f10", "read_value_name": "f116", "relocation": "f21", "require_effects": "f91", "reserved_function": "f115", "resource_type": "f66", "return_results": "f94", "returned_consume": "f105", "returned_loan": "f104", "same_identifier": "f112", "scalar_literal": "f100", "scalar_type": "f98", "select_scalar": "f47", "separated": "f29", "signed_integer": "f101", "signed_type": "f97", "state_get32": "f39", "state_put32": "f38", "store_var": "f18", "validate_exports": "f121", "variable": "f9", "wrapper": "f13", "write4": "f26"}, "operations": 8104}
+2026-11-11T21:55:18.8523376Z agent_binary64.hiaasm 43647
+2026-11-11T21:55:19.5152671Z agent_data_json.hiaasm 88088
+2026-11-11T21:55:20.2980669Z instruction_policy.hiaasm 113005
+2026-11-11T21:55:21.5675592Z program_shape.hiaasm 184011
+2026-11-11T21:55:22.7669053Z function_shape.hiaasm 174684
+2026-11-11T21:55:24.5496704Z artifact_publication_policy.hiaasm 75050
+2026-11-11T21:55:24.5497337Z artifact_publication_packer.hiaasm 78361
+2026-11-11T21:55:24.7818464Z core_admission_cli_packer.hiaasm 14270
+2026-11-11T21:55:27.2453227Z core_admission.hiaasm 370674
+2026-11-11T21:55:27.7063254Z agent_binary64_format.hiaasm 50408
+2026-11-11T21:55:29.2485436Z core_patch.hiaasm 240523
+2026-11-11T21:55:29.5348619Z core_patch_cli_packer.hiaasm 24804
+2026-11-11T21:55:29.8178894Z core_patch_result_cli_packer.hiaasm 25183
+2026-11-11T21:55:32.1710763Z composite_types.hiaasm 375307
+2026-11-11T21:55:33.0530569Z task_helpers.hiaasm 122639
+2026-11-11T21:55:34.9554123Z worker_request.hiaasm 294621
+2026-11-11T21:55:35.9029609Z release_install_policy.hiaasm 79141
+2026-11-11T21:55:35.9030179Z release_install_packer.hiaasm 67523
+2026-11-11T21:55:37.1780978Z enum_match.hiaasm 185264
+2026-11-11T21:55:38.1402698Z release_selection_policy.hiaasm 66917
+2026-11-11T21:55:38.1403295Z release_selection_packer.hiaasm 89755
+2026-11-11T21:55:39.1796963Z enum_operations.hiaasm 144980
+2026-11-11T21:55:40.0926351Z record_operations.hiaasm 120621
+2026-11-11T21:55:41.4437052Z record_transitions.hiaasm 187939
+2026-11-11T21:55:42.2083921Z retirement_state.hiaasm 110279
+2026-11-11T21:55:43.3679971Z task_operations.hiaasm 161515
+2026-11-11T21:55:49.2623236Z composite_function_admit.hiaasm 178792
+2026-11-11T21:55:49.2623825Z composite_function_records.hiaasm 233291
+2026-11-11T21:55:49.2624307Z composite_function_advanced.hiaasm 202332
+2026-11-11T21:55:49.2624845Z composite_function_terms.hiaasm 221724
+2026-11-11T21:55:49.2625279Z composite_function_render.hiaasm 21063
+2026-11-11T21:55:50.2666497Z composite_constructor_owner.hiaasm 115087
+2026-11-11T21:55:50.2667092Z composite_constructor_render.hiaasm 21066
+2026-11-11T21:55:51.3026634Z composite_outer_owner.hiaasm 119321
+2026-11-11T21:55:51.3027183Z composite_outer_render.hiaasm 21059
+2026-11-11T21:55:52.2803232Z call_primitive.hiaasm 126123
+2026-11-11T21:55:53.2039872Z nominal_terminators.hiaasm 123132
+2026-11-11T21:55:53.9532892Z nominal_module.hiaasm 94927
+2026-11-11T21:55:54.8936755Z nominal_admission.hiaasm 125304
+2026-11-11T21:55:55.4768473Z execution_budget.hiaasm 80539
+2026-11-11T21:55:56.2425734Z request_journal.hiaasm 112869
+2026-11-11T21:55:56.9720795Z task_helper_cache.hiaasm 90827
+2026-11-11T21:55:58.3190649Z artifact_namespace.hiaasm 219862
+2026-11-11T21:55:59.7640151Z slot_ledger.hiaasm 226969
+2026-11-11T21:56:01.8056435Z program_execution.hiaasm 298173
+2026-11-11T21:56:04.2218448Z static_budget.hiaasm 368297
+2026-11-11T21:56:04.9117703Z ##[group]Run python -B tools/check_hia_core_only.py
+2026-11-11T21:56:04.9118133Z [36;1mpython -B tools/check_hia_core_only.py[0m
+2026-11-11T21:56:04.9139914Z shell: /usr/bin/bash -e {0}
+2026-11-11T21:56:04.9140175Z env:
+2026-11-11T21:56:04.9140460Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:04.9140922Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T21:56:04.9141670Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:04.9142081Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:04.9142503Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:04.9142919Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T21:56:04.9143264Z ##[endgroup]
+2026-11-11T21:56:14.3394159Z {"high_level_source_language": "removed", "package_python_files": 178, "python_source_files": 1177, "schema": "hepta.hia.core-only-source-check.v1", "source_manifest_sha256": "fbc1505790405b970ab7e8fb0f75c059b4cf8110380b0e20ea851902130877f9", "status": "PASS", "whole_native_delivery_qualified": false}
+2026-11-11T21:56:14.3533257Z ##[group]Run python -B tools/generate_hia_selfhost_contract.py --check
+2026-11-11T21:56:14.3533870Z [36;1mpython -B tools/generate_hia_selfhost_contract.py --check[0m
+2026-11-11T21:56:14.3554780Z shell: /usr/bin/bash -e {0}
+2026-11-11T21:56:14.3555048Z env:
+2026-11-11T21:56:14.3555333Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:14.3555818Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T21:56:14.3556299Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:14.3556732Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:14.3557159Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:14.3557591Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T21:56:14.3558148Z ##[endgroup]
+2026-11-11T21:56:14.4559366Z {"mode": "checked", "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json", "profile": "selfhost-core-linux-x86_64-v69-native-execution-integration-pending", "source_files": 771}
+2026-11-11T21:56:14.4696326Z ##[group]Run python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
+2026-11-11T21:56:14.4697140Z [36;1mpython -B tests/test_hia_selfhost_language_coverage.py --generate-inventory[0m
+2026-11-11T21:56:14.4718763Z shell: /usr/bin/bash -e {0}
+2026-11-11T21:56:14.4719060Z env:
+2026-11-11T21:56:14.4719371Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:14.4719897Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T21:56:14.4720421Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:14.4720877Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:14.4721623Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:14.4722152Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T21:56:14.4722557Z ##[endgroup]
+2026-11-11T21:56:17.5917490Z {"inventory": "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json", "sha256": "75a2e717ac252b991d0313512c366e311649edfd5d1fe5b4ea93e43992a29018"}
+2026-11-11T21:56:17.6146443Z ##[group]Run git diff --exit-code
+2026-11-11T21:56:17.6146800Z [36;1mgit diff --exit-code[0m
+2026-11-11T21:56:17.6167248Z shell: /usr/bin/bash -e {0}
+2026-11-11T21:56:17.6167526Z env:
+2026-11-11T21:56:17.6167822Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:17.6168333Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T21:56:17.6168831Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:17.6169285Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:17.6169721Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:17.6170164Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T21:56:17.6170545Z ##[endgroup]
+2026-11-11T21:56:17.6385391Z ##[group]Run python -B - <<'PY'
+2026-11-11T21:56:17.6385794Z [36;1mpython -B - <<'PY'[0m
+2026-11-11T21:56:17.6386040Z [36;1mimport unittest[0m
+2026-11-11T21:56:17.6386272Z [36;1mnames = ([0m
+2026-11-11T21:56:17.6386560Z [36;1m    'tests.test_hia_core_only',[0m
+2026-11-11T21:56:17.6386882Z [36;1m    'tests.test_hia_evidence_archive',[0m
+2026-11-11T21:56:17.6387351Z [36;1m    'tests.test_hia_core_workspace_facts_native.CoreWorkspaceFactsSourceTests',[0m
+2026-11-11T21:56:17.6388014Z [36;1m    'tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests',[0m
+2026-11-11T21:56:17.6388544Z [36;1m    'tests.test_hia_core_string_accounting',[0m
+2026-11-11T21:56:17.6388877Z [36;1m    'tests.test_hia_structure_traversal',[0m
+2026-11-11T21:56:17.6389323Z [36;1m    'tests.test_hia_capability_renaming_native.CapabilityRenamingSourceTests',[0m
+2026-11-11T21:56:17.6389922Z [36;1m    'tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests',[0m
+2026-11-11T21:56:17.6390360Z [36;1m    'tests.test_hia_source_head_identity',[0m
+2026-11-11T21:56:17.6390683Z [36;1m    'tests.test_hia_integrated_workflow',[0m
+2026-11-11T21:56:17.6391116Z [36;1m    'tests.test_hia_core_workspace_json_native.CoreWorkspaceJsonSourceTests',[0m
+2026-11-11T21:56:17.6391988Z [36;1m    'tests.test_hia_core_workspace_json_cli.CoreWorkspaceJsonCliSourceTests',[0m
+2026-11-11T21:56:17.6392587Z [36;1m    'tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests',[0m
+2026-11-11T21:56:17.6393138Z [36;1m    'tests.test_hia_agent_identity_native.AgentIdentitySourceTests',[0m
+2026-11-11T21:56:17.6393619Z [36;1m    'tests.test_hia_agent_slice_native.AgentSliceSourceTests',[0m
+2026-11-11T21:56:17.6394149Z [36;1m    'tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests',[0m
+2026-11-11T21:56:17.6394667Z [36;1m    'tests.test_hia_agent_stdio.AgentStdioSourceTests',[0m
+2026-11-11T21:56:17.6395332Z [36;1m    'tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests',[0m
+2026-11-11T21:56:17.6395864Z [36;1m    'tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests',[0m
+2026-11-11T21:56:17.6396316Z [36;1m    'tests.test_hia_agent_entry',[0m
+2026-11-11T21:56:17.6396663Z [36;1m    'tests.test_hia_elf_linker.ElfLinkerSourceTests',[0m
+2026-11-11T21:56:17.6397072Z [36;1m    'tests.test_hia_core_json_cli.CoreJsonCliSourceTests',[0m
+2026-11-11T21:56:17.6397487Z [36;1m    'tests.test_hia_selfhost_word_io.WordIOSourceTests',[0m
+2026-11-11T21:56:17.6397916Z [36;1m    'tests.test_hia_selfhost_emitter_words.EmitterSourceTests',[0m
+2026-11-11T21:56:17.6398384Z [36;1m    'tests.test_hia_sha256_stream_native.Sha256StreamSourceTests',[0m
+2026-11-11T21:56:17.6398829Z [36;1m    'tests.test_hia_sha256_native.Sha256HiaSourceTests',[0m
+2026-11-11T21:56:17.6399194Z [36;1m    'tests.test_hia_json_preflight',[0m
+2026-11-11T21:56:17.6399608Z [36;1m    'tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests',[0m
+2026-11-11T21:56:17.6400111Z [36;1m    'tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests',[0m
+2026-11-11T21:56:17.6400601Z [36;1m    'tests.test_hia_json_canonical_native.JsonCanonicalHiaSourceTests',[0m
+2026-11-11T21:56:17.6401066Z [36;1m    'tests.test_hia_selfhost_exports.ExportSourceTests',[0m
+2026-11-11T21:56:17.6401892Z [36;1m    'tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests',[0m
+2026-11-11T21:56:17.6402370Z [36;1m    'tests.test_hia_selfhost.SelfhostSourceTests',[0m
+2026-11-11T21:56:17.6402789Z [36;1m    'tests.test_hia_selfhost_contract.SelfhostContractTests',[0m
+2026-11-11T21:56:17.6403162Z [36;1m    'tests.test_hia_selfhost_cli',[0m
+2026-11-11T21:56:17.6423339Z [36;1m    'tests.test_hia_selfhost_names',[0m
+2026-11-11T21:56:17.6423783Z [36;1m    'tests.test_hia_reference_fixture_efficiency',[0m
+2026-11-11T21:56:17.6424167Z [36;1m    'tests.test_hia_selfhost_returned_loans',[0m
+2026-11-11T21:56:17.6424845Z [36;1m    'tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests',[0m
+2026-11-11T21:56:17.6425355Z [36;1m    'tests.test_hia_selfhost_keywords.SelfhostKeywordTests',[0m
+2026-11-11T21:56:17.6425778Z [36;1m    'tests.test_hia_selfhost_signed.SelfhostSignedTests',[0m
+2026-11-11T21:56:17.6426206Z [36;1m    'tests.test_hia_selfhost_traps.SelfhostExplicitTrapTests',[0m
+2026-11-11T21:56:17.6426707Z [36;1m    'tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests',[0m
+2026-11-11T21:56:17.6427224Z [36;1m    'tests.test_hia_agent_data_json_native.AgentDataJsonSourceTests',[0m
+2026-11-11T21:56:17.6427703Z [36;1m    'tests.test_hia_agent_binary64_native.AgentBinary64SourceTests',[0m
+2026-11-11T21:56:17.6428219Z [36;1m    'tests.test_hia_instruction_policy_native.InstructionPolicySourceTests',[0m
+2026-11-11T21:56:17.6428733Z [36;1m    'tests.test_hia_program_shape_native.ProgramShapeSourceTests',[0m
+2026-11-11T21:56:17.6429209Z [36;1m    'tests.test_hia_function_shape_native.FunctionShapeSourceTests',[0m
+2026-11-11T21:56:17.6429737Z [36;1m    'tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests',[0m
+2026-11-11T21:56:17.6430321Z [36;1m    'tests.test_hia_artifact_publication_route.PublicationRouteSourceTests',[0m
+2026-11-11T21:56:17.6430914Z [36;1m    'tests.test_hia_core_admission_native.CoreAdmissionSourceTests',[0m
+2026-11-11T21:56:17.6431748Z [36;1m    'tests.test_hia_core_admission_cli.CoreAdmissionCliSourceTests',[0m
+2026-11-11T21:56:17.6432230Z [36;1m    'tests.test_hia_core_patch_native.CorePatchSourceTests',[0m
+2026-11-11T21:56:17.6432661Z [36;1m    'tests.test_hia_core_patch_cli.CorePatchCliSourceTests',[0m
+2026-11-11T21:56:17.6433129Z [36;1m    'tests.test_hia_core_patch_result_cli.CorePatchResultCliSourceTests',[0m
+2026-11-11T21:56:17.6433648Z [36;1m    'tests.test_hia_core_patch_result_cli.CorePatchResultCliAdapterTests',[0m
+2026-11-11T21:56:17.6434158Z [36;1m    'tests.test_hia_composite_types_native.CompositeTypesSourceTests',[0m
+2026-11-11T21:56:17.6434823Z [36;1m    'tests.test_hia_composite_types_native.CompositeTypesAdapterTests',[0m
+2026-11-11T21:56:17.6435342Z [36;1m    'tests.test_hia_composite_origins_native.CompositeOriginsAdapterTests',[0m
+2026-11-11T21:56:17.6435905Z [36;1m    'tests.test_hia_composite_signatures_native.CompositeSignaturesAdapterTests',[0m
+2026-11-11T21:56:17.6436439Z [36;1m    'tests.test_hia_task_helpers_native.TaskHelpersSourceTests',[0m
+2026-11-11T21:56:17.6436901Z [36;1m    'tests.test_hia_task_helpers_native.TaskHelpersAdapterTests',[0m
+2026-11-11T21:56:17.6437351Z [36;1m    'tests.test_hia_composite_native_composition.SourceTests',[0m
+2026-11-11T21:56:17.6437821Z [36;1m    'tests.test_hia_composite_functions_native.FunctionSourceTests',[0m
+2026-11-11T21:56:17.6438292Z [36;1m    'tests.test_hia_composite_function_tokens.TokenCodecTests',[0m
+2026-11-11T21:56:17.6438824Z [36;1m    'tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests',[0m
+2026-11-11T21:56:17.6439406Z [36;1m    'tests.test_hia_composite_constructor_source.ConstructorSourceTests',[0m
+2026-11-11T21:56:17.6439918Z [36;1m    'tests.test_hia_composite_constructor_native.ConstructorFrameTests',[0m
+2026-11-11T21:56:17.6440383Z [36;1m    'tests.test_hia_composite_outer_source.OuterSourceTests',[0m
+2026-11-11T21:56:17.6440805Z [36;1m    'tests.test_hia_composite_outer_native.OuterFrameTests',[0m
+2026-11-11T21:56:17.6441208Z [36;1m    'tests.test_hia_native_builder_source_binding',[0m
+2026-11-11T21:56:17.6441877Z [36;1m    'tests.test_hia_standalone_builder_source_binding',[0m
+2026-11-11T21:56:17.6442295Z [36;1m    'tests.test_hia_enum_match_native.EnumMatchSourceTests',[0m
+2026-11-11T21:56:17.6442727Z [36;1m    'tests.test_hia_enum_match_native.EnumMatchAdapterTests',[0m
+2026-11-11T21:56:17.6443190Z [36;1m    'tests.test_hia_enum_operations_native.EnumOperationsSourceTests',[0m
+2026-11-11T21:56:17.6443690Z [36;1m    'tests.test_hia_enum_operations_native.EnumOperationsAdapterTests',[0m
+2026-11-11T21:56:17.6444347Z [36;1m    'tests.test_hia_record_operations_native.RecordOperationsSourceTests',[0m
+2026-11-11T21:56:17.6444882Z [36;1m    'tests.test_hia_record_operations_native.RecordOperationsAdapterTests',[0m
+2026-11-11T21:56:17.6445417Z [36;1m    'tests.test_hia_record_transitions_native.RecordTransitionsSourceTests',[0m
+2026-11-11T21:56:17.6445961Z [36;1m    'tests.test_hia_record_transitions_native.RecordTransitionsAdapterTests',[0m
+2026-11-11T21:56:17.6446490Z [36;1m    'tests.test_hia_retirement_state_native.RetirementStateSourceTests',[0m
+2026-11-11T21:56:17.6446991Z [36;1m    'tests.test_hia_task_operations_native.TaskOperationsSourceTests',[0m
+2026-11-11T21:56:17.6447490Z [36;1m    'tests.test_hia_task_operations_native.TaskOperationsAdapterTests',[0m
+2026-11-11T21:56:17.6448023Z [36;1m    'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',[0m
+2026-11-11T21:56:17.6448594Z [36;1m    'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests',[0m
+2026-11-11T21:56:17.6449125Z [36;1m    'tests.test_hia_worker_request_native.WorkerRequestSourceTests',[0m
+2026-11-11T21:56:17.6449597Z [36;1m    'tests.test_hia_release_install.ReleaseInstallerSourceTests',[0m
+2026-11-11T21:56:17.6450070Z [36;1m    'tests.test_hia_release_selection.ReleaseSelectionSourceTests',[0m
+2026-11-11T21:56:17.6450475Z [36;1m    'tests.test_hia_native_value_graph',[0m
+2026-11-11T21:56:17.6450796Z [36;1m    'tests.test_hia_nominal_owner_routes',[0m
+2026-11-11T21:56:17.6451204Z [36;1m    'tests.test_hia_call_primitive_native.CallPrimitiveSourceTests',[0m
+2026-11-11T21:56:17.6451919Z [36;1m    'tests.test_hia_call_primitive_native.CallPrimitiveAdapterTests',[0m
+2026-11-11T21:56:17.6452445Z [36;1m    'tests.test_hia_nominal_terminators_native.NominalTerminatorsSourceTests',[0m
+2026-11-11T21:56:17.6453006Z [36;1m    'tests.test_hia_nominal_terminators_native.NominalTerminatorsAdapterTests',[0m
+2026-11-11T21:56:17.6453678Z [36;1m    'tests.test_hia_nominal_module_native.NominalModuleSourceTests',[0m
+2026-11-11T21:56:17.6454157Z [36;1m    'tests.test_hia_nominal_module_native.NominalModuleAdapterTests',[0m
+2026-11-11T21:56:17.6454652Z [36;1m    'tests.test_hia_nominal_admission_native.NominalAdmissionSourceTests',[0m
+2026-11-11T21:56:17.6455173Z [36;1m    'tests.test_hia_nominal_admission_native.NominalAdmissionAdapterTests',[0m
+2026-11-11T21:56:17.6455694Z [36;1m    'tests.test_hia_nominal_function_native.NominalFunctionSourceTests',[0m
+2026-11-11T21:56:17.6456208Z [36;1m    'tests.test_hia_nominal_function_native.NominalFunctionAdapterTests',[0m
+2026-11-11T21:56:17.6456714Z [36;1m    'tests.test_hia_task_helper_cache_native.TaskHelperCacheSourceTests',[0m
+2026-11-11T21:56:17.6457227Z [36;1m    'tests.test_hia_task_helper_cache_native.TaskHelperCacheAdapterTests',[0m
+2026-11-11T21:56:17.6457732Z [36;1m    'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',[0m
+2026-11-11T21:56:17.6458234Z [36;1m    'tests.test_hia_request_journal_native.RequestJournalSourceTests',[0m
+2026-11-11T21:56:17.6458755Z [36;1m    'tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests',[0m
+2026-11-11T21:56:17.6459245Z [36;1m    'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',[0m
+2026-11-11T21:56:17.6459719Z [36;1m    'tests.test_hia_program_execution_native.ProgramExecutionSourceTests',[0m
+2026-11-11T21:56:17.6460238Z [36;1m    'tests.test_hia_program_execution_native.ProgramExecutionAdapterTests',[0m
+2026-11-11T21:56:17.6460799Z [36;1m    'tests.test_hia_program_execution_scalars.ProgramExecutionScalarsSourceTests',[0m
+2026-11-11T21:56:17.6461655Z [36;1m    'tests.test_hia_program_execution_integration.ExecutionIntegrationSourceTests',[0m
+2026-11-11T21:56:17.6462213Z [36;1m    'tests.test_hia_static_budget_native.StaticBudgetSourceTests',[0m
+2026-11-11T21:56:17.6462689Z [36;1m    'tests.test_hia_static_budget_native.StaticBudgetAdapterTests',[0m
+2026-11-11T21:56:17.6463352Z [36;1m    'tests.test_hia_static_budget_integration.StaticBudgetIntegrationSourceTests',[0m
+2026-11-11T21:56:17.6463868Z [36;1m    'tests.test_hia_native_bigints.NativeBigIntSourceTests',[0m
+2026-11-11T21:56:17.6464301Z [36;1m    'tests.test_hia_heap_graphs_native.HeapGraphSourceTests',[0m
+2026-11-11T21:56:17.6464680Z [36;1m    'tests.test_hia_native_binary_graph',[0m
+2026-11-11T21:56:17.6465090Z [36;1m    'tests.test_hia_worker_native_helpers.NativeWorkerHelperFixtureTests',[0m
+2026-11-11T21:56:17.6465503Z [36;1m    'tests.test_hia_checker_identity',[0m
+2026-11-11T21:56:17.6465781Z [36;1m)[0m
+2026-11-11T21:56:17.6466227Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))[0m
+2026-11-11T21:56:17.6466999Z [36;1mraise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)[0m
+2026-11-11T21:56:17.6467515Z [36;1mPY[0m
+2026-11-11T21:56:17.6486921Z shell: /usr/bin/bash -e {0}
+2026-11-11T21:56:17.6487188Z env:
+2026-11-11T21:56:17.6487460Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:17.6487912Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T21:56:17.6488364Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:17.6488752Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:17.6489130Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T21:56:17.6489513Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T21:56:17.6489832Z ##[endgroup]
+2026-11-11T21:56:28.8232976Z test_actual_tree_has_no_high_level_source_or_import (tests.test_hia_core_only.CoreOnlyTests.test_actual_tree_has_no_high_level_source_or_import) ... ok
+2026-11-11T21:56:28.8319999Z test_core_route_rejects_source_without_selecting_a_frontend (tests.test_hia_core_only.CoreOnlyTests.test_core_route_rejects_source_without_selecting_a_frontend) ... ok
+2026-11-11T21:56:28.8343405Z test_deleted_harness_cannot_be_advertised_as_a_current_command (tests.test_hia_core_only.CoreOnlyTests.test_deleted_harness_cannot_be_advertised_as_a_current_command) ... ok
+2026-11-11T21:56:28.8345730Z test_only_agent_console_is_installed (tests.test_hia_core_only.CoreOnlyTests.test_only_agent_console_is_installed) ... ok
+2026-11-11T21:56:28.8367365Z test_relative_alias_import_of_removed_parser_refuses (tests.test_hia_core_only.CoreOnlyTests.test_relative_alias_import_of_removed_parser_refuses) ... ok
+2026-11-11T21:56:28.8746600Z test_release_descriptor_does_not_claim_native_completion (tests.test_hia_core_only.CoreOnlyTests.test_release_descriptor_does_not_claim_native_completion) ... ok
+2026-11-11T21:56:28.8767019Z test_removed_cli_instruction_cannot_return_through_documentation (tests.test_hia_core_only.CoreOnlyTests.test_removed_cli_instruction_cannot_return_through_documentation) ... ok
+2026-11-11T21:56:28.8788203Z test_removed_source_fixture_is_refused_without_any_deleted_import (tests.test_hia_core_only.CoreOnlyTests.test_removed_source_fixture_is_refused_without_any_deleted_import) ... ok
+2026-11-11T21:56:29.3750435Z test_source_and_migration_cli_routes_are_rejected (tests.test_hia_core_only.CoreOnlyTests.test_source_and_migration_cli_routes_are_rejected) ... ok
+2026-11-11T21:56:29.3774908Z test_stale_string_selector_refuses_instead_of_disappearing (tests.test_hia_core_only.CoreOnlyTests.test_stale_string_selector_refuses_instead_of_disappearing) ... ok
+2026-11-11T21:56:29.3847254Z test_changed_original_is_detected_before_any_retirement (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_changed_original_is_detected_before_any_retirement) ... ok
+2026-11-11T21:56:29.4085604Z test_exact_binary_modes_and_nested_members_replay (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_exact_binary_modes_and_nested_members_replay) ... ok
+2026-11-11T21:56:29.4124766Z test_in_place_rewrite_during_replay_preserves_originals (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_in_place_rewrite_during_replay_preserves_originals) ... ok
+2026-11-11T21:56:29.4161805Z test_link_boundary_byte_change_with_restored_mtime_is_rejected (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_link_boundary_byte_change_with_restored_mtime_is_rejected) ... ok
+2026-11-11T21:56:29.4192279Z test_member_bytes_changed_during_zip_write_fail_independent_replay (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_member_bytes_changed_during_zip_write_fail_independent_replay) ... ok
+2026-11-11T21:56:29.4212124Z test_member_mutation_during_capture_preserves_all_originals (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_member_mutation_during_capture_preserves_all_originals) ... ok
+2026-11-11T21:56:29.6541807Z test_mid_hash_rewrites_even_when_bytes_and_mtime_are_restored_are_rejected (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_mid_hash_rewrites_even_when_bytes_and_mtime_are_restored_are_rejected) ... ok
+2026-11-11T21:56:29.6568659Z test_missing_owner_symlink_or_failed_replay_preserves_originals (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_missing_owner_symlink_or_failed_replay_preserves_originals) ... ok
+2026-11-11T21:56:29.6617239Z test_original_and_retired_nested_artifact_have_identical_bytes (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_original_and_retired_nested_artifact_have_identical_bytes) ... ok
+2026-11-11T21:56:29.6651111Z test_published_replacement_after_digest_is_rejected (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_published_replacement_after_digest_is_rejected) ... ok
+2026-11-11T21:56:29.6689317Z test_published_replacement_with_same_bytes_and_link_counts_is_rejected (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_published_replacement_with_same_bytes_and_link_counts_is_rejected) ... ok
+2026-11-11T21:56:29.6730311Z test_receipt_time_replacement_preserves_originals_and_discards_unsealed_receipt (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_receipt_time_replacement_preserves_originals_and_discards_unsealed_receipt) ... ok
+2026-11-11T21:56:29.6767796Z test_temporary_replacement_during_replay_preserves_originals (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_temporary_replacement_during_replay_preserves_originals) ... ok
+2026-11-11T21:56:29.6840030Z test_wrong_receipt_or_changed_archive_cannot_substitute_retired_bytes (tests.test_hia_evidence_archive.EvidenceArchiveTests.test_wrong_receipt_or_changed_archive_cannot_substitute_retired_bytes) ... ok
+2026-11-11T21:56:31.9431696Z test_exact_sources_and_independent_VM_fact_bytes (tests.test_hia_core_workspace_facts_native.CoreWorkspaceFactsSourceTests.test_exact_sources_and_independent_VM_fact_bytes) ... ok
+2026-11-11T21:56:31.9946354Z test_independent_VM_packer_before_new_seed_and_refusal_canaries (tests.test_hia_core_workspace_facts_native.CoreWorkspaceFactsSourceTests.test_independent_VM_packer_before_new_seed_and_refusal_canaries) ... ok
+2026-11-11T21:56:32.0329833Z test_incomplete_cold_receipt_refused_before_output_creation (tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests.test_incomplete_cold_receipt_refused_before_output_creation) ... ok
+2026-11-11T21:56:39.6805942Z test_independent_VM_manual_names_and_complete_bytes_before_native_seed (tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests.test_independent_VM_manual_names_and_complete_bytes_before_native_seed) ... ok
+2026-11-11T21:56:39.8443752Z test_independent_VM_packer_and_refusal_canaries_before_native_seed (tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests.test_independent_VM_packer_and_refusal_canaries_before_native_seed) ... ok
+2026-11-11T21:56:39.8449104Z test_actual_structure_byte_gate_refuses_before_canonical_encoder_allocates (tests.test_hia_core_string_accounting.CanonicalStringBudgetTests.test_actual_structure_byte_gate_refuses_before_canonical_encoder_allocates) ... ok
+2026-11-11T21:56:39.9734868Z test_every_ascii_pair_and_escape_boundary_matches_actual_stdlib_wire (tests.test_hia_core_string_accounting.CanonicalStringBudgetTests.test_every_ascii_pair_and_escape_boundary_matches_actual_stdlib_wire) ... ok
+2026-11-11T21:56:39.9738001Z test_surrogates_and_too_small_lower_bound_refuse_with_original_error_categories (tests.test_hia_core_string_accounting.CanonicalStringBudgetTests.test_surrogates_and_too_small_lower_bound_refuse_with_original_error_categories) ... ok
+2026-11-11T21:56:39.9928741Z test_unicode_width_edges_and_mixed_random_payloads_have_exact_unchanged_budgets (tests.test_hia_core_string_accounting.CanonicalStringBudgetTests.test_unicode_width_edges_and_mixed_random_payloads_have_exact_unchanged_budgets) ... ok
+2026-11-11T21:56:39.9931872Z test_capture_remains_detached_and_separate_aliases_are_not_reused (tests.test_hia_structure_traversal.StructureTraversalTests.test_capture_remains_detached_and_separate_aliases_are_not_reused) ... ok
+2026-11-11T21:56:39.9934503Z test_custom_objects_and_subclasses_do_not_gain_execution_hooks (tests.test_hia_structure_traversal.StructureTraversalTests.test_custom_objects_and_subclasses_do_not_gain_execution_hooks) ... ok
+2026-11-11T21:56:39.9959464Z test_cycle_alias_and_sibling_error_priority_remain_exact (tests.test_hia_structure_traversal.StructureTraversalTests.test_cycle_alias_and_sibling_error_priority_remain_exact) ... ok
+2026-11-11T21:56:40.1643802Z test_deterministic_graph_and_budget_corpus_preserves_complete_outcomes (tests.test_hia_structure_traversal.StructureTraversalTests.test_deterministic_graph_and_budget_corpus_preserves_complete_outcomes) ... ok
+2026-11-11T21:56:40.1894154Z test_full_verifier_and_wire_results_remain_identical (tests.test_hia_structure_traversal.StructureTraversalTests.test_full_verifier_and_wire_results_remain_identical) ... ok
+2026-11-11T21:56:40.1945219Z test_growth_and_dictionary_mutation_during_bounded_capture (tests.test_hia_structure_traversal.StructureTraversalTests.test_growth_and_dictionary_mutation_during_bounded_capture) ... ok
+2026-11-11T21:56:40.1974805Z test_mutation_after_child_capture_cannot_change_detached_cells (tests.test_hia_structure_traversal.StructureTraversalTests.test_mutation_after_child_capture_cannot_change_detached_cells) ... ok
+2026-11-11T21:56:40.1980119Z test_oversized_string_refuses_before_any_memo_hash_lookup (tests.test_hia_structure_traversal.StructureTraversalTests.test_oversized_string_refuses_before_any_memo_hash_lookup) ... ok
+2026-11-11T21:56:41.1513520Z test_real_node_depth_byte_and_large_integer_boundaries (tests.test_hia_structure_traversal.StructureTraversalTests.test_real_node_depth_byte_and_large_integer_boundaries) ... ok
+2026-11-11T21:56:41.1878485Z test_repeated_string_accounting_keeps_every_occurrence_and_error_order (tests.test_hia_structure_traversal.StructureTraversalTests.test_repeated_string_accounting_keeps_every_occurrence_and_error_order) ... ok
+2026-11-11T21:56:42.1281602Z test_complete_independent_VM_witness_and_transactional_refusals (tests.test_hia_capability_renaming_native.CapabilityRenamingSourceTests.test_complete_independent_VM_witness_and_transactional_refusals) ... ok
+2026-11-11T21:56:42.1622451Z test_contract_retains_full_limits_and_does_not_claim_general_admission (tests.test_hia_capability_renaming_native.CapabilityRenamingSourceTests.test_contract_retains_full_limits_and_does_not_claim_general_admission) ... ok
+2026-11-11T21:56:42.4519174Z test_failed_full_profile_retains_original_child_evidence_before_assertion (tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests.test_failed_full_profile_retains_original_child_evidence_before_assertion) ... ok
+2026-11-11T21:56:43.8111561Z test_generation_and_complete_independent_VM_result (tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests.test_generation_and_complete_independent_VM_result) ... ok
+2026-11-11T21:56:44.7365390Z test_independent_VM_retains_earlier_import_and_export_refusal_before_late_duplicate (tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests.test_independent_VM_retains_earlier_import_and_export_refusal_before_late_duplicate) ... ok
+2026-11-11T21:56:44.7638163Z test_actual_file_mutation_during_streaming_read_is_refused (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_actual_file_mutation_during_streaming_read_is_refused) ... ok
+2026-11-11T21:56:44.8479846Z test_clean_before_after_and_unchanged_hints_keep_exact_source_identity (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_clean_before_after_and_unchanged_hints_keep_exact_source_identity) ... ok
+2026-11-11T21:56:44.8913414Z test_complete_paths_come_from_raw_tree_even_when_index_removes_a_file (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_complete_paths_come_from_raw_tree_even_when_index_removes_a_file) ... ok
+2026-11-11T21:56:44.9261998Z test_duplicate_raw_tree_paths_are_refused (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_duplicate_raw_tree_paths_are_refused) ... ok
+2026-11-11T21:56:45.0263047Z test_index_hints_cannot_hide_modified_bytes_after_clean_snapshot (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_index_hints_cannot_hide_modified_bytes_after_clean_snapshot) ... ok
+2026-11-11T21:56:45.1171515Z test_index_hints_cannot_hide_modified_bytes_before_first_snapshot (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_index_hints_cannot_hide_modified_bytes_before_first_snapshot) ... ok
+2026-11-11T21:56:45.2591925Z test_missing_and_nonregular_working_files_never_satisfy_head_identity (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_missing_and_nonregular_working_files_never_satisfy_head_identity) ... ok
+2026-11-11T21:56:45.3532470Z test_mode_changes_cannot_hide_behind_core_filemode_false (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_mode_changes_cannot_hide_behind_core_filemode_false) ... ok
+2026-11-11T21:56:45.3926396Z test_non_git_permission_bits_do_not_change_blob_or_executable_identity (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_non_git_permission_bits_do_not_change_blob_or_executable_identity) ... ok
+2026-11-11T21:56:45.5623215Z test_raw_tree_nonregular_members_and_unsafe_paths_are_refused (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_raw_tree_nonregular_members_and_unsafe_paths_are_refused) ... ok
+2026-11-11T21:56:45.7034488Z test_replacement_refs_cannot_rebind_main_source_head_or_blob (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_replacement_refs_cannot_rebind_main_source_head_or_blob) ... ok
+2026-11-11T21:56:45.7516841Z test_safe_empty_subtree_is_checked_without_becoming_a_file (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_safe_empty_subtree_is_checked_without_becoming_a_file) ... ok
+2026-11-11T21:56:45.9694468Z test_unsafe_empty_subtrees_and_duplicate_directory_paths_are_refused (tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_unsafe_empty_subtrees_and_duplicate_directory_paths_are_refused) ... ok
+2026-11-11T21:56:45.9699338Z test_actual_failure_archive_runs_after_cold_failure_without_continuing_test_steps (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_failure_archive_runs_after_cold_failure_without_continuing_test_steps) ... ok
+2026-11-11T21:56:45.9716981Z test_actual_native_ci_retains_original_applications_and_all_core_region_controls (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_native_ci_retains_original_applications_and_all_core_region_controls) ... ok
+2026-11-11T21:56:46.0156789Z test_actual_native_ci_runner_rejects_failed_skipped_and_expected_failure_outcomes (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_native_ci_runner_rejects_failed_skipped_and_expected_failure_outcomes) ... ok
+2026-11-11T21:56:48.3126277Z test_actual_source_generator_shell_refuses_mutation_and_first_failed_generator (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_source_generator_shell_refuses_mutation_and_first_failed_generator) ... ok
+2026-11-11T21:56:48.3955893Z test_complete_nominal_ci_retains_every_native_owner_and_rejects_incomplete_runs (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_complete_nominal_ci_retains_every_native_owner_and_rejects_incomplete_runs) ... ok
+2026-11-11T21:56:48.5734322Z test_worker_checker_and_ledger_groups_use_matching_cold_and_reject_failed_outcomes (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_worker_checker_and_ledger_groups_use_matching_cold_and_reject_failed_outcomes) ... ok
+2026-11-11T21:56:55.0352871Z test_complete_independent_vm_before_any_native_image (tests.test_hia_core_workspace_json_native.CoreWorkspaceJsonSourceTests.test_complete_independent_vm_before_any_native_image) ... ok
+2026-11-11T21:56:56.6763596Z test_generated_source_and_single_loan_graph_relocation (tests.test_hia_core_workspace_json_native.CoreWorkspaceJsonSourceTests.test_generated_source_and_single_loan_graph_relocation) ... ok
+2026-11-11T21:56:56.8669252Z test_actual_packer_VM_before_seed_and_unchanged_full_transport_sizes (tests.test_hia_core_workspace_json_cli.CoreWorkspaceJsonCliSourceTests.test_actual_packer_VM_before_seed_and_unchanged_full_transport_sizes) ... ok
+2026-11-11T21:56:56.9083797Z test_incomplete_builder_refuses_before_output_creation_and_no_mixed_selection (tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests.test_incomplete_builder_refuses_before_output_creation_and_no_mixed_selection) ... ok
+2026-11-11T21:56:57.4240167Z test_independent_VM_complete_packer_bytes_before_new_native_seed (tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests.test_independent_VM_complete_packer_bytes_before_new_native_seed) ... ok
+2026-11-11T21:56:57.4286027Z test_builder_refuses_bad_cold_before_any_output_or_compilation (tests.test_hia_agent_identity_native.AgentIdentitySourceTests.test_builder_refuses_bad_cold_before_any_output_or_compilation) ... ok
+2026-11-11T21:56:57.6535967Z test_exact_source_and_complete_VM_bytes_before_any_native (tests.test_hia_agent_identity_native.AgentIdentitySourceTests.test_exact_source_and_complete_VM_bytes_before_any_native) ... ok
+2026-11-11T21:56:57.6549857Z test_requested_cold_report_is_admitted_before_fixture_or_seed_work (tests.test_hia_agent_identity_native.AgentIdentitySourceTests.test_requested_cold_report_is_admitted_before_fixture_or_seed_work) ... ok
+2026-11-11T21:56:59.6092713Z test_generated_source_and_independent_VM_before_native_seed (tests.test_hia_agent_slice_native.AgentSliceSourceTests.test_generated_source_and_independent_VM_before_native_seed) ... ok
+2026-11-11T21:56:59.6178030Z test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths) ... ok
+2026-11-11T21:56:59.6190450Z test_complete_source_binding_map_matches_each_actual_runtime_bridge (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_complete_source_binding_map_matches_each_actual_runtime_bridge) ... ok
+2026-11-11T21:56:59.6193682Z test_every_actual_worker_asset_is_in_source_release_and_shared_identity (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_every_actual_worker_asset_is_in_source_release_and_shared_identity) ... ok
+2026-11-11T21:56:59.6196528Z test_sdist_manifest_explicitly_preserves_every_agent_resource (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_sdist_manifest_explicitly_preserves_every_agent_resource) ... ok
+2026-11-11T21:57:02.4862727Z test_all_packer_bytes_in_core_vm_before_native_seed (tests.test_hia_agent_stdio.AgentStdioSourceTests.test_all_packer_bytes_in_core_vm_before_native_seed) ... ok
+2026-11-11T21:57:12.1297639Z test_generated_sources_and_dispatcher_vm_before_native_seed (tests.test_hia_agent_stdio.AgentStdioSourceTests.test_generated_sources_and_dispatcher_vm_before_native_seed) ... ok
+2026-11-11T21:57:12.1306048Z test_unqualified_builder_and_unsupported_profiles_refuse (tests.test_hia_agent_stdio.AgentStdioSourceTests.test_unqualified_builder_and_unsupported_profiles_refuse) ... ok
+2026-11-11T21:57:12.2132814Z test_all_live_agent_discovery_resources_are_present_and_cold_bound (tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests.test_all_live_agent_discovery_resources_are_present_and_cold_bound) ... ok
+2026-11-11T21:57:12.7126374Z test_generated_source_and_independent_VM_admission_materialization (tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests.test_generated_source_and_independent_VM_admission_materialization) ... ok
+2026-11-11T21:57:13.2824054Z test_independent_VM_refuses_without_publishing_any_output (tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests.test_independent_VM_refuses_without_publishing_any_output) ... ok
+2026-11-11T21:57:14.7923310Z test_exact_checked_source_and_independent_VM_before_any_native_seed (tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests.test_exact_checked_source_and_independent_VM_before_any_native_seed) ... ok
+2026-11-11T21:57:14.9127377Z test_independent_VM_packer_headers_bytes_and_refusal_canary_before_B0 (tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests.test_independent_VM_packer_headers_bytes_and_refusal_canary_before_B0) ... ok
+2026-11-11T21:57:15.7729375Z test_independent_VM_strict_JSON_and_descriptor_refusals (tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests.test_independent_VM_strict_JSON_and_descriptor_refusals) ... ok
+2026-11-11T21:57:16.3002655Z test_assembly_roundtrip_uses_only_core (tests.test_hia_agent_entry.AgentEntryTests.test_assembly_roundtrip_uses_only_core) ... ok
+2026-11-11T21:57:16.9115649Z test_capabilities_help_and_verify_do_not_load_frozen_frontend (tests.test_hia_agent_entry.AgentEntryTests.test_capabilities_help_and_verify_do_not_load_frozen_frontend) ... ok
+2026-11-11T21:57:17.3560443Z test_local_edit_executes_changed_result_and_preserves_caller (tests.test_hia_agent_entry.AgentEntryTests.test_local_edit_executes_changed_result_and_preserves_caller) ... ok
+2026-11-11T21:57:17.7416538Z test_real_native_object_without_external_compiler_or_fallback (tests.test_hia_agent_entry.AgentEntryTests.test_real_native_object_without_external_compiler_or_fallback) ... ok
+2026-11-11T21:57:18.0998736Z test_source_routes_and_foreign_backend_switches_refuse_before_output (tests.test_hia_agent_entry.AgentEntryTests.test_source_routes_and_foreign_backend_switches_refuse_before_output) ... ok
+2026-11-11T21:57:18.5164639Z test_stale_and_invalid_edits_publish_nothing (tests.test_hia_agent_entry.AgentEntryTests.test_stale_and_invalid_edits_publish_nothing) ... ok
+2026-11-11T21:57:19.3382117Z test_checked_in_linker_and_filter_are_exact_ordinary_Core (tests.test_hia_elf_linker.ElfLinkerSourceTests.test_checked_in_linker_and_filter_are_exact_ordinary_Core) ... ok
+2026-11-11T21:57:19.8902353Z test_generated_packer_and_independent_VM_before_native_seed (tests.test_hia_core_json_cli.CoreJsonCliSourceTests.test_generated_packer_and_independent_VM_before_native_seed) ... ok
+2026-11-11T21:57:19.8910267Z test_incomplete_or_wrong_cold_qualification_cannot_build_executable (tests.test_hia_core_json_cli.CoreJsonCliSourceTests.test_incomplete_or_wrong_cold_qualification_cannot_build_executable) ... ok
+2026-11-11T21:57:24.0258961Z test_actual_helpers_match_integer_byte_formula_and_ordered_bounds (tests.test_hia_selfhost_word_io.WordIOSourceTests.test_actual_helpers_match_integer_byte_formula_and_ordered_bounds) ... ok
+2026-11-11T21:57:24.9603467Z test_all_phases_capacities_and_full_width_words_match_independent_Core_VM (tests.test_hia_selfhost_emitter_words.EmitterSourceTests.test_all_phases_capacities_and_full_width_words_match_independent_Core_VM) ... ok
+2026-11-11T21:57:25.8852111Z test_public_VM_wrappers_retain_resources_and_full_emission_results (tests.test_hia_selfhost_emitter_words.EmitterSourceTests.test_public_VM_wrappers_retain_resources_and_full_emission_results) ... ok
+2026-11-11T21:57:27.6454811Z test_generated_source_and_independent_VM_chunk_transitions (tests.test_hia_sha256_stream_native.Sha256StreamSourceTests.test_generated_source_and_independent_VM_chunk_transitions) ... ok
+2026-11-11T21:57:28.8159625Z test_generated_source_and_independent_VM_FIPS_vectors (tests.test_hia_sha256_native.Sha256HiaSourceTests.test_generated_source_and_independent_VM_FIPS_vectors) ... ok
+2026-11-11T21:57:28.8164792Z test_depth_limit_exactly_matches_root_zero_valuation (tests.test_hia_json_preflight.HIAPreflightTests.test_depth_limit_exactly_matches_root_zero_valuation) ... ok
+2026-11-11T21:57:28.8188358Z test_early_duplicate_decoded_keys (tests.test_hia_json_preflight.HIAPreflightTests.test_early_duplicate_decoded_keys) ... ok
+2026-11-11T21:57:29.4881569Z test_early_node_limit_refuses_before_any_full_json_load (tests.test_hia_json_preflight.HIAPreflightTests.test_early_node_limit_refuses_before_any_full_json_load) ... ok
+2026-11-11T21:57:29.4887360Z test_invalid_grammar_and_float_rejection (tests.test_hia_json_preflight.HIAPreflightTests.test_invalid_grammar_and_float_rejection) ... ok
+2026-11-11T21:57:29.4968779Z test_long_spans_preserve_budget_and_duplicate_error_order (tests.test_hia_json_preflight.HIAPreflightTests.test_long_spans_preserve_budget_and_duplicate_error_order) ... ok
+2026-11-11T21:57:29.5113879Z test_long_strings_keep_exact_escape_and_unicode_refusals (tests.test_hia_json_preflight.HIAPreflightTests.test_long_strings_keep_exact_escape_and_unicode_refusals) ... ok
+2026-11-11T21:57:29.5131827Z test_only_ascii_digits_and_json_whitespace_form_spans (tests.test_hia_json_preflight.HIAPreflightTests.test_only_ascii_digits_and_json_whitespace_form_spans) ... ok
+2026-11-11T21:57:29.7104220Z test_randomized_grammar_and_budget_equivalence_to_stdlib (tests.test_hia_json_preflight.HIAPreflightTests.test_randomized_grammar_and_budget_equivalence_to_stdlib) ... ok
+2026-11-11T21:57:29.7108742Z test_valid_json_and_scalar_shape_coverage (tests.test_hia_json_preflight.HIAPreflightTests.test_valid_json_and_scalar_shape_coverage) ... ok
+2026-11-11T21:57:29.7126714Z test_build_refuses_incomplete_or_mismatched_cold_receipts_before_output (tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests.test_build_refuses_incomplete_or_mismatched_cold_receipts_before_output) ... ok
+2026-11-11T21:57:30.1047987Z test_checked_in_source_is_exact_ordinary_core_authoring (tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests.test_checked_in_source_is_exact_ordinary_core_authoring) ... ok
+2026-11-11T21:57:31.9838809Z test_independent_vm_and_old_python_agree_before_any_native_seed (tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests.test_independent_vm_and_old_python_agree_before_any_native_seed) ... ok
+2026-11-11T21:57:32.3968539Z test_bridge_refuses_invalid_headers_ranges_cycles_and_orphan_nodes (tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests.test_bridge_refuses_invalid_headers_ranges_cycles_and_orphan_nodes) ... ok
+2026-11-11T21:57:32.3977591Z test_default_reference_and_input_validation (tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests.test_default_reference_and_input_validation) ... ok
+2026-11-11T21:57:33.0237500Z test_generated_source_exact_and_checked_by_independent_core (tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests.test_generated_source_exact_and_checked_by_independent_core) ... ok
+2026-11-11T21:57:36.8388809Z test_real_vm_tree_and_unicode_before_native_seed (tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests.test_real_vm_tree_and_unicode_before_native_seed) ... ok
+2026-11-11T21:57:43.2483452Z test_VM_canonical_wire_before_any_native_seed (tests.test_hia_json_canonical_native.JsonCanonicalHiaSourceTests.test_VM_canonical_wire_before_any_native_seed) ... ok
+2026-11-11T21:57:43.2499052Z test_explicit_selection_does_not_change_default_encoder_or_outside_profile (tests.test_hia_json_canonical_native.JsonCanonicalHiaSourceTests.test_explicit_selection_does_not_change_default_encoder_or_outside_profile) ... ok
+2026-11-11T21:57:44.0265042Z test_generated_source_exact_and_independent_core_accepts_it (tests.test_hia_json_canonical_native.JsonCanonicalHiaSourceTests.test_generated_source_exact_and_independent_core_accepts_it) ... ok
+2026-11-11T21:57:45.5839903Z test_actual_compiler_word_helpers_keep_endianness_bounds_and_prior_writes (tests.test_hia_selfhost_exports.ExportSourceTests.test_actual_compiler_word_helpers_keep_endianness_bounds_and_prior_writes) ... ok
+2026-11-11T21:57:46.3428284Z test_independent_Core_interfaces_values_and_complete_private_checks (tests.test_hia_selfhost_exports.ExportSourceTests.test_independent_Core_interfaces_values_and_complete_private_checks) ... ok
+2026-11-11T21:58:08.0372756Z test_exec_output_requires_both_operator_selection_and_explicit_module (tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests.test_exec_output_requires_both_operator_selection_and_explicit_module) ... ok
+2026-11-11T21:58:34.1762997Z test_explicit_exports_require_operator_ELF_selection_in_independent_VM (tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests.test_explicit_exports_require_operator_ELF_selection_in_independent_VM) ... ok
+2026-11-11T21:58:35.3767833Z test_generated_HIA_source_is_exact_and_independently_accepted (tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests.test_generated_HIA_source_is_exact_and_independently_accepted) ... ok
+2026-11-11T21:58:50.0792355Z test_independent_VM_representation_and_refusals_before_B0 (tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests.test_independent_VM_representation_and_refusals_before_B0) ... ok
+2026-11-11T21:58:50.0808744Z test_archive_failure_is_retained_while_other_completions_are_observed (tests.test_hia_selfhost.SelfhostSourceTests.test_archive_failure_is_retained_while_other_completions_are_observed) ... ok
+2026-11-11T21:58:50.1324957Z test_archive_queue_bounds_pending_work_and_uses_one_thread (tests.test_hia_selfhost.SelfhostSourceTests.test_archive_queue_bounds_pending_work_and_uses_one_thread) ... ok
+2026-11-11T21:58:50.7977311Z test_authoring_forwarders_keep_resource_joins_return_origins_and_loops (tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_forwarders_keep_resource_joins_return_origins_and_loops) ... ok
+2026-11-11T21:58:50.8008589Z test_authoring_forwarders_leave_entry_and_empty_cycles_intact (tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_forwarders_leave_entry_and_empty_cycles_intact) ... ok
+2026-11-11T21:58:50.9620692Z test_authoring_forwarders_preserve_parallel_values_and_ordered_effects (tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_forwarders_preserve_parallel_values_and_ordered_effects) ... ok
+2026-11-11T21:58:50.9659374Z test_authoring_scalar_liveness_retains_unobserved_checked_operations (tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_scalar_liveness_retains_unobserved_checked_operations) ... ok
+2026-11-11T21:58:51.3475457Z test_authoring_short_circuit_cfg_preserves_trap_order_and_join_values (tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_short_circuit_cfg_preserves_trap_order_and_join_values) ... ok
+2026-11-11T21:58:51.3815559Z test_boolean_equality_admits_bool_but_rejects_ordering_and_mixed_types (tests.test_hia_selfhost.SelfhostSourceTests.test_boolean_equality_admits_bool_but_rejects_ordering_and_mixed_types) ... ok
+2026-11-11T21:58:51.4344901Z test_call_graph_admission_distinguishes_general_core_from_fixed_profile (tests.test_hia_selfhost.SelfhostSourceTests.test_call_graph_admission_distinguishes_general_core_from_fixed_profile) ... ok
+2026-11-11T21:58:51.6103451Z test_cfg_worklist_preserves_the_review_subjects_and_block_boundaries (tests.test_hia_selfhost.SelfhostSourceTests.test_cfg_worklist_preserves_the_review_subjects_and_block_boundaries) ... ok
+2026-11-11T21:58:52.3622208Z test_cfg_worklist_reference_covers_replays_and_late_join_refusals (tests.test_hia_selfhost.SelfhostSourceTests.test_cfg_worklist_reference_covers_replays_and_late_join_refusals) ... ok
+2026-11-11T21:58:53.1382337Z test_codegen_mutation_is_valid_core_and_changes_one_literal (tests.test_hia_selfhost.SelfhostSourceTests.test_codegen_mutation_is_valid_core_and_changes_one_literal) ... ok
+2026-11-11T21:58:54.0070602Z test_compiler_itself_fits_declared_per_function_block_and_ssa_limits (tests.test_hia_selfhost.SelfhostSourceTests.test_compiler_itself_fits_declared_per_function_block_and_ssa_limits) ... ok
+2026-11-11T21:58:59.2688590Z test_complete_compiler_is_valid_core_and_reproducible_source (tests.test_hia_selfhost.SelfhostSourceTests.test_complete_compiler_is_valid_core_and_reproducible_source) ... ok
+2026-11-11T21:58:59.2785884Z test_constant_sharing_stays_block_local_and_preserves_all_arithmetic (tests.test_hia_selfhost.SelfhostSourceTests.test_constant_sharing_stays_block_local_and_preserves_all_arithmetic) ... ok
+2026-11-11T21:59:00.5010386Z test_effect_witnesses_compare_all_declarations_and_refusals_with_general_core (tests.test_hia_selfhost.SelfhostSourceTests.test_effect_witnesses_compare_all_declarations_and_refusals_with_general_core) ... ok
+2026-11-11T21:59:06.9434122Z test_expanded_capacity_has_independent_execution_and_exact_structural_boundary (tests.test_hia_selfhost.SelfhostSourceTests.test_expanded_capacity_has_independent_execution_and_exact_structural_boundary) ... ok
+2026-11-11T21:59:06.9444501Z test_inferred_total_helpers_refuse_loops_checked_shifts_memory_and_recursion (tests.test_hia_selfhost.SelfhostSourceTests.test_inferred_total_helpers_refuse_loops_checked_shifts_memory_and_recursion) ... ok
+2026-11-11T21:59:07.3024170Z test_loan_reference_covers_live_capability_graphs_and_lifecycle_refusals (tests.test_hia_selfhost.SelfhostSourceTests.test_loan_reference_covers_live_capability_graphs_and_lifecycle_refusals) ... ok
+2026-11-11T21:59:07.3026819Z test_native_effect_table_matches_independent_core_instruction_contract (tests.test_hia_selfhost.SelfhostSourceTests.test_native_effect_table_matches_independent_core_instruction_contract) ... ok
+2026-11-11T21:59:07.3280781Z test_native_rejection_fixtures_also_fail_independent_core_frontend (tests.test_hia_selfhost.SelfhostSourceTests.test_native_rejection_fixtures_also_fail_independent_core_frontend) ... ok
+2026-11-11T21:59:07.4389934Z test_private_scanner_narrowing_does_not_touch_numeric_payload_or_generic_word_ABI (tests.test_hia_selfhost.SelfhostSourceTests.test_private_scanner_narrowing_does_not_touch_numeric_payload_or_generic_word_ABI) ... ok
+2026-11-11T21:59:11.5082435Z test_private_scanner_words_preserve_full_value_and_zero_high_bytes_in_Core_VM (tests.test_hia_selfhost.SelfhostSourceTests.test_private_scanner_words_preserve_full_value_and_zero_high_bytes_in_Core_VM) ... ok
+2026-11-11T21:59:11.5095514Z test_qualification_phase_inputs_require_pinned_bytes_and_closed_inventory (tests.test_hia_selfhost.SelfhostSourceTests.test_qualification_phase_inputs_require_pinned_bytes_and_closed_inventory) ... ok
+2026-11-11T21:59:11.5114637Z test_qualification_phase_merge_requires_complete_disjoint_boolean_results (tests.test_hia_selfhost.SelfhostSourceTests.test_qualification_phase_merge_requires_complete_disjoint_boolean_results) ... ok
+2026-11-11T21:59:11.5165139Z test_qualification_phase_process_failures_preserve_logs_and_refuse_merge (tests.test_hia_selfhost.SelfhostSourceTests.test_qualification_phase_process_failures_preserve_logs_and_refuse_merge) ... ok
+2026-11-11T21:59:11.5186548Z test_readonly_alias_rules_distinguish_calls_from_linear_edges (tests.test_hia_selfhost.SelfhostSourceTests.test_readonly_alias_rules_distinguish_calls_from_linear_edges) ... ok
+2026-11-11T21:59:11.5213615Z test_reference_process_envelopes_refuse_changed_identity_payload_and_provenance (tests.test_hia_selfhost.SelfhostSourceTests.test_reference_process_envelopes_refuse_changed_identity_payload_and_provenance) ... ok
+2026-11-11T21:59:11.5593471Z test_resource_reference_and_refusals_are_independent_core_observations (tests.test_hia_selfhost.SelfhostSourceTests.test_resource_reference_and_refusals_are_independent_core_observations) ... ok
+2026-11-11T21:59:11.6331135Z test_select_reference_covers_all_scalar_types_and_rejects_bad_signatures (tests.test_hia_selfhost.SelfhostSourceTests.test_select_reference_covers_all_scalar_types_and_rejects_bad_signatures) ... ok
+2026-11-11T21:59:11.9801976Z test_shared_failure_guards_preserve_conditional_effects_and_argument_laziness (tests.test_hia_selfhost.SelfhostSourceTests.test_shared_failure_guards_preserve_conditional_effects_and_argument_laziness) ... ok
+2026-11-11T21:59:12.0337029Z test_tail_reference_uses_real_recursion_and_preserves_vm_budget_refusal (tests.test_hia_selfhost.SelfhostSourceTests.test_tail_reference_uses_real_recursion_and_preserves_vm_budget_refusal) ... ok
+2026-11-11T21:59:12.0473099Z test_total_scalar_if_conversion_preserves_values_without_speculating_traps (tests.test_hia_selfhost.SelfhostSourceTests.test_total_scalar_if_conversion_preserves_values_without_speculating_traps) ... ok
+2026-11-11T21:59:12.0489675Z test_unsealed_phase_stays_pending_until_archive_completion (tests.test_hia_selfhost.SelfhostSourceTests.test_unsealed_phase_stays_pending_until_archive_completion) ... ok
+2026-11-11T21:59:12.0837420Z test_capacity_growth_preserves_workspace_and_core_byte_limits (tests.test_hia_selfhost_contract.SelfhostContractTests.test_capacity_growth_preserves_workspace_and_core_byte_limits) ... ok
+2026-11-11T21:59:12.3375861Z test_changed_loader_or_broadened_support_cannot_reuse_the_contract (tests.test_hia_selfhost_contract.SelfhostContractTests.test_changed_loader_or_broadened_support_cannot_reuse_the_contract) ... ok
+2026-11-11T21:59:12.4774765Z test_cold_output_refuses_existing_and_symbolic_paths_before_creating_artifacts (tests.test_hia_selfhost_contract.SelfhostContractTests.test_cold_output_refuses_existing_and_symbolic_paths_before_creating_artifacts) ... ok
+2026-11-11T21:59:12.5205629Z test_contract_binds_support_and_complete_seed_source_closure (tests.test_hia_selfhost_contract.SelfhostContractTests.test_contract_binds_support_and_complete_seed_source_closure) ... ok
+2026-11-11T21:59:12.5559790Z test_hosted_agent_discovery_resources_are_in_actual_source_identity (tests.test_hia_selfhost_contract.SelfhostContractTests.test_hosted_agent_discovery_resources_are_in_actual_source_identity) ... ok
+2026-11-11T21:59:12.5903352Z test_release_freeze_inventory_covers_the_complete_selfhost_closure (tests.test_hia_selfhost_contract.SelfhostContractTests.test_release_freeze_inventory_covers_the_complete_selfhost_closure) ... ok
+2026-11-11T21:59:12.6594121Z test_upgrade_refuses_an_unpinned_historical_image_before_execution (tests.test_hia_selfhost_contract.SelfhostContractTests.test_upgrade_refuses_an_unpinned_historical_image_before_execution) ... ok
+2026-11-11T21:59:12.6600290Z test_elf_inspection_rejects_loader_writable_code_stack_and_size_mutations (tests.test_hia_selfhost_cli.SelfhostExecutableSourceTests.test_elf_inspection_rejects_loader_writable_code_stack_and_size_mutations) ... ok
+2026-11-11T21:59:12.6885018Z test_exact_source_capacity_is_same_ordinary_core_not_blank_line_failure (tests.test_hia_selfhost_cli.SelfhostExecutableSourceTests.test_exact_source_capacity_is_same_ordinary_core_not_blank_line_failure) ... ok
+2026-11-11T21:59:13.4248999Z test_output_capacity_control_is_real_acyclic_core_inside_old_caps (tests.test_hia_selfhost_cli.SelfhostExecutableSourceTests.test_output_capacity_control_is_real_acyclic_core_inside_old_caps) ... ok
+2026-11-11T21:59:14.1486712Z test_vm_echo_observations_close_resources_before_seed (tests.test_hia_selfhost_cli.SelfhostExecutableSourceTests.test_vm_echo_observations_close_resources_before_seed) ... ok
+2026-11-11T21:59:14.4246578Z test_block_names_preserve_collisions_forward_cfg_full_tables_and_entry_boundary (tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_block_names_preserve_collisions_forward_cfg_full_tables_and_entry_boundary) ... ok
+2026-11-11T21:59:14.4282529Z test_core_reserved_duplicate_long_and_invalid_names_are_not_profile_aliases (tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_core_reserved_duplicate_long_and_invalid_names_are_not_profile_aliases) ... ok
+2026-11-11T21:59:14.4587798Z test_equal_hash_names_have_distinct_runtime_functions_and_results (tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_equal_hash_names_have_distinct_runtime_functions_and_results) ... ok
+2026-11-11T21:59:24.8304832Z test_independent_vm_inputs_preserve_resource_and_byte_results (tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_independent_vm_inputs_preserve_resource_and_byte_results) ... ok
+2026-11-11T21:59:31.7603323Z test_nonfirst_entries_keep_formals_tail_origins_and_complete_block_boundaries (tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_nonfirst_entries_keep_formals_tail_origins_and_complete_block_boundaries) ... ok
+2026-11-11T21:59:38.9275810Z test_ssa_contextual_names_full_intern_table_and_capacity_refusal_stay_distinct (tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_ssa_contextual_names_full_intern_table_and_capacity_refusal_stay_distinct) ... ok
+2026-11-11T21:59:57.4153807Z test_whole_compiler_alpha_renaming_preserves_every_call_target (tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_whole_compiler_alpha_renaming_preserves_every_call_target) ... ok
+2026-11-11T21:59:57.4827277Z test_batch_construction_cannot_admit_a_bad_helper (tests.test_hia_reference_fixture_efficiency.AssemblyConstructionBoundaryTests.test_batch_construction_cannot_admit_a_bad_helper) ... ok
+2026-11-11T21:59:57.4890056Z test_private_fixture_transformations_do_not_issue_verified_authority (tests.test_hia_reference_fixture_efficiency.AssemblyConstructionBoundaryTests.test_private_fixture_transformations_do_not_issue_verified_authority) ... ok
+2026-11-11T21:59:57.4914044Z test_private_syntax_documents_are_fresh_and_grant_no_admission (tests.test_hia_reference_fixture_efficiency.AssemblyConstructionBoundaryTests.test_private_syntax_documents_are_fresh_and_grant_no_admission) ... ok
+2026-11-11T21:59:57.4956693Z test_public_assemble_and_render_keep_each_complete_admission (tests.test_hia_reference_fixture_efficiency.AssemblyConstructionBoundaryTests.test_public_assemble_and_render_keep_each_complete_admission) ... ok
+2026-11-11T21:59:57.4979620Z test_public_fixture_transformations_still_reject_invalid_final_Core (tests.test_hia_reference_fixture_efficiency.AssemblyConstructionBoundaryTests.test_public_fixture_transformations_still_reject_invalid_final_Core) ... ok
+2026-11-11T21:59:57.5076686Z test_public_fixture_transformations_still_reject_invalid_input_Core (tests.test_hia_reference_fixture_efficiency.AssemblyConstructionBoundaryTests.test_public_fixture_transformations_still_reject_invalid_input_Core) ... ok
+2026-11-11T21:59:57.5090188Z test_public_render_keeps_detached_input_during_spelling (tests.test_hia_reference_fixture_efficiency.AssemblyConstructionBoundaryTests.test_public_render_keeps_detached_input_during_spelling) ... ok
+2026-11-11T21:59:57.6453094Z test_complete_changed_fixture_outputs_match_prior_reference_bytes (tests.test_hia_reference_fixture_efficiency.ReferenceFixturePreservationTests.test_complete_changed_fixture_outputs_match_prior_reference_bytes) ... ok
+2026-11-11T22:00:03.5955773Z test_complete_compiler_renames_keep_original_and_modified_bytes (tests.test_hia_reference_fixture_efficiency.ReferenceFixturePreservationTests.test_complete_compiler_renames_keep_original_and_modified_bytes) ... ok
+2026-11-11T22:00:03.5983228Z test_composed_renames_cannot_admit_an_invalid_final_program (tests.test_hia_reference_fixture_efficiency.ReferenceFixturePreservationTests.test_composed_renames_cannot_admit_an_invalid_final_program) ... ok
+2026-11-11T22:00:30.8413114Z test_current_compiler_original_three_passes_match_complete_composed_bytes (tests.test_hia_reference_fixture_efficiency.ReferenceFixturePreservationTests.test_current_compiler_original_three_passes_match_complete_composed_bytes) ... ok
+2026-11-11T22:00:30.8424798Z test_control_refusals_and_order_relative_to_other_source_gates (tests.test_hia_reference_fixture_efficiency.SourceControlEquivalenceTests.test_control_refusals_and_order_relative_to_other_source_gates) ... ok
+2026-11-11T22:00:30.9840088Z test_forbidden_set_is_exact_over_all_unicode_codepoints (tests.test_hia_reference_fixture_efficiency.SourceControlEquivalenceTests.test_forbidden_set_is_exact_over_all_unicode_codepoints) ... ok
+2026-11-11T22:00:30.9845675Z test_utf8_allowed_control_and_non_ascii_bytes_are_unchanged (tests.test_hia_reference_fixture_efficiency.SourceControlEquivalenceTests.test_utf8_allowed_control_and_non_ascii_bytes_are_unchanged) ... ok
+2026-11-11T22:00:30.9975130Z test_malformed_or_unbound_contracts_are_real_core_refusals (tests.test_hia_selfhost_returned_loans.SelfhostReturnedLoanSourceTests.test_malformed_or_unbound_contracts_are_real_core_refusals) ... ok
+2026-11-11T22:00:30.9978236Z test_origin_tables_do_not_overlap_or_expand_workspace (tests.test_hia_selfhost_returned_loans.SelfhostReturnedLoanSourceTests.test_origin_tables_do_not_overlap_or_expand_workspace) ... ok
+2026-11-11T22:00:31.1913753Z test_real_views_survive_calls_cfg_and_tail_renaming_with_closed_ledgers (tests.test_hia_selfhost_returned_loans.SelfhostReturnedLoanSourceTests.test_real_views_survive_calls_cfg_and_tail_renaming_with_closed_ledgers) ... ok
+2026-11-11T22:00:34.9108203Z test_combinations_include_all_scalars_cfg_direction_tail_and_resource_arguments (tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests.test_combinations_include_all_scalars_cfg_direction_tail_and_resource_arguments) ... ok
+2026-11-11T22:00:34.9111727Z test_empty_results_observe_effects_and_do_not_discard_scalars (tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests.test_empty_results_observe_effects_and_do_not_discard_scalars) ... ok
+2026-11-11T22:00:34.9243539Z test_invalid_core_and_valid_outside_profile_remain_distinct (tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests.test_invalid_core_and_valid_outside_profile_remain_distinct) ... ok
+2026-11-11T22:00:34.9246228Z test_owned_returns_keep_full_descriptors_and_linear_cleanup (tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests.test_owned_returns_keep_full_descriptors_and_linear_cleanup) ... ok
+2026-11-11T22:00:35.0234592Z test_reference_wrapper_materializes_exact_zero_repeated_and_mixed_bytes (tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests.test_reference_wrapper_materializes_exact_zero_repeated_and_mixed_bytes) ... ok
+2026-11-11T22:00:35.0239028Z test_tuple_values_match_independent_full_width_core_vm_observations (tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests.test_tuple_values_match_independent_full_width_core_vm_observations) ... ok
+2026-11-11T22:00:36.4913906Z test_fixture_keyword_function_is_exactly_the_live_compiler_body (tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_fixture_keyword_function_is_exactly_the_live_compiler_body) ... ok
+2026-11-11T22:00:37.8316733Z test_full_compiler_fits_unchanged_caps_with_reclaimed_cfg_space (tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_full_compiler_fits_unchanged_caps_with_reclaimed_cfg_space) ... ok
+2026-11-11T22:00:48.8912727Z test_known_unknown_long_nul_and_offset_inputs_match_the_independent_vm (tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_known_unknown_long_nul_and_offset_inputs_match_the_independent_vm) ... ok
+2026-11-11T22:00:48.9940946Z test_length_guard_retains_every_occupied_byte_and_rejects_zero_padding_aliases (tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_length_guard_retains_every_occupied_byte_and_rejects_zero_padding_aliases) ... ok
+2026-11-11T22:01:24.6733988Z test_live_scanner_numeric_identifiers_preserve_full_token_state_in_Core_VM (tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_live_scanner_numeric_identifiers_preserve_full_token_state_in_Core_VM) ... ok
+2026-11-11T22:01:24.6736889Z test_outside_the_packed_grammar_fails_at_authoring_time (tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_outside_the_packed_grammar_fails_at_authoring_time) ... ok
+2026-11-11T22:01:58.7926091Z test_batched_programs_share_only_identical_typed_constants (tests.test_hia_selfhost_signed.SelfhostSignedTests.test_batched_programs_share_only_identical_typed_constants) ... ok
+2026-11-11T22:01:58.8148222Z test_complete_reference_bytes_match_the_preconstruction_change (tests.test_hia_selfhost_signed.SelfhostSignedTests.test_complete_reference_bytes_match_the_preconstruction_change) ... ok
+2026-11-11T22:01:58.8504663Z test_every_signed_involving_integer_conversion_pair_has_both_modes (tests.test_hia_selfhost_signed.SelfhostSignedTests.test_every_signed_involving_integer_conversion_pair_has_both_modes) ... ok
+2026-11-11T22:02:05.3271053Z test_every_source_observation_survives_batching_once_with_all_bits_observed (tests.test_hia_selfhost_signed.SelfhostSignedTests.test_every_source_observation_survives_batching_once_with_all_bits_observed) ... ok
+2026-11-11T22:02:05.4111109Z test_signed_types_cover_all_integer_operations_select_literals_and_unit_calls (tests.test_hia_selfhost_signed.SelfhostSignedTests.test_signed_types_cover_all_integer_operations_select_literals_and_unit_calls) ... ok
+2026-11-11T22:02:05.4220966Z test_all_core_trap_codes_and_prior_stores_are_observed_by_vm (tests.test_hia_selfhost_traps.SelfhostExplicitTrapTests.test_all_core_trap_codes_and_prior_stores_are_observed_by_vm) ... ok
+2026-11-11T22:02:05.4224018Z test_branch_choice_callees_and_live_owners_do_not_forge_normal_return (tests.test_hia_selfhost_traps.SelfhostExplicitTrapTests.test_branch_choice_callees_and_live_owners_do_not_forge_normal_return) ... ok
+2026-11-11T22:02:05.4226960Z test_malformed_terminators_and_missing_trap_effect_stay_rejected (tests.test_hia_selfhost_traps.SelfhostExplicitTrapTests.test_malformed_terminators_and_missing_trap_effect_stay_rejected) ... ok
+2026-11-11T22:02:05.5053379Z test_boolean_equality_has_the_full_truth_table_and_input_dependent_programs (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_boolean_equality_has_the_full_truth_table_and_input_dependent_programs) ... ok
+2026-11-11T22:02:05.5274959Z test_chain_fixtures_cover_six_chain_opcodes_without_general_signature_claims (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_chain_fixtures_cover_six_chain_opcodes_without_general_signature_claims) ... ok
+2026-11-11T22:02:05.5344990Z test_checked_arithmetic_covers_width_boundaries_and_both_write_orders (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_checked_arithmetic_covers_width_boundaries_and_both_write_orders) ... ok
+2026-11-11T22:02:05.6759033Z test_checked_casts_cover_all_pairs_and_narrowing_overflow_with_runtime_inputs (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_checked_casts_cover_all_pairs_and_narrowing_overflow_with_runtime_inputs) ... ok
+2026-11-11T22:02:05.7183358Z test_every_supported_integer_opcode_and_width_has_independent_inputs (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_every_supported_integer_opcode_and_width_has_independent_inputs) ... ok
+2026-11-11T22:02:07.2550600Z test_flat_native_fixtures_cover_all_flat_input_opcodes_and_observe_full_width (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_flat_native_fixtures_cover_all_flat_input_opcodes_and_observe_full_width) ... ok
+2026-11-11T22:02:16.1997205Z test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles) ... ok
+2026-11-11T22:02:18.9713038Z test_inventory_matches_supported_features_actual_hia_and_source_closure (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_inventory_matches_supported_features_actual_hia_and_source_closure) ... ok
+2026-11-11T22:02:21.7992743Z test_language_inventory_does_not_claim_unavailable_whole_v8_or_formal_proof (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_language_inventory_does_not_claim_unavailable_whole_v8_or_formal_proof) ... ok
+2026-11-11T22:02:21.9015375Z test_module_names_keep_core_identity_and_output_profile_boundaries (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_module_names_keep_core_identity_and_output_profile_boundaries) ... ok
+2026-11-11T22:02:21.9343154Z test_owned_fixtures_cover_only_the_explicit_elf_extension (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_owned_fixtures_cover_only_the_explicit_elf_extension) ... ok
+2026-11-11T22:02:30.8797926Z test_rejections_retain_invalid_core_and_valid_outside_profile_distinction (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_rejections_retain_invalid_core_and_valid_outside_profile_distinction) ... ok
+2026-11-11T22:02:30.9231823Z test_select_covers_each_scalar_type_and_changing_inputs (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_select_covers_each_scalar_type_and_changing_inputs) ... ok
+2026-11-11T22:02:37.6350438Z test_complete_independent_arenas_before_any_native_seed (tests.test_hia_agent_data_json_native.AgentDataJsonSourceTests.test_complete_independent_arenas_before_any_native_seed) ... ok
+2026-11-11T22:02:37.8318873Z test_distinct_protocol_and_mandatory_tree_range_tag_checks (tests.test_hia_agent_data_json_native.AgentDataJsonSourceTests.test_distinct_protocol_and_mandatory_tree_range_tag_checks) ... ok
+2026-11-11T22:02:38.5064062Z test_generated_source_and_unchanged_integer_support_algorithms (tests.test_hia_agent_data_json_native.AgentDataJsonSourceTests.test_generated_source_and_unchanged_integer_support_algorithms) ... ok
+2026-11-11T22:02:38.5083099Z test_incomplete_builder_cannot_create_output (tests.test_hia_agent_data_json_native.AgentDataJsonSourceTests.test_incomplete_builder_cannot_create_output) ... ok
+2026-11-11T22:02:38.8437564Z test_generated_actual_source (tests.test_hia_agent_binary64_native.AgentBinary64SourceTests.test_generated_actual_source) ... ok
+2026-11-11T22:02:39.2918256Z test_independent_Core_VM_before_any_native_seed (tests.test_hia_agent_binary64_native.AgentBinary64SourceTests.test_independent_Core_VM_before_any_native_seed) ... ok
+2026-11-11T22:02:39.2937901Z test_unqualified_builder_refuses_before_output_creation (tests.test_hia_agent_binary64_native.AgentBinary64SourceTests.test_unqualified_builder_refuses_before_output_creation) ... ok
+2026-11-11T22:02:39.3187310Z test_full_catalog_schema_and_groups_not_compiler_opcode_subset (tests.test_hia_instruction_policy_native.InstructionPolicySourceTests.test_full_catalog_schema_and_groups_not_compiler_opcode_subset) ... ok
+2026-11-11T22:02:41.8185166Z test_generated_source_and_independent_VM_before_native (tests.test_hia_instruction_policy_native.InstructionPolicySourceTests.test_generated_source_and_independent_VM_before_native) ... ok
+2026-11-11T22:02:41.8187699Z test_complete_closed_catalog_and_version_feature_correspondence (tests.test_hia_program_shape_native.ProgramShapeSourceTests.test_complete_closed_catalog_and_version_feature_correspondence) ... ok
+2026-11-11T22:02:47.7162744Z test_generated_complete_source_and_independent_VM_before_native (tests.test_hia_program_shape_native.ProgramShapeSourceTests.test_generated_complete_source_and_independent_VM_before_native) ... ok
+2026-11-11T22:02:53.5905653Z test_generated_source_catalog_and_independent_VM (tests.test_hia_function_shape_native.FunctionShapeSourceTests.test_generated_source_catalog_and_independent_VM) ... ok
+2026-11-11T22:02:54.0088268Z test_authoring_source_is_exact_and_resource_checked (tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_authoring_source_is_exact_and_resource_checked) ... ok
+2026-11-11T22:02:54.0510638Z test_builder_rejects_old_source_cold_before_creating_output (tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_builder_rejects_old_source_cold_before_creating_output) ... ok
+2026-11-11T22:02:55.3763976Z test_bytes_are_authoritative_and_extra_or_missing_bytes_refused (tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_bytes_are_authoritative_and_extra_or_missing_bytes_refused) ... ok
+2026-11-11T22:02:59.3089693Z test_identity_uses_inode_mode_size_mtime_ctime_not_uid_or_atime (tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_identity_uses_inode_mode_size_mtime_ctime_not_uid_or_atime) ... ok
+2026-11-11T22:03:01.5174331Z test_native_packer_independent_VM_and_exact_generator (tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_native_packer_independent_VM_and_exact_generator) ... ok
+2026-11-11T22:03:02.6093574Z test_paths_match_absolute_lexical_reference_without_resolving_dotdot (tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_paths_match_absolute_lexical_reference_without_resolving_dotdot) ... ok
+2026-11-11T22:03:03.8724685Z test_receipt_formats_real_digest_and_full_u64_decimal (tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_receipt_formats_real_digest_and_full_u64_decimal) ... ok
+2026-11-11T22:03:05.4093852Z test_unknown_phase_and_unowned_withdrawal_refused (tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_unknown_phase_and_unowned_withdrawal_refused) ... ok
+2026-11-11T22:03:05.4116313Z test_explicit_selection_routes_all_operations_and_never_falls_back (tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_explicit_selection_routes_all_operations_and_never_falls_back) ... ok
+2026-11-11T22:03:05.5174233Z test_missing_or_malformed_selected_manifest_fails_before_effects (tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_missing_or_malformed_selected_manifest_fails_before_effects) ... ok
+2026-11-11T22:03:08.4095148Z test_generated_source_is_unchanged_and_core_admitted (tests.test_hia_core_admission_native.CoreAdmissionSourceTests.test_generated_source_is_unchanged_and_core_admitted) ... ok
+2026-11-11T22:03:16.0793180Z test_independent_vm_body_decisions_before_any_native_image (tests.test_hia_core_admission_native.CoreAdmissionSourceTests.test_independent_vm_body_decisions_before_any_native_image) ... ok
+2026-11-11T22:03:29.0613986Z test_independent_vm_rejects_conflicting_results_of_one_call (tests.test_hia_core_admission_native.CoreAdmissionSourceTests.test_independent_vm_rejects_conflicting_results_of_one_call) ... ok
+2026-11-11T22:03:29.1594022Z test_actual_generated_source_and_full_Core_scratch_not_compiler_profile (tests.test_hia_core_admission_cli.CoreAdmissionCliSourceTests.test_actual_generated_source_and_full_Core_scratch_not_compiler_profile) ... ok
+2026-11-11T22:03:29.2112047Z test_independent_VM_packer_and_no_write_on_refusal_before_native_seed (tests.test_hia_core_admission_cli.CoreAdmissionCliSourceTests.test_independent_VM_packer_and_no_write_on_refusal_before_native_seed) ... ok
+2026-11-11T22:04:03.4574278Z test_checked_in_HIA_source_and_independent_VM_before_native (tests.test_hia_core_patch_native.CorePatchSourceTests.test_checked_in_HIA_source_and_independent_VM_before_native) ... ok
+2026-11-11T22:04:21.6419775Z test_independent_VM_stale_overlap_and_exact_types (tests.test_hia_core_patch_native.CorePatchSourceTests.test_independent_VM_stale_overlap_and_exact_types) ... ok
+2026-11-11T22:04:38.4342051Z test_mode2_independent_VM_returns_exact_sorted_migration_diagnostics (tests.test_hia_core_patch_native.CorePatchSourceTests.test_mode2_independent_VM_returns_exact_sorted_migration_diagnostics) ... ok
+2026-11-11T22:04:38.4353145Z test_boolean_cold_returncode_is_refused_before_source_or_output (tests.test_hia_core_patch_cli.CorePatchCliSourceTests.test_boolean_cold_returncode_is_refused_before_source_or_output) ... ok
+2026-11-11T22:04:38.6108112Z test_generated_source_and_disjoint_full_profile_scratch (tests.test_hia_core_patch_cli.CorePatchCliSourceTests.test_generated_source_and_disjoint_full_profile_scratch) ... ok
+2026-11-11T22:04:38.7074563Z test_independent_VM_every_packer_byte_and_refusal_canaries (tests.test_hia_core_patch_cli.CorePatchCliSourceTests.test_independent_VM_every_packer_byte_and_refusal_canaries) ... ok
+2026-11-11T22:04:38.7085577Z test_boolean_cold_returncode_refuses_before_source_or_output (tests.test_hia_core_patch_result_cli.CorePatchResultCliSourceTests.test_boolean_cold_returncode_refuses_before_source_or_output) ... ok
+2026-11-11T22:04:38.8686642Z test_generated_source_and_unchanged_disjoint_full_profile (tests.test_hia_core_patch_result_cli.CorePatchResultCliSourceTests.test_generated_source_and_unchanged_disjoint_full_profile) ... ok
+2026-11-11T22:04:38.9700383Z test_independent_VM_every_packer_byte_and_refusal_canaries (tests.test_hia_core_patch_result_cli.CorePatchResultCliSourceTests.test_independent_VM_every_packer_byte_and_refusal_canaries) ... ok
+2026-11-11T22:04:39.0371749Z test_argument_guard_requires_one_exact_declared_schema (tests.test_hia_core_patch_result_cli.CorePatchResultCliAdapterTests.test_argument_guard_requires_one_exact_declared_schema) ... ok
+2026-11-11T22:04:41.0916627Z test_no_frame_published_on_base_or_candidate_or_header_refusal (tests.test_hia_core_patch_result_cli.CorePatchResultCliAdapterTests.test_no_frame_published_on_base_or_candidate_or_header_refusal) ... ok
+2026-11-11T22:04:41.4216661Z test_schema_scratch_and_candidate_slice_then_opaque_complete_frame (tests.test_hia_core_patch_result_cli.CorePatchResultCliAdapterTests.test_schema_scratch_and_candidate_slice_then_opaque_complete_frame) ... ok
+2026-11-11T22:04:44.3091811Z test_checked_in_source_reproduces_and_transport_error_table_matches (tests.test_hia_composite_types_native.CompositeTypesSourceTests.test_checked_in_source_reproduces_and_transport_error_table_matches) ... ok
+2026-11-11T22:04:49.6964238Z test_independent_VM_persistent_resolution_partial_and_refusal (tests.test_hia_composite_types_native.CompositeTypesSourceTests.test_independent_VM_persistent_resolution_partial_and_refusal) ... ok
+2026-11-11T22:04:49.6977150Z test_development_fixture_cannot_override_requested_cold_qualification (tests.test_hia_composite_types_native.CompositeTypesAdapterTests.test_development_fixture_cannot_override_requested_cold_qualification) ... ok
+2026-11-11T22:04:49.8179132Z test_forward_DAG_materialization_repeated_identity_and_native_counters (tests.test_hia_composite_types_native.CompositeTypesAdapterTests.test_forward_DAG_materialization_repeated_identity_and_native_counters) ... ok
+2026-11-11T22:04:51.0093271Z test_malformed_native_frames_descriptors_and_fatal_statuses_never_fall_back (tests.test_hia_composite_types_native.CompositeTypesAdapterTests.test_malformed_native_frames_descriptors_and_fatal_statuses_never_fall_back) ... ok
+2026-11-11T22:04:51.0484448Z test_partial_arena_allocation_releases_the_first_buffer_and_keeps_error (tests.test_hia_composite_types_native.CompositeTypesAdapterTests.test_partial_arena_allocation_releases_the_first_buffer_and_keeps_error) ... ok
+2026-11-11T22:04:51.2914296Z test_session_identity_cannot_alias_or_reinterpret_another_session_base (tests.test_hia_composite_types_native.CompositeTypesAdapterTests.test_session_identity_cannot_alias_or_reinterpret_another_session_base) ... ok
+2026-11-11T22:04:52.2444807Z test_forged_and_other_session_types_do_not_enter_the_image (tests.test_hia_composite_origins_native.CompositeOriginsAdapterTests.test_forged_and_other_session_types_do_not_enter_the_image) ... ok
+2026-11-11T22:04:52.3634926Z test_semantic_refusal_is_recoverable_and_absence_is_not_null (tests.test_hia_composite_origins_native.CompositeOriginsAdapterTests.test_semantic_refusal_is_recoverable_and_absence_is_not_null) ... ok
+2026-11-11T22:04:54.3866785Z test_strict_origins_frame_and_state_correlation_poison_bad_transport (tests.test_hia_composite_origins_native.CompositeOriginsAdapterTests.test_strict_origins_frame_and_state_correlation_poison_bad_transport) ... ok
+2026-11-11T22:04:54.5056097Z test_parameter_refusal_materializes_prior_native_types_and_keeps_state (tests.test_hia_composite_signatures_native.CompositeSignaturesAdapterTests.test_parameter_refusal_materializes_prior_native_types_and_keeps_state) ... ok
+2026-11-11T22:04:55.5746891Z test_parameter_result_transport_refuses_bad_frames_and_unknown_types (tests.test_hia_composite_signatures_native.CompositeSignaturesAdapterTests.test_parameter_result_transport_refuses_bad_frames_and_unknown_types) ... ok
+2026-11-11T22:04:56.4118197Z test_task_protocol_cannot_change_descriptors_counters_or_use_foreign_types (tests.test_hia_composite_signatures_native.CompositeSignaturesAdapterTests.test_task_protocol_cannot_change_descriptors_counters_or_use_foreign_types) ... ok
+2026-11-11T22:04:57.3325238Z test_exact_generator_and_unchanged_compiler_profile_limits (tests.test_hia_task_helpers_native.TaskHelpersSourceTests.test_exact_generator_and_unchanged_compiler_profile_limits) ... ok
+2026-11-11T22:04:57.3343948Z test_selected_missing_manifest_never_uses_reference_helper (tests.test_hia_task_helpers_native.TaskHelpersSourceTests.test_selected_missing_manifest_never_uses_reference_helper) ... ok
+2026-11-11T22:04:57.3387288Z test_strict_frame_payload_and_fresh_state_refuse_without_fallback (tests.test_hia_task_helpers_native.TaskHelpersAdapterTests.test_strict_frame_payload_and_fresh_state_refuse_without_fallback) ... ok
+2026-11-11T22:04:57.3418390Z test_development_cannot_be_used_with_or_instead_of_joint_cold (tests.test_hia_composite_native_composition.SourceTests.test_development_cannot_be_used_with_or_instead_of_joint_cold) ... ok
+2026-11-11T22:04:57.3428857Z test_different_reports_cannot_compose_separate_qualifications (tests.test_hia_composite_native_composition.SourceTests.test_different_reports_cannot_compose_separate_qualifications) ... ok
+2026-11-11T22:04:57.3451570Z test_missing_either_report_refuses_before_reading_artifacts (tests.test_hia_composite_native_composition.SourceTests.test_missing_either_report_refuses_before_reading_artifacts) ... ok
+2026-11-11T22:04:57.3626039Z test_bootstrap_source_or_seed_change_cannot_relabel_the_compiled_input (tests.test_hia_composite_functions_native.FunctionSourceTests.test_bootstrap_source_or_seed_change_cannot_relabel_the_compiled_input) ... ok
+2026-11-11T22:04:57.3648756Z test_cold_gate_refuses_before_output_is_created (tests.test_hia_composite_functions_native.FunctionSourceTests.test_cold_gate_refuses_before_output_is_created) ... ok
+2026-11-11T22:04:57.3679717Z test_failed_build_raw_evidence_and_cleanup_never_replace_original_failure (tests.test_hia_composite_functions_native.FunctionSourceTests.test_failed_build_raw_evidence_and_cleanup_never_replace_original_failure) ... ok
+2026-11-11T22:05:03.2793259Z test_five_sources_reproduce_with_unchanged_compiler_limits (tests.test_hia_composite_functions_native.FunctionSourceTests.test_five_sources_reproduce_with_unchanged_compiler_limits) ... ok
+2026-11-11T22:05:03.3969177Z test_fixture_disk_image_drift_refuses_before_or_during_cached_loading (tests.test_hia_composite_functions_native.FunctionSourceTests.test_fixture_disk_image_drift_refuses_before_or_during_cached_loading) ... ok
+2026-11-11T22:05:03.4187169Z test_fixture_rejects_mixed_or_partial_provenance_before_build (tests.test_hia_composite_functions_native.FunctionSourceTests.test_fixture_rejects_mixed_or_partial_provenance_before_build) ... ok
+2026-11-11T22:05:03.4253110Z test_original_body_and_indivisible_bundle (tests.test_hia_composite_functions_native.FunctionSourceTests.test_original_body_and_indivisible_bundle) ... ok
+2026-11-11T22:05:03.4269323Z test_warm_fixture_cannot_silently_discard_changed_evidence_destination (tests.test_hia_composite_functions_native.FunctionSourceTests.test_warm_fixture_cannot_silently_discard_changed_evidence_destination) ... ok
+2026-11-11T22:05:03.4272038Z test_chunked_containers_and_repeated_strings (tests.test_hia_composite_function_tokens.TokenCodecTests.test_chunked_containers_and_repeated_strings) ... ok
+2026-11-11T22:05:03.4274240Z test_exact_detached_tree_and_source_node_identity (tests.test_hia_composite_function_tokens.TokenCodecTests.test_exact_detached_tree_and_source_node_identity) ... ok
+2026-11-11T22:05:03.4276448Z test_malformed_packet_or_first_token_error_fails_closed (tests.test_hia_composite_function_tokens.TokenCodecTests.test_malformed_packet_or_first_token_error_fails_closed) ... ok
+2026-11-11T22:05:03.4279369Z test_first_decoder_error_permanently_rejects_later_valid_chunks (tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests.test_first_decoder_error_permanently_rejects_later_valid_chunks) ... ok
+2026-11-11T22:05:03.4282409Z test_source_reference_aliases_belong_to_the_detached_packet (tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests.test_source_reference_aliases_belong_to_the_detached_packet) ... ok
+2026-11-11T22:05:04.2908220Z test_both_complete_sources_reproduce_below_original_limits (tests.test_hia_composite_constructor_source.ConstructorSourceTests.test_both_complete_sources_reproduce_below_original_limits) ... ok
+2026-11-11T22:05:04.2944389Z test_complete_cold_gate_precedes_any_artifact_write (tests.test_hia_composite_constructor_source.ConstructorSourceTests.test_complete_cold_gate_precedes_any_artifact_write) ... ok
+2026-11-11T22:05:04.2958455Z test_retained_constructor_body_exact_and_bundle_indivisible (tests.test_hia_composite_constructor_source.ConstructorSourceTests.test_retained_constructor_body_exact_and_bundle_indivisible) ... ok
+2026-11-11T22:05:04.2962264Z test_response_preserves_issued_phase_profile_and_single_use (tests.test_hia_composite_constructor_native.ConstructorFrameTests.test_response_preserves_issued_phase_profile_and_single_use) ... ok
+2026-11-11T22:05:04.2965480Z test_unknown_phases_and_crossed_continuations_refuse (tests.test_hia_composite_constructor_native.ConstructorFrameTests.test_unknown_phases_and_crossed_continuations_refuse) ... ok
+2026-11-11T22:05:04.2968791Z test_all_poisoned_bridge_entries_refuse_before_native_or_identity_work (tests.test_hia_composite_outer_source.OuterSourceTests.test_all_poisoned_bridge_entries_refuse_before_native_or_identity_work) ... ok
+2026-11-11T22:05:05.1973874Z test_both_complete_sources_reproduce_below_original_limits (tests.test_hia_composite_outer_source.OuterSourceTests.test_both_complete_sources_reproduce_below_original_limits) ... ok
+2026-11-11T22:05:05.2010881Z test_complete_cold_gate_precedes_any_artifact_write (tests.test_hia_composite_outer_source.OuterSourceTests.test_complete_cold_gate_precedes_any_artifact_write) ... ok
+2026-11-11T22:05:05.2293610Z test_partial_allocation_failure_releases_owned_buffer_with_held_error (tests.test_hia_composite_outer_source.OuterSourceTests.test_partial_allocation_failure_releases_owned_buffer_with_held_error) ... ok
+2026-11-11T22:05:05.2300001Z test_retained_lower_exact_and_bundle_indivisible (tests.test_hia_composite_outer_source.OuterSourceTests.test_retained_lower_exact_and_bundle_indivisible) ... ok
+2026-11-11T22:05:05.2304900Z test_correlated_helper_function_ack_and_completion (tests.test_hia_composite_outer_native.OuterFrameTests.test_correlated_helper_function_ack_and_completion) ... ok
+2026-11-11T22:05:05.2308236Z test_unknown_crossed_replayed_or_unissued_frames (tests.test_hia_composite_outer_native.OuterFrameTests.test_unknown_crossed_replayed_or_unissued_frames) ... ok
+2026-11-11T22:05:05.3451695Z test_application_cold_refusals_neither_create_parents_nor_touch_existing_output (tests.test_hia_native_builder_source_binding.NativeBuilderSourceBindingTests.test_application_cold_refusals_neither_create_parents_nor_touch_existing_output) ... ok
+2026-11-11T22:05:05.3599853Z test_current_binding_reaches_each_application_native_build_stage (tests.test_hia_native_builder_source_binding.NativeBuilderSourceBindingTests.test_current_binding_reaches_each_application_native_build_stage) ... ok
+2026-11-11T22:05:05.3689367Z test_same_compiler_does_not_authorize_stale_or_incomplete_sources (tests.test_hia_native_builder_source_binding.NativeBuilderSourceBindingTests.test_same_compiler_does_not_authorize_stale_or_incomplete_sources) ... ok
+2026-11-11T22:05:05.3830210Z test_source_contract_cold_or_compiler_change_prevents_manifest_publication (tests.test_hia_native_builder_source_binding.NativeBuilderSourceBindingTests.test_source_contract_cold_or_compiler_change_prevents_manifest_publication) ... ok
+2026-11-11T22:05:05.3876233Z test_valid_binding_is_recorded_without_claiming_native_correctness (tests.test_hia_native_builder_source_binding.NativeBuilderSourceBindingTests.test_valid_binding_is_recorded_without_claiming_native_correctness) ... ok
+2026-11-11T22:05:05.6359997Z test_changed_inputs_or_related_source_prevent_publication (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_changed_inputs_or_related_source_prevent_publication) ... ok
+2026-11-11T22:05:05.6605474Z test_current_cold_records_complete_identity_without_native_pass_claim (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_current_cold_records_complete_identity_without_native_pass_claim) ... ok
+2026-11-11T22:05:05.7817347Z test_invalid_cold_is_refused_before_creating_or_touching_output (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_invalid_cold_is_refused_before_creating_or_touching_output) ... ok
+2026-11-11T22:05:05.8009264Z test_numeric_builders_retain_their_cold_deadline_checks (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_numeric_builders_retain_their_cold_deadline_checks) ... ok
+2026-11-11T22:05:05.8686595Z test_outer_builders_current_inputs_reach_final_publication (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_outer_builders_current_inputs_reach_final_publication) ... ok
+2026-11-11T22:05:05.9401848Z test_outer_builders_recheck_complete_source_after_pack_execution (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_outer_builders_recheck_complete_source_after_pack_execution) ... ok
+2026-11-11T22:05:05.9964973Z test_outer_builders_recheck_consumed_nested_manifests (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_outer_builders_recheck_consumed_nested_manifests) ... ok
+2026-11-11T22:05:06.0569956Z test_outer_builders_recheck_packer_images_before_executable_publication (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_outer_builders_recheck_packer_images_before_executable_publication) ... ok
+2026-11-11T22:05:06.0867488Z test_outer_builders_refuse_stale_captured_source_before_creating_output (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_outer_builders_refuse_stale_captured_source_before_creating_output) ... ok
+2026-11-11T22:05:06.1102440Z test_outer_builders_refuse_unaccounted_packer_before_output_creation (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_outer_builders_refuse_unaccounted_packer_before_output_creation) ... ok
+2026-11-11T22:05:06.1244740Z test_publisher_rechecks_auxiliary_sources_and_compiled_components (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_publisher_rechecks_auxiliary_sources_and_compiled_components) ... ok
+2026-11-11T22:05:06.1409827Z test_selected_source_must_belong_to_admitted_full_contract (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_selected_source_must_belong_to_admitted_full_contract) ... ok
+2026-11-11T22:05:06.1525638Z test_shared_kernel_rechecks_image_after_complete_source_readback (tests.test_hia_standalone_builder_source_binding.StandaloneBuilderSourceBindingTests.test_shared_kernel_rechecks_image_after_complete_source_readback) ... ok
+2026-11-11T22:05:07.4602568Z test_generator_verifies_and_preserves_compiler_profile (tests.test_hia_enum_match_native.EnumMatchSourceTests.test_generator_verifies_and_preserves_compiler_profile) ... ok
+2026-11-11T22:05:07.4633563Z test_selected_missing_image_does_not_fall_back (tests.test_hia_enum_match_native.EnumMatchSourceTests.test_selected_missing_image_does_not_fall_back) ... ok
+2026-11-11T22:05:07.4636238Z test_transport_preserves_interning_without_expanding_nominal_keys (tests.test_hia_enum_match_native.EnumMatchSourceTests.test_transport_preserves_interning_without_expanding_nominal_keys) ... ok
+2026-11-11T22:05:08.2441447Z test_malformed_native_result_and_input_mutation_refuse (tests.test_hia_enum_match_native.EnumMatchAdapterTests.test_malformed_native_result_and_input_mutation_refuse) ... ok
+2026-11-11T22:05:09.2884550Z test_generator_matches_source_and_unchanged_native_profile (tests.test_hia_enum_operations_native.EnumOperationsSourceTests.test_generator_matches_source_and_unchanged_native_profile) ... ok
+2026-11-11T22:05:09.2888248Z test_packet_preserves_nominal_identity_and_repeated_value_aliases (tests.test_hia_enum_operations_native.EnumOperationsSourceTests.test_packet_preserves_nominal_identity_and_repeated_value_aliases) ... ok
+2026-11-11T22:05:09.2910247Z test_selected_missing_image_never_calls_reference (tests.test_hia_enum_operations_native.EnumOperationsSourceTests.test_selected_missing_image_never_calls_reference) ... ok
+2026-11-11T22:05:09.3151702Z test_invalid_frames_and_partial_state_envelopes_fail_closed (tests.test_hia_enum_operations_native.EnumOperationsAdapterTests.test_invalid_frames_and_partial_state_envelopes_fail_closed) ... ok
+2026-11-11T22:05:09.3268753Z test_tag_cannot_skip_repeat_or_mutate_continuation (tests.test_hia_enum_operations_native.EnumOperationsAdapterTests.test_tag_cannot_skip_repeat_or_mutate_continuation) ... ok
+2026-11-11T22:05:10.2345838Z test_generator_matches_source_and_unchanged_native_profile (tests.test_hia_record_operations_native.RecordOperationsSourceTests.test_generator_matches_source_and_unchanged_native_profile) ... ok
+2026-11-11T22:05:10.2370375Z test_selected_missing_image_has_no_reference_fallback (tests.test_hia_record_operations_native.RecordOperationsSourceTests.test_selected_missing_image_has_no_reference_fallback) ... ok
+2026-11-11T22:05:10.2373410Z test_transport_holds_exact_descriptor_and_alias_identity (tests.test_hia_record_operations_native.RecordOperationsSourceTests.test_transport_holds_exact_descriptor_and_alias_identity) ... ok
+2026-11-11T22:05:10.2529744Z test_invalid_frames_and_invented_instructions_fail_closed (tests.test_hia_record_operations_native.RecordOperationsAdapterTests.test_invalid_frames_and_invented_instructions_fail_closed) ... ok
+2026-11-11T22:05:10.2601113Z test_output_reparse_cannot_be_skipped_repeated_or_effectful (tests.test_hia_record_operations_native.RecordOperationsAdapterTests.test_output_reparse_cannot_be_skipped_repeated_or_effectful) ... ok
+2026-11-11T22:05:11.6442640Z test_generator_source_and_unchanged_compiler_limits (tests.test_hia_record_transitions_native.RecordTransitionsSourceTests.test_generator_source_and_unchanged_compiler_limits) ... ok
+2026-11-11T22:05:11.6466724Z test_selected_missing_image_never_reaches_reference (tests.test_hia_record_transitions_native.RecordTransitionsSourceTests.test_selected_missing_image_never_reaches_reference) ... ok
+2026-11-11T22:05:11.6469976Z test_transport_preserves_interned_partial_base_and_argument_aliases (tests.test_hia_record_transitions_native.RecordTransitionsSourceTests.test_transport_preserves_interned_partial_base_and_argument_aliases) ... ok
+2026-11-11T22:05:11.6661550Z test_bad_frames_effects_and_queries_fail_closed (tests.test_hia_record_transitions_native.RecordTransitionsAdapterTests.test_bad_frames_effects_and_queries_fail_closed) ... ok
+2026-11-11T22:05:11.7392163Z test_cannot_skip_repeat_or_reorder_type_owner_queries (tests.test_hia_record_transitions_native.RecordTransitionsAdapterTests.test_cannot_skip_repeat_or_reorder_type_owner_queries) ... ok
+2026-11-11T22:05:11.7415356Z test_bad_cold_builder_refuses_before_output_or_compilation (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_bad_cold_builder_refuses_before_output_or_compilation) ... ok
+2026-11-11T22:05:11.7490816Z test_default_reference_attributes_still_write_the_actual_backend (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_default_reference_attributes_still_write_the_actual_backend) ... ok
+2026-11-11T22:05:11.7540160Z test_fixed_open_transport_matches_assembled_source (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_fixed_open_transport_matches_assembled_source) ... ok
+2026-11-11T22:05:24.7394361Z test_generated_source_and_independent_vm_complete_state (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_generated_source_and_independent_vm_complete_state) ... ok
+2026-11-11T22:05:24.7405911Z test_native_fixture_refuses_conflicting_cold_and_development_selection (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_native_fixture_refuses_conflicting_cold_and_development_selection) ... ok
+2026-11-11T22:05:24.7428860Z test_native_fixture_rejects_unqualified_cold_without_bootstrap_fallback (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_native_fixture_rejects_unqualified_cold_without_bootstrap_fallback) ... ok
+2026-11-11T22:05:27.0921710Z test_vm_checksum_reserved_path_and_counter_exhaustion (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_vm_checksum_reserved_path_and_counter_exhaustion) ... ok
+2026-11-11T22:05:45.0928727Z test_vm_directory_observation_is_consumed_before_each_effect (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_vm_directory_observation_is_consumed_before_each_effect) ... ok
+2026-11-11T22:05:49.0509437Z test_vm_wrong_instance_tokens_and_bad_bind_do_not_authorize (tests.test_hia_retirement_state_native.RetirementStateSourceTests.test_vm_wrong_instance_tokens_and_bad_bind_do_not_authorize) ... ok
+2026-11-11T22:05:50.2711803Z test_exact_generator_and_unchanged_compiler_profile (tests.test_hia_task_operations_native.TaskOperationsSourceTests.test_exact_generator_and_unchanged_compiler_profile) ... ok
+2026-11-11T22:05:50.2714640Z test_packet_copies_identity_without_semantic_key_expansion (tests.test_hia_task_operations_native.TaskOperationsSourceTests.test_packet_copies_identity_without_semantic_key_expansion) ... ok
+2026-11-11T22:05:50.2739253Z test_selected_missing_image_cannot_enter_reference (tests.test_hia_task_operations_native.TaskOperationsSourceTests.test_selected_missing_image_cannot_enter_reference) ... ok
+2026-11-11T22:05:50.3839701Z test_cannot_skip_repeat_or_reorder_owner_continuations (tests.test_hia_task_operations_native.TaskOperationsAdapterTests.test_cannot_skip_repeat_or_reorder_owner_continuations) ... ok
+2026-11-11T22:05:50.4030675Z test_strict_frames_queries_and_effect_prefixes (tests.test_hia_task_operations_native.TaskOperationsAdapterTests.test_strict_frames_queries_and_effect_prefixes) ... ok
+2026-11-11T22:05:50.8954887Z test_generated_source_and_independent_Core_VM_before_native_seed (tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests.test_generated_source_and_independent_Core_VM_before_native_seed) ... ok
+2026-11-11T22:05:50.8960827Z test_unqualified_builder_refuses_before_output_creation (tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests.test_unqualified_builder_refuses_before_output_creation) ... ok
+2026-11-11T22:05:53.1454140Z test_commands_root_and_only_exact_lower_hex_file_names (tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_commands_root_and_only_exact_lower_hex_file_names) ... ok
+2026-11-11T22:05:56.1971728Z test_owned_non_writable_directory_guard_and_full_store_quota (tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_owned_non_writable_directory_guard_and_full_store_quota) ... ok
+2026-11-11T22:05:57.3608814Z test_temporary_name_UUID4_bits_and_content_SHA_are_formed_in_HIA (tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_temporary_name_UUID4_bits_and_content_SHA_are_formed_in_HIA) ... ok
+2026-11-11T22:06:08.9142354Z test_generated_source_and_independent_VM (tests.test_hia_worker_request_native.WorkerRequestSourceTests.test_generated_source_and_independent_VM) ... ok
+2026-11-11T22:06:08.9149902Z test_unqualified_build_creates_no_output (tests.test_hia_worker_request_native.WorkerRequestSourceTests.test_unqualified_build_creates_no_output) ... ok
+2026-11-11T22:06:08.9178036Z test_builder_refuses_incomplete_cold_before_output (tests.test_hia_release_install.ReleaseInstallerSourceTests.test_builder_refuses_incomplete_cold_before_output) ... ok
+2026-11-11T22:06:11.1229426Z test_independent_vm_arguments_hash_stage_and_receipt (tests.test_hia_release_install.ReleaseInstallerSourceTests.test_independent_vm_arguments_hash_stage_and_receipt) ... ok
+2026-11-11T22:06:12.5903670Z test_independent_vm_only_private_owned_stage_accepts_inherited_sgid (tests.test_hia_release_install.ReleaseInstallerSourceTests.test_independent_vm_only_private_owned_stage_accepts_inherited_sgid) ... ok
+2026-11-11T22:06:14.1483659Z test_independent_vm_package_and_rejection (tests.test_hia_release_install.ReleaseInstallerSourceTests.test_independent_vm_package_and_rejection) ... ok
+2026-11-11T22:06:15.6336184Z test_independent_vm_packer_bytes_and_elf_shape (tests.test_hia_release_install.ReleaseInstallerSourceTests.test_independent_vm_packer_bytes_and_elf_shape) ... ok
+2026-11-11T22:06:16.4878966Z test_policy_and_packer_sources_are_exact (tests.test_hia_release_install.ReleaseInstallerSourceTests.test_policy_and_packer_sources_are_exact) ... ok
+2026-11-11T22:06:16.4910360Z test_builder_refuses_unqualified_source_before_output (tests.test_hia_release_selection.ReleaseSelectionSourceTests.test_builder_refuses_unqualified_source_before_output) ... ok
+2026-11-11T22:06:18.4455396Z test_independent_vm_packer_all_bytes (tests.test_hia_release_selection.ReleaseSelectionSourceTests.test_independent_vm_packer_all_bytes) ... ok
+2026-11-11T22:06:19.4719792Z test_sources_and_real_verifier_reuse (tests.test_hia_release_selection.ReleaseSelectionSourceTests.test_sources_and_real_verifier_reuse) ... ok
+2026-11-11T22:06:23.4970407Z test_vm_arguments_canonical_sequence_and_native_verify_packet (tests.test_hia_release_selection.ReleaseSelectionSourceTests.test_vm_arguments_canonical_sequence_and_native_verify_packet) ... ok
+2026-11-11T22:06:29.1481534Z test_vm_exact_state_cas_rollback_checksum_and_exhaustion (tests.test_hia_release_selection.ReleaseSelectionSourceTests.test_vm_exact_state_cas_rollback_checksum_and_exhaustion) ... ok
+2026-11-11T22:06:31.8503029Z test_vm_receipt_and_staged_name (tests.test_hia_release_selection.ReleaseSelectionSourceTests.test_vm_receipt_and_staged_name) ... ok
+2026-11-11T22:06:31.8505147Z test_exact_held_identity_and_stable_outer_snapshots (tests.test_hia_native_value_graph.NativeExternalValuePoolTests.test_exact_held_identity_and_stable_outer_snapshots) ... ok
+2026-11-11T22:06:31.8509833Z test_existing_aggregate_values_do_not_consume_new_expansion_quota (tests.test_hia_native_value_graph.NativeExternalValuePoolTests.test_existing_aggregate_values_do_not_consume_new_expansion_quota) ... ok
+2026-11-11T22:06:31.8513347Z test_external_concat_allocates_only_outer_list_and_preserves_order (tests.test_hia_native_value_graph.NativeExternalValuePoolTests.test_external_concat_allocates_only_outer_list_and_preserves_order) ... ok
+2026-11-11T22:06:31.8515945Z test_external_embedding_cannot_hide_excessive_depth (tests.test_hia_native_value_graph.NativeExternalValuePoolTests.test_external_embedding_cannot_hide_excessive_depth) ... ok
+2026-11-11T22:06:31.8518216Z test_external_headers_and_original_pool_references_fail_closed (tests.test_hia_native_value_graph.NativeExternalValuePoolTests.test_external_headers_and_original_pool_references_fail_closed) ... ok
+2026-11-11T22:06:31.8937914Z test_hia_external_writers_execute_independently_in_vm (tests.test_hia_native_value_graph.NativeExternalValuePoolTests.test_hia_external_writers_execute_independently_in_vm) ... ok
+2026-11-11T22:06:31.8943756Z test_pool_representation_cycles_types_nonfinite_and_depth (tests.test_hia_native_value_graph.NativeExternalValuePoolTests.test_pool_representation_cycles_types_nonfinite_and_depth) ... ok
+2026-11-11T22:06:31.8946990Z test_raw_pool_references_validate_ids_kinds_and_current_custody (tests.test_hia_native_value_graph.NativeExternalValuePoolTests.test_raw_pool_references_validate_ids_kinds_and_current_custody) ... ok
+2026-11-11T22:06:33.2648795Z test_bound_external_values_preserve_opaque_identity_and_tuple_spines (tests.test_hia_native_value_graph.NativeValueGraphTests.test_bound_external_values_preserve_opaque_identity_and_tuple_spines) ... ok
+2026-11-11T22:06:33.2656544Z test_bound_owned_graph_rejects_typed_edges_keys_and_new_cycles (tests.test_hia_native_value_graph.NativeValueGraphTests.test_bound_owned_graph_rejects_typed_edges_keys_and_new_cycles) ... ok
+2026-11-11T22:06:33.7396437Z test_bound_source_concatenation_has_no_expanded_shadow_array (tests.test_hia_native_value_graph.NativeValueGraphTests.test_bound_source_concatenation_has_no_expanded_shadow_array) ... ok
+2026-11-11T22:06:33.7406689Z test_depth_and_mutable_byte_input_refused (tests.test_hia_native_value_graph.NativeValueGraphTests.test_depth_and_mutable_byte_input_refused) ... ok
+2026-11-11T22:06:33.7409167Z test_duplicate_nonstring_keys_nonfinite_and_opaque_values_refused (tests.test_hia_native_value_graph.NativeValueGraphTests.test_duplicate_nonstring_keys_nonfinite_and_opaque_values_refused) ... ok
+2026-11-11T22:06:33.7414266Z test_exact_types_unicode_signed_zero_and_nested_source_values (tests.test_hia_native_value_graph.NativeValueGraphTests.test_exact_types_unicode_signed_zero_and_nested_source_values) ... ok
+2026-11-11T22:06:33.7416669Z test_original_graph_cannot_reference_output_or_itself (tests.test_hia_native_value_graph.NativeValueGraphTests.test_original_graph_cannot_reference_output_or_itself) ... ok
+2026-11-11T22:06:33.7418911Z test_reference_must_name_a_complete_original_node (tests.test_hia_native_value_graph.NativeValueGraphTests.test_reference_must_name_a_complete_original_node) ... ok
+2026-11-11T22:06:33.7776656Z test_repeated_512_slot_aliases_are_not_limited_by_wire_output_bytes (tests.test_hia_native_value_graph.NativeValueGraphTests.test_repeated_512_slot_aliases_are_not_limited_by_wire_output_bytes) ... ok
+2026-11-11T22:06:33.7780176Z test_truncated_extents_counts_trailing_bytes_and_unknown_tags_refused (tests.test_hia_native_value_graph.NativeValueGraphTests.test_truncated_extents_counts_trailing_bytes_and_unknown_tags_refused) ... ok
+2026-11-11T22:06:33.7819473Z test_admitted_main_session_remains_fixed_after_selector_clear_or_change (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_admitted_main_session_remains_fixed_after_selector_clear_or_change) ... ok
+2026-11-11T22:06:33.8193448Z test_all_three_successful_constructors_install_main_session_once (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_all_three_successful_constructors_install_main_session_once) ... ok
+2026-11-11T22:06:33.8560313Z test_both_original_function_oracles_keep_their_independent_hashes (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_both_original_function_oracles_keep_their_independent_hashes) ... ok
+2026-11-11T22:06:33.8595192Z test_constructor_refusal_never_installs_a_function_session (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_constructor_refusal_never_installs_a_function_session) ... ok
+2026-11-11T22:06:33.8616142Z test_empty_selectors_preserve_the_default_public_result (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_empty_selectors_preserve_the_default_public_result) ... ok
+2026-11-11T22:06:33.8636950Z test_fixed_main_session_refuses_a_new_nominal_function_selector (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_fixed_main_session_refuses_a_new_nominal_function_selector) ... ok
+2026-11-11T22:06:33.8652308Z test_function_close_failure_still_closes_the_type_session (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_function_close_failure_still_closes_the_type_session) ... ok
+2026-11-11T22:06:33.8678287Z test_late_main_function_selector_without_admission_refuses (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_late_main_function_selector_without_admission_refuses) ... ok
+2026-11-11T22:06:33.8724232Z test_main_outer_rejects_nominal_function_abi_before_any_native_entry (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_main_outer_rejects_nominal_function_abi_before_any_native_entry) ... ok
+2026-11-11T22:06:33.8740035Z test_main_session_admission_refusal_does_not_fall_back (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_main_session_admission_refusal_does_not_fall_back) ... ok
+2026-11-11T22:06:33.8763999Z test_module_routes_dispatch_their_own_owner_only (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_module_routes_dispatch_their_own_owner_only) ... ok
+2026-11-11T22:06:33.8786872Z test_nominal_function_route_and_its_reference_remain_distinct (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_nominal_function_route_and_its_reference_remain_distinct) ... ok
+2026-11-11T22:06:33.8821501Z test_nonempty_missing_main_manifests_never_select_reference_success (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_nonempty_missing_main_manifests_never_select_reference_success) ... ok
+2026-11-11T22:06:33.8843135Z test_parallel_constructor_selectors_refuse_before_any_owner (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_parallel_constructor_selectors_refuse_before_any_owner) ... ok
+2026-11-11T22:06:33.8863880Z test_parallel_function_selectors_refuse_after_constructor_before_session (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_parallel_function_selectors_refuse_after_constructor_before_session) ... ok
+2026-11-11T22:06:33.8886811Z test_parallel_module_selectors_refuse_before_any_owner (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_parallel_module_selectors_refuse_before_any_owner) ... ok
+2026-11-11T22:06:33.8903005Z test_public_constructor_failure_closes_only_published_sessions (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_public_constructor_failure_closes_only_published_sessions) ... ok
+2026-11-11T22:06:33.8927172Z test_public_facade_closes_both_sessions_with_result_or_exception_held (tests.test_hia_nominal_owner_routes.NominalOwnerRouteTests.test_public_facade_closes_both_sessions_with_result_or_exception_held) ... ok
+2026-11-11T22:06:34.8558920Z test_exact_generator_and_unchanged_compiler_limits (tests.test_hia_call_primitive_native.CallPrimitiveSourceTests.test_exact_generator_and_unchanged_compiler_limits) ... ok
+2026-11-11T22:06:34.8581471Z test_missing_or_falsy_selected_owner_never_enters_reference (tests.test_hia_call_primitive_native.CallPrimitiveSourceTests.test_missing_or_falsy_selected_owner_never_enters_reference) ... ok
+2026-11-11T22:06:34.8603937Z test_original_branch_ast_and_identity_only_transport (tests.test_hia_call_primitive_native.CallPrimitiveSourceTests.test_original_branch_ast_and_identity_only_transport) ... ok
+2026-11-11T22:06:34.8613398Z test_requested_cold_gate_cannot_be_overridden_before_fixture_work (tests.test_hia_call_primitive_native.CallPrimitiveSourceTests.test_requested_cold_gate_cannot_be_overridden_before_fixture_work) ... ok
+2026-11-11T22:06:35.0306987Z test_partial_name_budget_retains_only_complete_output_bindings (tests.test_hia_call_primitive_native.CallPrimitiveAdapterTests.test_partial_name_budget_retains_only_complete_output_bindings) ... ok
+2026-11-11T22:06:35.5945787Z test_signature_and_output_queries_cannot_be_skipped_or_reordered (tests.test_hia_call_primitive_native.CallPrimitiveAdapterTests.test_signature_and_output_queries_cannot_be_skipped_or_reordered) ... ok
+2026-11-11T22:06:36.5397639Z test_strict_extent_header_graph_and_original_input_admission (tests.test_hia_call_primitive_native.CallPrimitiveAdapterTests.test_strict_extent_header_graph_and_original_input_admission) ... ok
+2026-11-11T22:06:37.4460571Z test_exact_ordinary_hia_source_and_original_profile_limits (tests.test_hia_nominal_terminators_native.NominalTerminatorsSourceTests.test_exact_ordinary_hia_source_and_original_profile_limits) ... ok
+2026-11-11T22:06:37.4483077Z test_missing_selected_image_never_enters_original_branch (tests.test_hia_nominal_terminators_native.NominalTerminatorsSourceTests.test_missing_selected_image_never_enters_original_branch) ... ok
+2026-11-11T22:06:37.4486082Z test_packet_preserves_object_and_type_identity_without_semantic_queries (tests.test_hia_nominal_terminators_native.NominalTerminatorsSourceTests.test_packet_preserves_object_and_type_identity_without_semantic_queries) ... ok
+2026-11-11T22:06:37.7481498Z test_complete_frame_flags_counter_and_graph_are_checked (tests.test_hia_nominal_terminators_native.NominalTerminatorsAdapterTests.test_complete_frame_flags_counter_and_graph_are_checked) ... ok
+2026-11-11T22:06:37.8240495Z test_refusal_prefix_is_monotonic_and_delegation_has_no_effect (tests.test_hia_nominal_terminators_native.NominalTerminatorsAdapterTests.test_refusal_prefix_is_monotonic_and_delegation_has_no_effect) ... ok
+2026-11-11T22:06:37.8262579Z test_selected_missing_image_never_falls_back (tests.test_hia_nominal_module_native.NominalModuleSourceTests.test_selected_missing_image_never_falls_back) ... ok
+2026-11-11T22:06:38.5524929Z test_source_is_ordinary_hia_with_existing_compiler_limits (tests.test_hia_nominal_module_native.NominalModuleSourceTests.test_source_is_ordinary_hia_with_existing_compiler_limits) ... ok
+2026-11-11T22:06:38.5540235Z test_callback_identity_order_and_closed_context (tests.test_hia_nominal_module_native.NominalModuleAdapterTests.test_callback_identity_order_and_closed_context) ... ok
+2026-11-11T22:06:38.5562417Z test_constructor_allocation_failure_releases_arenas_with_original_traceback_held (tests.test_hia_nominal_module_native.NominalModuleAdapterTests.test_constructor_allocation_failure_releases_arenas_with_original_traceback_held) ... ok
+2026-11-11T22:06:38.5577956Z test_only_current_issued_request_executes_once_and_ack_precedes_resume (tests.test_hia_nominal_module_native.NominalModuleAdapterTests.test_only_current_issued_request_executes_once_and_ack_precedes_resume) ... ok
+2026-11-11T22:06:38.5661696Z test_result_frame_and_input_custody_checked (tests.test_hia_nominal_module_native.NominalModuleAdapterTests.test_result_frame_and_input_custody_checked) ... ok
+2026-11-11T22:06:38.5681100Z test_missing_selected_image_never_falls_back (tests.test_hia_nominal_admission_native.NominalAdmissionSourceTests.test_missing_selected_image_never_falls_back) ... ok
+2026-11-11T22:06:39.5015216Z test_source_is_ordinary_hia_with_original_compiler_budgets (tests.test_hia_nominal_admission_native.NominalAdmissionSourceTests.test_source_is_ordinary_hia_with_original_compiler_budgets) ... ok
+2026-11-11T22:06:39.9375508Z test_checked_result_graph_sequence_and_immutable_input (tests.test_hia_nominal_admission_native.NominalAdmissionAdapterTests.test_checked_result_graph_sequence_and_immutable_input) ... ok
+2026-11-11T22:06:39.9615879Z test_current_callback_is_executed_at_most_once_and_closed_context_refuses (tests.test_hia_nominal_admission_native.NominalAdmissionAdapterTests.test_current_callback_is_executed_at_most_once_and_closed_context_refuses) ... ok
+2026-11-11T22:06:39.9625292Z test_partial_real_allocations_release_with_original_exception_held (tests.test_hia_nominal_admission_native.NominalAdmissionAdapterTests.test_partial_real_allocations_release_with_original_exception_held) ... ok
+2026-11-11T22:06:41.2287449Z test_maintained_hia_source_complete_ir_and_unchanged_compiler_profile (tests.test_hia_nominal_function_native.NominalFunctionSourceTests.test_maintained_hia_source_complete_ir_and_unchanged_compiler_profile) ... ok
+2026-11-11T22:06:41.3123993Z test_original_function_ast_and_transport_identity (tests.test_hia_nominal_function_native.NominalFunctionSourceTests.test_original_function_ast_and_transport_identity) ... ok
+2026-11-11T22:06:41.3144361Z test_selected_missing_image_cannot_use_reference (tests.test_hia_nominal_function_native.NominalFunctionSourceTests.test_selected_missing_image_cannot_use_reference) ... ok
+2026-11-11T22:06:42.1540642Z test_bad_frames_and_input_mutation_fail_closed (tests.test_hia_nominal_function_native.NominalFunctionAdapterTests.test_bad_frames_and_input_mutation_fail_closed) ... ok
+2026-11-11T22:06:42.2310290Z test_callback_permission_is_exact_once_only_and_requires_a_reply (tests.test_hia_nominal_function_native.NominalFunctionAdapterTests.test_callback_permission_is_exact_once_only_and_requires_a_reply) ... ok
+2026-11-11T22:06:42.3079360Z test_constructor_allocation_refusal_releases_partial_arenas_with_traceback_held (tests.test_hia_nominal_function_native.NominalFunctionAdapterTests.test_constructor_allocation_refusal_releases_partial_arenas_with_traceback_held) ... ok
+2026-11-11T22:06:42.5385419Z test_exact_frame_permission_precedes_counter_prefix_and_terminal_return (tests.test_hia_nominal_function_native.NominalFunctionAdapterTests.test_exact_frame_permission_precedes_counter_prefix_and_terminal_return) ... ok
+2026-11-11T22:06:43.2290161Z test_invalid_storage_locations_and_descriptor_ids_refuse_before_callbacks (tests.test_hia_nominal_function_native.NominalFunctionAdapterTests.test_invalid_storage_locations_and_descriptor_ids_refuse_before_callbacks) ... ok
+2026-11-11T22:06:43.9138453Z test_generator_complete_ir_and_unchanged_compiler_profile (tests.test_hia_task_helper_cache_native.TaskHelperCacheSourceTests.test_generator_complete_ir_and_unchanged_compiler_profile) ... ok
+2026-11-11T22:06:43.9169590Z test_independent_original_wrapper_and_exact_type_identity_transport (tests.test_hia_task_helper_cache_native.TaskHelperCacheSourceTests.test_independent_original_wrapper_and_exact_type_identity_transport) ... ok
+2026-11-11T22:06:43.9184996Z test_selected_missing_manifest_is_explicit_refusal (tests.test_hia_task_helper_cache_native.TaskHelperCacheSourceTests.test_selected_missing_manifest_is_explicit_refusal) ... ok
+2026-11-11T22:06:43.9192506Z test_callback_permissions_are_consumed_before_external_work (tests.test_hia_task_helper_cache_native.TaskHelperCacheAdapterTests.test_callback_permissions_are_consumed_before_external_work) ... ok
+2026-11-11T22:06:43.9213336Z test_frames_custody_and_complete_state_shapes_fail_closed (tests.test_hia_task_helper_cache_native.TaskHelperCacheAdapterTests.test_frames_custody_and_complete_state_shapes_fail_closed) ... ok
+2026-11-11T22:06:43.9216170Z test_partial_constructor_allocation_is_released_with_original_traceback (tests.test_hia_task_helper_cache_native.TaskHelperCacheAdapterTests.test_partial_constructor_allocation_is_released_with_original_traceback) ... ok
+2026-11-11T22:06:43.9226253Z test_terminal_commit_requires_the_exact_issued_result_and_cannot_replay (tests.test_hia_task_helper_cache_native.TaskHelperCacheAdapterTests.test_terminal_commit_requires_the_exact_issued_result_and_cannot_replay) ... ok
+2026-11-11T22:06:43.9247195Z test_bad_cold_builder_refuses_before_output_or_native_compilation (tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_bad_cold_builder_refuses_before_output_or_native_compilation) ... ok
+2026-11-11T22:06:43.9274266Z test_fixture_cold_admission_precedes_evidence_seed_and_compilation (tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_fixture_cold_admission_precedes_evidence_seed_and_compilation) ... ok
+2026-11-11T22:07:04.2057465Z test_generated_source_and_independent_vm_full_claim_run_completion (tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_generated_source_and_independent_vm_full_claim_run_completion) ... ok
+2026-11-11T22:07:04.2080680Z test_bad_cold_builder_refuses_before_output_or_native_compilation (tests.test_hia_request_journal_native.RequestJournalSourceTests.test_bad_cold_builder_refuses_before_output_or_native_compilation) ... ok
+2026-11-11T22:07:04.2102905Z test_explicit_cold_fixture_cannot_fall_back_to_a_development_seed (tests.test_hia_request_journal_native.RequestJournalSourceTests.test_explicit_cold_fixture_cannot_fall_back_to_a_development_seed) ... ok
+2026-11-11T22:07:13.9519274Z test_generated_source_and_independent_vm_owned_lifecycles (tests.test_hia_request_journal_native.RequestJournalSourceTests.test_generated_source_and_independent_vm_owned_lifecycles) ... ok
+2026-11-11T22:07:13.9545883Z test_invalid_selected_owner_refuses_before_opening_or_creating_a_store (tests.test_hia_request_journal_native.RequestJournalSourceTests.test_invalid_selected_owner_refuses_before_opening_or_creating_a_store) ... ok
+2026-11-11T22:07:13.9564432Z test_bad_cold_builder_refuses_before_output_or_compilation (tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_bad_cold_builder_refuses_before_output_or_compilation) ... ok
+2026-11-11T22:07:13.9583870Z test_explicit_cold_fixture_never_enters_development_build (tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_explicit_cold_fixture_never_enters_development_build) ... ok
+2026-11-11T22:07:14.5867206Z test_generated_cfg_respects_the_existing_bootstrap_arity_profile (tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_generated_cfg_respects_the_existing_bootstrap_arity_profile) ... ok
+2026-11-11T22:07:15.8582662Z test_generated_source_matches_verified_hia (tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_generated_source_matches_verified_hia) ... ok
+2026-11-11T22:08:10.1050336Z test_independent_vm_full_namespace_identity_and_json_binding (tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_independent_vm_full_namespace_identity_and_json_binding) ... ok
+2026-11-11T22:08:49.7256375Z test_independent_vm_profile_checks_both_rows_and_file (tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_independent_vm_profile_checks_both_rows_and_file) ... ok
+2026-11-11T22:08:55.1518170Z test_independent_vm_scope_guard_consumes_epoch_even_when_observed_closed (tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_independent_vm_scope_guard_consumes_epoch_even_when_observed_closed) ... ok
+2026-11-11T22:08:55.1533309Z test_invalid_selected_owner_refuses_before_store_creation (tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_invalid_selected_owner_refuses_before_store_creation) ... ok
+2026-11-11T22:08:55.1553310Z test_cold_builder_refuses_before_output_or_compilation (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_cold_builder_refuses_before_output_or_compilation) ... ok
+2026-11-11T22:08:55.1570305Z test_explicit_cold_and_development_configuration_never_mix (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_explicit_cold_and_development_configuration_never_mix) ... ok
+2026-11-11T22:08:56.4636928Z test_generated_source_and_bootstrap_bounds (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_generated_source_and_bootstrap_bounds) ... ok
+2026-11-11T22:13:09.9247163Z test_independent_vm_direct_handle_lifecycle_and_foreign_error (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_independent_vm_direct_handle_lifecycle_and_foreign_error) ... ok
+2026-11-11T22:13:09.9262075Z test_selected_missing_native_dependency_refuses_before_filesystem_creation (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_selected_missing_native_dependency_refuses_before_filesystem_creation) ... ok
+2026-11-11T22:14:18.8753272Z test_vm_first_adoption_claims_and_exact_readbacks (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_vm_first_adoption_claims_and_exact_readbacks) ... ok
+2026-11-11T22:14:43.1137281Z test_vm_hia_formats_uuid_after_native_image_admission (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_vm_hia_formats_uuid_after_native_image_admission) ... ok
+2026-11-11T22:15:35.6294862Z test_vm_rollback_uses_retained_image_and_preserves_original_generation (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_vm_rollback_uses_retained_image_and_preserves_original_generation) ... ok
+2026-11-11T22:15:54.1842913Z test_vm_stale_snapshot_never_grants_a_write (tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_vm_stale_snapshot_never_grants_a_write) ... ok
+2026-11-11T22:15:54.1941622Z test_bridge_has_no_opcode_signature_block_or_resource_policy_dispatch (tests.test_hia_program_execution_native.ProgramExecutionSourceTests.test_bridge_has_no_opcode_signature_block_or_resource_policy_dispatch) ... ok
+2026-11-11T22:15:56.3872203Z test_checked_source_matches_authoring_and_original_compiler_limits (tests.test_hia_program_execution_native.ProgramExecutionSourceTests.test_checked_source_matches_authoring_and_original_compiler_limits) ... ok
+2026-11-11T22:15:56.5248957Z test_complete_opcode_roster_and_original_reference_remain (tests.test_hia_program_execution_native.ProgramExecutionSourceTests.test_complete_opcode_roster_and_original_reference_remain) ... ok
+2026-11-11T22:15:56.5259485Z test_development_cannot_override_cold_before_reading_inputs (tests.test_hia_program_execution_native.ProgramExecutionSourceTests.test_development_cannot_override_cold_before_reading_inputs) ... ok
+2026-11-11T22:15:56.6938077Z test_private_decoder_root_count_is_relocated_with_its_stack (tests.test_hia_program_execution_native.ProgramExecutionSourceTests.test_private_decoder_root_count_is_relocated_with_its_stack) ... ok
+2026-11-11T22:15:56.6941060Z test_huge_exact_integer_representation_never_uses_decimal_conversion (tests.test_hia_program_execution_native.ProgramExecutionAdapterTests.test_huge_exact_integer_representation_never_uses_decimal_conversion) ... ok
+2026-11-11T22:15:56.6948589Z test_partial_context_allocation_failure_closes_exact_owned_arena (tests.test_hia_program_execution_native.ProgramExecutionAdapterTests.test_partial_context_allocation_failure_closes_exact_owned_arena) ... ok
+2026-11-11T22:15:56.8500513Z test_complete_opcode_and_type_abi_and_original_limits (tests.test_hia_program_execution_scalars.ProgramExecutionScalarsSourceTests.test_complete_opcode_and_type_abi_and_original_limits) ... ok
+2026-11-11T22:15:56.8510931Z test_development_cannot_replace_requested_cold_before_output (tests.test_hia_program_execution_scalars.ProgramExecutionScalarsSourceTests.test_development_cannot_replace_requested_cold_before_output) ... ok
+2026-11-11T22:15:57.1366961Z test_math_oracle_matches_original_operations_and_exact_traps (tests.test_hia_program_execution_scalars.ProgramExecutionScalarsSourceTests.test_math_oracle_matches_original_operations_and_exact_traps) ... ok
+2026-11-11T22:15:57.1369892Z test_unsigned_division_is_never_marked_total_or_speculated (tests.test_hia_program_execution_scalars.ProgramExecutionScalarsSourceTests.test_unsigned_division_is_never_marked_total_or_speculated) ... ok
+2026-11-11T22:15:57.1373490Z test_installed_execution_has_source_release_worker_and_checker_custody (tests.test_hia_program_execution_integration.ExecutionIntegrationSourceTests.test_installed_execution_has_source_release_worker_and_checker_custody) ... ok
+2026-11-11T22:15:57.1376390Z test_bridge_has_only_explicit_foreign_operations_and_no_authoring_import (tests.test_hia_static_budget_native.StaticBudgetSourceTests.test_bridge_has_only_explicit_foreign_operations_and_no_authoring_import) ... ok
+2026-11-11T22:15:59.7835544Z test_checked_hia_is_the_complete_generator_output_with_original_limits (tests.test_hia_static_budget_native.StaticBudgetSourceTests.test_checked_hia_is_the_complete_generator_output_with_original_limits) ... ok
+2026-11-11T22:15:59.7912882Z test_original_policy_bodies_are_preserved_as_exact_source (tests.test_hia_static_budget_native.StaticBudgetSourceTests.test_original_policy_bodies_are_preserved_as_exact_source) ... ok
+2026-11-11T22:15:59.7930529Z test_selector_failure_never_uses_a_retained_policy (tests.test_hia_static_budget_native.StaticBudgetSourceTests.test_selector_failure_never_uses_a_retained_policy) ... ok
+2026-11-11T22:15:59.7932902Z test_binary_integer_transport_uses_no_decimal_policy (tests.test_hia_static_budget_native.StaticBudgetAdapterTests.test_binary_integer_transport_uses_no_decimal_policy) ... ok
+2026-11-11T22:15:59.7935287Z test_cleanup_revokes_then_retries_an_actual_exported_buffer (tests.test_hia_static_budget_native.StaticBudgetAdapterTests.test_cleanup_revokes_then_retries_an_actual_exported_buffer) ... ok
+2026-11-11T22:15:59.7937893Z test_exact_private_word_kinds_cannot_invoke_metaclass_equality (tests.test_hia_static_budget_native.StaticBudgetAdapterTests.test_exact_private_word_kinds_cannot_invoke_metaclass_equality) ... ok
+2026-11-11T22:15:59.7940525Z test_policy_and_huge_integer_remain_opaque_before_native_decision (tests.test_hia_static_budget_native.StaticBudgetAdapterTests.test_policy_and_huge_integer_remain_opaque_before_native_decision) ... ok
+2026-11-11T22:15:59.7943360Z test_second_real_arena_failure_releases_first_with_original_traceback (tests.test_hia_static_budget_native.StaticBudgetAdapterTests.test_second_real_arena_failure_releases_first_with_original_traceback) ... ok
+2026-11-11T22:15:59.7951681Z test_component_and_installed_cold_conflicts_refuse_before_input_io (tests.test_hia_static_budget_integration.StaticBudgetIntegrationSourceTests.test_component_and_installed_cold_conflicts_refuse_before_input_io) ... ok
+2026-11-11T22:15:59.8298490Z test_resource_release_worker_checker_and_transitive_source_custody (tests.test_hia_static_budget_integration.StaticBudgetIntegrationSourceTests.test_resource_release_worker_checker_and_transitive_source_custody) ... ok
+2026-11-11T22:15:59.8359525Z test_v6_environment_selects_current_cold_and_records_discarded_inputs (tests.test_hia_static_budget_integration.StaticBudgetIntegrationSourceTests.test_v6_environment_selects_current_cold_and_records_discarded_inputs) ... ok
+2026-11-11T22:16:00.0603635Z test_authoring_has_only_typed_native_functions_and_original_limits (tests.test_hia_native_bigints.NativeBigIntSourceTests.test_authoring_has_only_typed_native_functions_and_original_limits) ... ok
+2026-11-11T22:16:00.0614243Z test_cold_and_development_conflict_before_input_read (tests.test_hia_native_bigints.NativeBigIntSourceTests.test_cold_and_development_conflict_before_input_read) ... ok
+2026-11-11T22:16:00.0623618Z test_cold_and_development_conflict_before_input_read (tests.test_hia_heap_graphs_native.HeapGraphSourceTests.test_cold_and_development_conflict_before_input_read) ... ok
+2026-11-11T22:16:00.5629396Z test_graph_source_is_valid_core_inside_original_compiler_limits (tests.test_hia_heap_graphs_native.HeapGraphSourceTests.test_graph_source_is_valid_core_inside_original_compiler_limits) ... ok
+2026-11-11T22:16:00.5632477Z test_arbitrary_binary_magnitudes_do_not_trigger_decimal_digit_policy (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_arbitrary_binary_magnitudes_do_not_trigger_decimal_digit_policy) ... ok
+2026-11-11T22:16:00.5635145Z test_binary_magnitude_and_sign_canonicality_and_extents (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_binary_magnitude_and_sign_canonicality_and_extents) ... ok
+2026-11-11T22:16:00.5637659Z test_binary_source_references_retain_identity_and_new_structure_binding (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_binary_source_references_retain_identity_and_new_structure_binding) ... ok
+2026-11-11T22:16:00.5640665Z test_defaults_preserve_existing_tag_domain (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_defaults_preserve_existing_tag_domain) ... ok
+2026-11-11T22:16:00.5643360Z test_explicit_object_release_preserves_other_aliases_and_rejects_stale_ids (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_explicit_object_release_preserves_other_aliases_and_rejects_stale_ids) ... ok
+2026-11-11T22:16:00.5651201Z test_extent_mode_has_no_fixed_node_or_expansion_quota (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_extent_mode_has_no_fixed_node_or_expansion_quota) ... ok
+2026-11-11T22:16:00.5656327Z test_extent_mode_keeps_parent_counts_and_depth_checks (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_extent_mode_keeps_parent_counts_and_depth_checks) ... ok
+2026-11-11T22:16:00.7925526Z test_hia_binary_writers_execute_in_independent_vm (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_hia_binary_writers_execute_in_independent_vm) ... ok
+2026-11-11T22:16:00.7927911Z test_opaque_ids_and_pool_type_are_checked_without_foreign_equality (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_opaque_ids_and_pool_type_are_checked_without_foreign_equality) ... ok
+2026-11-11T22:16:00.7930333Z test_opaque_policy_is_not_eagerly_admitted_or_serialized (tests.test_hia_native_binary_graph.NativeBinaryGraphTests.test_opaque_policy_is_not_eagerly_admitted_or_serialized) ... ok
+2026-11-11T22:16:00.7940754Z test_development_helper_cannot_override_requested_cold_before_fixture_work (tests.test_hia_worker_native_helpers.NativeWorkerHelperFixtureTests.test_development_helper_cannot_override_requested_cold_before_fixture_work) ... ok
+2026-11-11T22:16:01.2429624Z test_every_checker_binds_the_previously_omitted_source_dependencies (tests.test_hia_checker_identity.CheckerDependencyIdentityTests.test_every_checker_binds_the_previously_omitted_source_dependencies) ... ok
+2026-11-11T22:16:01.2825769Z test_every_integrated_owner_binds_mapping_bytes_without_running_them (tests.test_hia_checker_identity.CheckerDependencyIdentityTests.test_every_integrated_owner_binds_mapping_bytes_without_running_them) ... ok
+2026-11-11T22:16:01.2863740Z test_invalid_selected_image_cannot_produce_checker_digest (tests.test_hia_checker_identity.CheckerDependencyIdentityTests.test_invalid_selected_image_cannot_produce_checker_digest) ... ok
+2026-11-11T22:16:01.2895743Z test_missing_or_invalid_selected_manifest_cannot_become_an_unselected_checker (tests.test_hia_checker_identity.CheckerDependencyIdentityTests.test_missing_or_invalid_selected_manifest_cannot_become_an_unselected_checker) ... ok
+2026-11-11T22:16:01.5618936Z test_reviewed_inventory_covers_verifier_imports_and_explicit_selectors (tests.test_hia_checker_identity.CheckerDependencyIdentityTests.test_reviewed_inventory_covers_verifier_imports_and_explicit_selectors) ... ok
+2026-11-11T22:16:01.5670184Z test_selected_identity_uses_actual_immutable_mapping_and_never_calls_it (tests.test_hia_checker_identity.CheckerDependencyIdentityTests.test_selected_identity_uses_actual_immutable_mapping_and_never_calls_it) ... ok
+2026-11-11T22:16:01.5733096Z test_selection_drift_revokes_a_scalar_conclusion (tests.test_hia_checker_identity.CheckerDependencyIdentityTests.test_selection_drift_revokes_a_scalar_conclusion) ... ok
+2026-11-11T22:16:01.5734431Z 
+2026-11-11T22:16:01.5734683Z ----------------------------------------------------------------------
+2026-11-11T22:16:01.5735277Z Ran 527 tests in 1182.155s
+2026-11-11T22:16:01.5735518Z 
+2026-11-11T22:16:01.5735644Z OK
+2026-11-11T22:16:01.6605106Z Post job cleanup.
+2026-11-11T22:16:01.7926788Z (node:3646) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T22:16:01.7928120Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T22:16:01.8250035Z Post job cleanup.
+2026-11-11T22:16:01.9318535Z [command]/usr/bin/git version
+2026-11-11T22:16:01.9367766Z git version 2.56.0
+2026-11-11T22:16:01.9415806Z Temporarily overriding HOME='/home/runner/work/_temp/184d2081-6aa3-460d-bc49-b5de5d6bdc9e' before making global git config changes
+2026-11-11T22:16:01.9417353Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T22:16:01.9423467Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-11T22:16:01.9472499Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T22:16:01.9539804Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T22:16:01.9900706Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T22:16:01.9932607Z http.https://github.com/.extraheader
+2026-11-11T22:16:01.9956850Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-11T22:16:01.9993278Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T22:16:02.0316113Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T22:16:02.0368006Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T22:16:02.0870134Z Cleaning up orphan processes
+2026-11-11T22:16:02.1258151Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

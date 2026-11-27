@@ -1,0 +1,1622 @@
+{
+  "schema": "hia.agent-contract.complete-resource-union-delta.r1",
+  "base_failed_tree": "f5610f07a4a43bfc83aaffaedec2c0c89933126a",
+  "files": [
+    {
+      "path": "hepta/hia_agent_contract.py",
+      "mode": "100644",
+      "before": {
+        "bytes": 25138,
+        "sha256": "ddc1b01548cdbd7a64e5ff2cc2e9219cc8d588478d6ad1d2d2b22adb1d78bdd1",
+        "git_blob": "498e3ef00122514c93cc55648198a315c10387d3",
+        "text": "\"\"\"Closed wire contract and discoverable execution profiles for HIA tools.\n\nThis small validator implements only the JSON-Schema vocabulary used by the\nchecked-in catalog. It rejects unsupported vocabulary when loading the catalog;\nit is not a general JSON-Schema implementation or a new language checker.\n\"\"\"\nfrom __future__ import annotations\n\nfrom hashlib import sha256\nimport json\nimport math\nfrom pathlib import Path\nimport re\n\nfrom .hia_agent_store import AgentRejected, reject, wire, _agent_resource_path\n\nVERSION = \"hepta.hia.agent-native.v1\"\nROOT = Path(__file__).resolve().parent.parent\nCATALOG_PATH = _agent_resource_path(\"docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json\")\nDISCOVERY_FILES = (\n    \"HIA_AGENT_NATIVE_TOOL_CATALOG.json\", \"HIA_AGENT_ASSEMBLY.md\", \"HIA_PROGRAM.md\",\n    \"HIA_AGENT_MACHINE_PLANS.md\", \"HIA_AGENT_MACRO_POLICY.md\", \"HIA_DIRECT_BYTE_BOOTSTRAP.md\",\n    \"HIA_SELF_HOSTING_CORE.md\", \"HIA_SELFHOST_CORE_SUPPORT.json\", \"HIA_AGENT_PROOF_RESULTS.md\",\n    \"HIA_SAFE_CORE_MACHINE_VALIDATION.md\",\n    \"HIA_AGENT_BUFFER_LIFECYCLE.md\",\n)\n\n\nNATIVE_SOURCE_FILES = (\n    'examples/hia_bootstrap/machine_plan.hepta',\n    'examples/hia_bootstrap/machine_encoding.hepta',\n    'examples/hia_bootstrap/machine_state.hepta',\n    'examples/hia_bootstrap/machine_instructions.hepta',\n    'examples/hia_bootstrap/worker_report.hepta',\n    'examples/hia_bootstrap/json_wire.hepta',\n    'examples/hia_bootstrap/cli_control.hepta',\n    'examples/hia_bootstrap/cli_format.hepta',\n    'examples/hia_bootstrap/candidate_budget.hepta',\n    'examples/hia_bootstrap/slot_ledger.hepta',\n    'examples/hia_bootstrap/nominal_json.hepta',\n    'examples/hia_bootstrap/agent_journal.hepta',\n    'examples/hia_bootstrap/execution_budget.hepta',\n    'examples/hia_bootstrap/worker_request.hepta',\n    'examples/hia_bootstrap/agent_identity.hepta',\n    'examples/hia_bootstrap/agent_slice.hepta',\n    'examples/hia_bootstrap/agent_data_json.hepta',\n    'examples/hia_bootstrap/agent_binary64.hepta',\n    'examples/hia_bootstrap/agent_snapshot_json.hepta',\n    'examples/hia_bootstrap/agent_snapshot.hepta',\n    'examples/hia_bootstrap/capability_renaming.hepta',\n    'examples/hia_bootstrap/core_json_frontend.hepta',\n    'examples/hia_bootstrap/core_module_graph.hepta',\n    'examples/hia_bootstrap/core_workspace_facts.hepta',\n    'examples/hia_bootstrap/core_workspace_json.hepta',\n    'examples/hia_bootstrap/core_workspace_materialize.hepta',\n    'examples/hia_bootstrap/function_shape.hepta',\n    'examples/hia_bootstrap/instruction_policy.hepta',\n    'examples/hia_bootstrap/json_canonical.hepta',\n    'examples/hia_bootstrap/json_decode.hepta',\n    'examples/hia_bootstrap/json_preflight.hepta',\n    'examples/hia_bootstrap/program_shape.hepta',\n    'examples/hia_bootstrap/sha256.hepta',\n    'examples/hia_bootstrap/sha256_stream.hepta',\n    'examples/hia_bootstrap/agent_binary64_format.hepta',\n    'examples/hia_bootstrap/core_admission.hepta',\n    'examples/hia_bootstrap/core_patch.hepta',\n    'examples/hia_bootstrap/composite_types.hepta',\n    'examples/hia_bootstrap/task_helpers.hepta',\n    'examples/hia_bootstrap/composite_function_admit.hepta',\n    'examples/hia_bootstrap/composite_function_records.hepta',\n    'examples/hia_bootstrap/composite_function_advanced.hepta',\n    'examples/hia_bootstrap/composite_function_terms.hepta',\n    'examples/hia_bootstrap/composite_function_render.hepta',\n    'examples/hia_bootstrap/composite_constructor_owner.hepta',\n    'examples/hia_bootstrap/composite_constructor_render.hepta',\n    'examples/hia_bootstrap/composite_outer_owner.hepta',\n    'examples/hia_bootstrap/composite_outer_render.hepta',\n    'examples/hia_bootstrap/retirement_state.hepta',\n)\n\n\n# Standalone source-builder inputs are package data, not runtime image adapters.\n# The executable is explicitly bootstrapped and selected outside wheel setup.\nSOURCE_BUILD_FILES = (\n    'examples/hia_bootstrap/source_build_policy.hepta',\n    'examples/hia_bootstrap/selfhost.hepta',\n    'examples/hia_bootstrap/source_build_packer.hepta',\n)\n\n\n# Additional Core JSON compiler build data, not source-builder repack roles or\n# loadable native-image adapters. Shared compiler/frontend inputs stay above.\nCOMPILER_BUILD_FILES = ('examples/hia_bootstrap/core_json_cli_packer.hepta',)\n\n# Complete multi-image backend source and typed ABI resources.\nBACKEND_BUILD_FILES = (\n    'docs/HIA_CORE_LOWERING_ABI.json',\n    'examples/hia_bootstrap/core_lowering_pool.hepta',\n    'examples/hia_bootstrap/core_lowering_000.hepta',\n    'examples/hia_bootstrap/core_lowering_001.hepta',\n    'examples/hia_bootstrap/core_lowering_002.hepta',\n    'examples/hia_bootstrap/core_lowering_003.hepta',\n    'examples/hia_bootstrap/core_lowering_004.hepta',\n    'examples/hia_bootstrap/core_lowering_005.hepta',\n    'examples/hia_bootstrap/core_lowering_006.hepta',\n    'examples/hia_bootstrap/core_lowering_007.hepta',\n    'examples/hia_bootstrap/core_lowering_008.hepta',\n    'examples/hia_bootstrap/core_lowering_009.hepta',\n    'examples/hia_bootstrap/core_lowering_010.hepta',\n    'examples/hia_bootstrap/core_lowering_011.hepta',\n    'examples/hia_bootstrap/core_lowering_012.hepta',\n    'examples/hia_bootstrap/core_lowering_013.hepta',\n    'examples/hia_bootstrap/core_lowering_014.hepta',\n    'examples/hia_bootstrap/core_lowering_015.hepta',\n    'examples/hia_bootstrap/core_lowering_016.hepta',\n    'examples/hia_bootstrap/core_lowering_017.hepta',\n    'examples/hia_bootstrap/core_lowering_018.hepta',\n    'examples/hia_bootstrap/core_lowering_019.hepta',\n    'examples/hia_bootstrap/core_lowering_020.hepta',\n    'examples/hia_bootstrap/core_lowering_021.hepta',\n    'examples/hia_bootstrap/core_lowering_022.hepta',\n    'examples/hia_bootstrap/core_lowering_023.hepta',\n    'examples/hia_bootstrap/core_lowering_024.hepta',\n    'examples/hia_bootstrap/core_lowering_025.hepta',\n    'examples/hia_bootstrap/core_lowering_026.hepta',\n    'examples/hia_bootstrap/core_lowering_027.hepta',\n    'examples/hia_bootstrap/core_lowering_028.hepta',\n    'examples/hia_bootstrap/core_lowering_029.hepta',\n    'examples/hia_bootstrap/core_lowering_030.hepta',\n)\n\n\n# Separately source-bound whole-program Emitter bundle.\nEMITTER_BUILD_FILES = (\n    'docs/HIA_CORE_EMITTER_ABI.json',\n    'examples/hia_bootstrap/core_emitter_pool.hepta',\n    'examples/hia_bootstrap/core_emitter_000.hepta',\n    'examples/hia_bootstrap/core_emitter_001.hepta',\n    'examples/hia_bootstrap/core_emitter_002.hepta',\n    'examples/hia_bootstrap/core_emitter_003.hepta',\n    'examples/hia_bootstrap/core_emitter_004.hepta',\n    'examples/hia_bootstrap/core_emitter_005.hepta',\n    'examples/hia_bootstrap/core_emitter_006.hepta',\n    'examples/hia_bootstrap/core_emitter_007.hepta',\n)\n\n# Borrowed-byte admission and wrapper-emission multi-image resources.\nBYTE_WRAPPER_BUILD_FILES = (\n    'docs/HIA_BYTE_WRAPPER_ABI.json',\n    'examples/hia_bootstrap/byte_wrapper_pool.hepta',\n    'examples/hia_bootstrap/byte_wrapper_000.hepta',\n    'examples/hia_bootstrap/byte_wrapper_001.hepta',\n    'examples/hia_bootstrap/byte_wrapper_002.hepta',\n    'examples/hia_bootstrap/byte_wrapper_003.hepta',\n    'examples/hia_bootstrap/byte_wrapper_004.hepta',\n    'examples/hia_bootstrap/byte_wrapper_005.hepta',\n    'examples/hia_bootstrap/byte_wrapper_006.hepta',\n    'examples/hia_bootstrap/byte_wrapper_007.hepta',\n)\n\n# Exact execution-result ledger policy resources; not a runtime replacement.\nCONTINUATION_BUILD_FILES = ('docs/HIA_NATIVE_CONTINUATION_ABI.json', 'examples/hia_bootstrap/continuation_policy.hepta', 'examples/hia_bootstrap/continuation_packer.hepta', 'examples/hia_bootstrap/continuation_inprocess_packer.hepta')\n\nEXECUTION_OBSERVATION_BUILD_FILES = ('docs/HIA_EXECUTION_OBSERVATION_ABI.json', 'examples/hia_bootstrap/execution_observation_pool.hepta', 'examples/hia_bootstrap/execution_observation_000.hepta', 'examples/hia_bootstrap/execution_observation_001.hepta', 'examples/hia_bootstrap/execution_observation_002.hepta', 'examples/hia_bootstrap/execution_observation_003.hepta', 'examples/hia_bootstrap/execution_observation_004.hepta', 'examples/hia_bootstrap/execution_observation_005.hepta', 'examples/hia_bootstrap/execution_observation_006.hepta')\n\n# Exact source-bound ELF object writer resources, separate from prior roles.\nMACHINE_OBJECT_BUILD_FILES = (\n    'docs/HIA_MACHINE_OBJECT_ABI.json',\n    'examples/hia_bootstrap/machine_object_pool.hepta',\n    'examples/hia_bootstrap/machine_object_000.hepta',\n    'examples/hia_bootstrap/machine_object_001.hepta',\n    'examples/hia_bootstrap/machine_object_002.hepta',\n    'examples/hia_bootstrap/machine_object_003.hepta',\n    'examples/hia_bootstrap/machine_object_004.hepta',\n    'examples/hia_bootstrap/machine_object_005.hepta',\n    'examples/hia_bootstrap/machine_object_006.hepta',\n    'examples/hia_bootstrap/machine_object_007.hepta',\n    'examples/hia_bootstrap/machine_object_008.hepta',\n    'examples/hia_bootstrap/machine_object_009.hepta',\n    'examples/hia_bootstrap/machine_object_010.hepta',\n    'examples/hia_bootstrap/machine_object_011.hepta',\n)\n\n# Build-input custody assets, not loadable native image adapters. The streaming\n# SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.\nPUBLICATION_BUILD_FILES = (\n    'examples/hia_bootstrap/artifact_publication_policy.hepta',\n    'examples/hia_bootstrap/artifact_publication_packer.hepta',\n    'tools/hia_artifact_publication_syscalls.S',\n    'tools/generate_hia_artifact_publication.py',\n)\n\n\ndef catalog():\n    data = CATALOG_PATH.read_bytes()\n    value = json.loads(data)\n    for tool in value[\"tools\"]:\n        check_vocabulary(tool[\"inputSchema\"])\n        check_vocabulary(tool[\"outputSchema\"])\n    return value, sha256(data).hexdigest()\n\n\ndef installation_manifest():\n    \"\"\"Hash actual installed source bytes, never infer a clean Git commit.\"\"\"\n    entries = {}\n    for path in sorted((ROOT / \"hepta\").rglob(\"*.py\")):\n        if path.relative_to(ROOT / \"hepta\").parts[0] == \"_data\":\n            continue  # Explicit build assets below are data, never Python modules.\n        entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()\n    for filename in DISCOVERY_FILES:\n        path = _agent_resource_path(\"docs/\" + filename)\n        entries[\"docs/\" + filename] = sha256(path.read_bytes()).hexdigest()\n    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES):\n        resource_sha256 = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()\n        if native_source.startswith(\"hepta/\") and native_source.endswith(\".py\"):\n            package_sha256 = entries.get(native_source)\n            if package_sha256 is None or package_sha256 != resource_sha256:\n                raise ValueError(\"installed Python resource differs from its package module: \" + native_source)\n        entries[native_source] = resource_sha256\n    from .hia_program_native import _implementation_hash\n    from .hia_native_helpers import native_helpers_identity\n    return {\"worker_sha256\": sha256(wire(entries)).hexdigest(),\n            \"backend_sha256\": _implementation_hash(),\n            \"catalog_sha256\": entries[\"docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json\"],\n            **native_helpers_identity()}\n\n\n_KEYWORDS = frozenset({\"$schema\", \"type\", \"properties\", \"required\", \"additionalProperties\",\n    \"enum\", \"const\", \"pattern\", \"minLength\", \"maxLength\", \"minimum\", \"maximum\", \"items\",\n    \"minItems\", \"maxItems\", \"uniqueItems\", \"oneOf\", \"anyOf\", \"allOf\", \"if\", \"then\", \"else\",\n    \"not\", \"contains\", \"description\", \"title\", \"minProperties\", \"maxProperties\"})\n\n\ndef check_vocabulary(schema):\n    if type(schema) is bool:\n        return\n    if type(schema) is not dict or set(schema) - _KEYWORDS:\n        raise ValueError(\"unsupported catalog JSON-Schema vocabulary\")\n    for key in (\"oneOf\", \"anyOf\", \"allOf\"):\n        for sub in schema.get(key, []):\n            check_vocabulary(sub)\n    for key in (\"items\", \"contains\", \"if\", \"then\", \"else\", \"not\"):\n        if key in schema:\n            check_vocabulary(schema[key])\n    for sub in schema.get(\"properties\", {}).values():\n        check_vocabulary(sub)\n    if type(schema.get(\"additionalProperties\")) is dict:\n        check_vocabulary(schema[\"additionalProperties\"])\n\n\ndef validate(value, schema, label=\"arguments\"):\n    def fail(reason):\n        reject(\"E_HIA_SCHEMA\", label + \": \" + reason)\n\n    def matches(sub):\n        try:\n            validate(value, sub, label)\n            return True\n        except AgentRejected:\n            return False\n\n    if schema is True:\n        return\n    if schema is False:\n        fail(\"not allowed\")\n    typ = schema.get(\"type\")\n    valid_type = {\"object\": type(value) is dict, \"array\": type(value) is list,\n        \"string\": type(value) is str, \"integer\": type(value) is int or\n            type(value) is float and math.isfinite(value) and value.is_integer(),\n        \"number\": type(value) is int or type(value) is float and math.isfinite(value),\n        \"boolean\": type(value) is bool, \"null\": value is None}\n    if typ is not None and not valid_type.get(typ, False):\n        fail(\"expected \" + str(typ))\n    if \"const\" in schema and wire(value) != wire(schema[\"const\"]):\n        fail(\"constant differs\")\n    if \"enum\" in schema and not any(wire(value) == wire(v) for v in schema[\"enum\"]):\n        fail(\"not in the declared choices\")\n    for key, wanted in ((\"oneOf\", 1), (\"anyOf\", None)):\n        if key in schema:\n            count = sum(matches(sub) for sub in schema[key])\n            if (wanted is not None and count != wanted) or (wanted is None and count == 0):\n                # A tagged union can name the actual failing field without\n                # relaxing admission or echoing the caller's data.  Reporting\n                # only \"does not match oneOf\" hid the import source/format\n                # contract from a real first-use learner.  A uniquely matching\n                # discriminator is diagnostic evidence, never a valid branch.\n                if count == 0 and type(value) is dict:\n                    tagged = []\n                    for sub in schema[key]:\n                        if type(sub) is not dict:\n                            continue\n                        tags = {name: child[\"const\"] for name, child in\n                            sub.get(\"properties\", {}).items() if type(child) is dict and \"const\" in child}\n                        if tags and all(name in value and wire(value[name]) == wire(tag)\n                                        for name, tag in tags.items()):\n                            tagged.append(sub)\n                    if len(tagged) == 1:\n                        validate(value, tagged[0], label)\n                fail(\"does not match \" + key)\n    for sub in schema.get(\"allOf\", []):\n        validate(value, sub, label)\n    if \"not\" in schema and matches(schema[\"not\"]):\n        fail(\"forbidden shape\")\n    if \"if\" in schema:\n        branch = \"then\" if matches(schema[\"if\"]) else \"else\"\n        if branch in schema:\n            validate(value, schema[branch], label)\n    if type(value) is dict:\n        missing = set(schema.get(\"required\", [])) - set(value)\n        if missing:\n            fail(\"missing fields \" + \", \".join(sorted(missing)))\n        properties = schema.get(\"properties\", {})\n        for name, child in value.items():\n            if name in properties:\n                validate(child, properties[name], label + \".\" + name)\n            elif schema.get(\"additionalProperties\", True) is False:\n                fail(\"unknown field \" + name)\n            elif type(schema.get(\"additionalProperties\")) is dict:\n                validate(child, schema[\"additionalProperties\"], label + \".\" + name)\n        if len(value) < schema.get(\"minProperties\", 0) or len(value) > schema.get(\"maxProperties\", 1 << 63):\n            fail(\"object field count is outside limits\")\n    if type(value) is list:\n        if len(value) < schema.get(\"minItems\", 0) or len(value) > schema.get(\"maxItems\", 1 << 63):\n            fail(\"array length is outside limits\")\n        if schema.get(\"uniqueItems\") and len({wire(item) for item in value}) != len(value):\n            fail(\"duplicate array item\")\n        for i, item in enumerate(value):\n            if \"items\" in schema:\n                validate(item, schema[\"items\"], label + \"[\" + str(i) + \"]\")\n        if \"contains\" in schema and not any(_valid(item, schema[\"contains\"]) for item in value):\n            fail(\"array does not contain the required item\")\n    if type(value) is str:\n        if len(value) < schema.get(\"minLength\", 0) or len(value) > schema.get(\"maxLength\", 1 << 63):\n            fail(\"string length is outside limits\")\n        if \"pattern\" in schema and re.search(schema[\"pattern\"], value) is None:\n            fail(\"string does not match the declared pattern\")\n    if type(value) in (int, float):\n        if (type(value) is float and not math.isfinite(value)) or value < schema.get(\"minimum\", -math.inf) or value > schema.get(\"maximum\", math.inf):\n            fail(\"number is outside limits\")\n\n\ndef _valid(value, schema):\n    try:\n        validate(value, schema)\n        return True\n    except AgentRejected:\n        return False\n\n\ndef input_diagnostic(tool, arguments, *, catalog_document=None):\n    \"\"\"Explain a confirmed local input-schema rejection without changing it.\n\n    A recording MCP bridge may append this to its own rejection response after\n    charging the attempt. It must not substitute this validator's success for\n    its existing validator, dispatch corrected arguments, refund a call, or\n    classify an accepted/unknown server operation as a local rejection.\n    \"\"\"\n    document = catalog()[0] if catalog_document is None else catalog_document\n    records = [record for record in document[\"tools\"] if record[\"name\"] == tool]\n    if len(records) != 1:\n        return None\n    try:\n        validate(arguments, records[0][\"inputSchema\"])\n    except AgentRejected as exc:\n        return {\"schema\": \"hepta.hia.agent.input-diagnostic.v1\", \"tool\": tool,\n            \"message\": str(exc)[:4096], \"basis\": \"published inputSchema only\",\n            \"automatic_repair\": False, \"attempt_refunded\": False,\n            \"recovery\": \"Use the exact schema and issued references. After a confirmed rejection, changed writer arguments require a new request key; accepted or unknown operations retain their original identity.\"}\n    return None\n\n\ndef obj(properties, required=None):\n    return {\"type\": \"object\", \"properties\": properties,\n            \"required\": list(properties) if required is None else required, \"additionalProperties\": False}\n\n\nU64 = {\"type\": \"string\", \"pattern\": \"^(0|[1-9][0-9]{0,19})$\"}\nSCALAR = {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"boolean\"}, {\"type\": \"null\"}]}\nEXPECTED = {\"oneOf\": [obj({\"status\": {\"const\": \"returned\"},\n    \"values\": {\"type\": \"array\", \"items\": SCALAR, \"maxItems\": 1}}),\n    obj({\"status\": {\"const\": \"trapped\"}})]}\nSCALAR_WORKLOAD_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.workload.v1\"},\n    \"cases\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 512, \"items\": obj({\n        \"function\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128},\n        \"arguments\": {\"type\": \"array\", \"items\": SCALAR, \"maxItems\": 128},\n        \"expected\": EXPECTED}, [\"function\", \"arguments\"])},\n    \"warmup_iterations\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 100},\n    \"repetitions\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 10000},\n})\nBUFFER_SNAPSHOT = {\"oneOf\": [\n    obj({\"bytes_hex\": {\"type\": \"string\", \"pattern\": \"^(?:[0-9a-f]{2})*$\", \"maxLength\": 2 * 1024**2}}),\n    obj({\"byte_length\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 1024**2},\n         \"fill_byte\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 255}}),\n]}\nBUFFER_OBSERVATION = obj({\n    \"argument\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 127},\n    \"kind\": {\"enum\": [\"readbuf\", \"mutbuf\"]},\n    \"byte_length\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 1024**2},\n    \"sha256\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{64}$\"},\n})\nBUFFER_EXPECTED = {\"oneOf\": [\n    obj({\"status\": {\"const\": \"returned\"},\n         \"values\": {\"type\": \"array\", \"items\": SCALAR, \"maxItems\": 1},\n         \"buffers\": {\"type\": \"array\", \"items\": BUFFER_OBSERVATION, \"maxItems\": 8}}, [\"status\", \"values\"]),\n    obj({\"status\": {\"const\": \"trapped\"},\n         \"buffers\": {\"type\": \"array\", \"items\": BUFFER_OBSERVATION, \"maxItems\": 8}}, [\"status\"]),\n]}\nBUFFER_WORKLOAD_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.workload.v2\"},\n    \"foreign_buffer_exports\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 128, \"items\": obj({\n        \"function\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128},\n        \"max_buffer_bytes\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 1024**2}})},\n    \"cases\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 512, \"items\": obj({\n        \"function\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128},\n        \"arguments\": {\"type\": \"array\", \"items\": {\"anyOf\": [SCALAR, BUFFER_SNAPSHOT]}, \"maxItems\": 128},\n        \"expected\": BUFFER_EXPECTED}, [\"function\", \"arguments\"])},\n    \"warmup_iterations\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 100},\n    \"repetitions\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 10000},\n})\nWORKLOAD_SCHEMA = {\"oneOf\": [SCALAR_WORKLOAD_SCHEMA, BUFFER_WORKLOAD_SCHEMA]}\nOBJECTIVE_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.objective.v1\"},\n    \"metric\": {\"enum\": [\"latency_ns\", \"artifact_bytes\"]},\n    \"required_claims\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 4, \"uniqueItems\": True,\n        \"items\": {\"enum\": [\"core_admission\", \"behavior_equivalence\", \"lowering_refinement\", \"encoding_check\"]},\n        \"contains\": {\"const\": \"core_admission\"}},\n    \"allow_unchanged\": {\"type\": \"boolean\"},\n    \"min_improvement_ratio\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1},\n    \"require_net_benefit\": {\"type\": \"boolean\"},\n}, [\"schema\", \"metric\", \"required_claims\", \"allow_unchanged\", \"min_improvement_ratio\"])\nCOST_POLICY_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.cost-policy.v1\"},\n    \"external_costs\": obj({\n        \"model_tokens\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0, \"maximum\": 100000000}, {\"type\": \"null\"}]},\n        \"model_wall_ns\": {\"anyOf\": [U64, {\"type\": \"null\"}]},\n        \"discovery_wall_ns\": {\"anyOf\": [U64, {\"type\": \"null\"}]},\n    }),\n    \"external_costs_complete\": {\"type\": \"boolean\"},\n    \"expected_invocations\": U64,\n})\nBLOCK_PLAN_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.block-layout.v1\"},\n    \"core_sha256\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{64}$\"},\n    \"block_order\": {\"type\": \"object\", \"minProperties\": 1, \"maxProperties\": 1024,\n        \"additionalProperties\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 4096,\n            \"items\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128}, \"uniqueItems\": True}},\n})\n\n# Artifact-referenced plans preserve the eleven-tool wire catalog. Discovery\n# publishes the original layout profile and the explicit v2/v3/v4 choices.\nMACHINE_PLAN_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.machine-plan.v2\"},\n    \"core_sha256\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{64}$\"},\n    \"block_order\": {\"type\": \"object\", \"maxProperties\": 1024,\n        \"additionalProperties\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 4096,\n            \"items\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128}, \"uniqueItems\": True}},\n    \"function_order\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 1024, \"uniqueItems\": True,\n        \"items\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128}},\n    \"scratch_registers\": obj({\"r10\": {\"enum\": [\"r10\", \"r11\"]}, \"r11\": {\"enum\": [\"r10\", \"r11\"]}}),\n    \"instruction_selection\": obj({\n        \"move_immediate\": {\"enum\": [\"movabs\", \"mov32_if_exact\"]},\n        \"alu_immediate\": {\"enum\": [\"imm32\", \"imm8_if_exact\"]}}),\n    \"function_alignment\": {\"type\": \"integer\", \"enum\": [1, 16, 32, 64]},\n})\nVALUE_REGISTER_PLAN_SCHEMA = obj({\n    **MACHINE_PLAN_SCHEMA[\"properties\"],\n    \"schema\": {\"const\": \"hepta.hia.agent.machine-plan.v3\"},\n    \"instruction_selection\": obj({\n        **MACHINE_PLAN_SCHEMA[\"properties\"][\"instruction_selection\"][\"properties\"],\n        \"scalar_select\": {\"enum\": [\"branch\", \"cmov_scalar\"]}}),\n    \"value_registers\": {\"type\": \"object\", \"maxProperties\": 1024,\n        \"additionalProperties\": {\"type\": \"object\", \"maxProperties\": 65536,\n            \"additionalProperties\": {\"enum\": [\"rbx\", \"r12\", \"r13\", \"r14\", \"r15\"]}}},\n})\nLEAF_REGISTER_PLAN_SCHEMA = obj({\n    **VALUE_REGISTER_PLAN_SCHEMA[\"properties\"],\n    \"schema\": {\"const\": \"hepta.hia.agent.machine-plan.v4\"},\n    \"value_registers\": {\"type\": \"object\", \"maxProperties\": 1024,\n        \"additionalProperties\": {\"type\": \"object\", \"maxProperties\": 65536,\n            \"additionalProperties\": {\"enum\": [\"rbx\", \"r12\", \"r13\", \"r14\", \"r15\", \"r8\", \"r9\"]}}},\n})\nPLAN_SCHEMA = {\"oneOf\": [BLOCK_PLAN_SCHEMA, MACHINE_PLAN_SCHEMA, VALUE_REGISTER_PLAN_SCHEMA,\n                         LEAF_REGISTER_PLAN_SCHEMA]}\n"
+      },
+      "after": {
+        "bytes": 27190,
+        "sha256": "78a2d489966aa84cff42cf206d5fd4c04e99f6b32513de932f958a0cceeb038c",
+        "git_blob": "ad34ba8b1846b529f6780aac0abb2d07159389f3",
+        "text": "\"\"\"Closed wire contract and discoverable execution profiles for HIA tools.\n\nThis small validator implements only the JSON-Schema vocabulary used by the\nchecked-in catalog. It rejects unsupported vocabulary when loading the catalog;\nit is not a general JSON-Schema implementation or a new language checker.\n\"\"\"\nfrom __future__ import annotations\n\nfrom hashlib import sha256\nimport json\nimport math\nfrom pathlib import Path\nimport re\n\nfrom .hia_agent_store import AgentRejected, reject, wire, _agent_resource_path\n\nVERSION = \"hepta.hia.agent-native.v1\"\nROOT = Path(__file__).resolve().parent.parent\nCATALOG_PATH = _agent_resource_path(\"docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json\")\nDISCOVERY_FILES = (\n    \"HIA_AGENT_NATIVE_TOOL_CATALOG.json\", \"HIA_AGENT_ASSEMBLY.md\", \"HIA_PROGRAM.md\",\n    \"HIA_AGENT_MACHINE_PLANS.md\", \"HIA_AGENT_MACRO_POLICY.md\", \"HIA_DIRECT_BYTE_BOOTSTRAP.md\",\n    \"HIA_SELF_HOSTING_CORE.md\", \"HIA_SELFHOST_CORE_SUPPORT.json\", \"HIA_AGENT_PROOF_RESULTS.md\",\n    \"HIA_SAFE_CORE_MACHINE_VALIDATION.md\",\n    \"HIA_AGENT_BUFFER_LIFECYCLE.md\",\n)\n\n\nNATIVE_SOURCE_FILES = (\n    'examples/hia_bootstrap/machine_plan.hepta',\n    'examples/hia_bootstrap/machine_encoding.hepta',\n    'examples/hia_bootstrap/machine_state.hepta',\n    'examples/hia_bootstrap/machine_instructions.hepta',\n    'examples/hia_bootstrap/worker_report.hepta',\n    'examples/hia_bootstrap/json_wire.hepta',\n    'examples/hia_bootstrap/cli_control.hepta',\n    'examples/hia_bootstrap/cli_format.hepta',\n    'examples/hia_bootstrap/candidate_budget.hepta',\n    'examples/hia_bootstrap/slot_ledger.hepta',\n    'examples/hia_bootstrap/nominal_json.hepta',\n    'examples/hia_bootstrap/agent_journal.hepta',\n    'examples/hia_bootstrap/execution_budget.hepta',\n    'examples/hia_bootstrap/worker_request.hepta',\n    'examples/hia_bootstrap/agent_identity.hepta',\n    'examples/hia_bootstrap/agent_slice.hepta',\n    'examples/hia_bootstrap/agent_data_json.hepta',\n    'examples/hia_bootstrap/agent_binary64.hepta',\n    'examples/hia_bootstrap/agent_snapshot_json.hepta',\n    'examples/hia_bootstrap/agent_snapshot.hepta',\n    'examples/hia_bootstrap/capability_renaming.hepta',\n    'examples/hia_bootstrap/core_json_frontend.hepta',\n    'examples/hia_bootstrap/core_module_graph.hepta',\n    'examples/hia_bootstrap/core_workspace_facts.hepta',\n    'examples/hia_bootstrap/core_workspace_json.hepta',\n    'examples/hia_bootstrap/core_workspace_materialize.hepta',\n    'examples/hia_bootstrap/function_shape.hepta',\n    'examples/hia_bootstrap/instruction_policy.hepta',\n    'examples/hia_bootstrap/json_canonical.hepta',\n    'examples/hia_bootstrap/json_decode.hepta',\n    'examples/hia_bootstrap/json_preflight.hepta',\n    'examples/hia_bootstrap/program_shape.hepta',\n    'examples/hia_bootstrap/sha256.hepta',\n    'examples/hia_bootstrap/sha256_stream.hepta',\n    'examples/hia_bootstrap/agent_binary64_format.hepta',\n    'examples/hia_bootstrap/core_admission.hepta',\n    'examples/hia_bootstrap/core_patch.hepta',\n    'examples/hia_bootstrap/composite_types.hepta',\n    'examples/hia_bootstrap/task_helpers.hepta',\n    'examples/hia_bootstrap/composite_function_admit.hepta',\n    'examples/hia_bootstrap/composite_function_records.hepta',\n    'examples/hia_bootstrap/composite_function_advanced.hepta',\n    'examples/hia_bootstrap/composite_function_terms.hepta',\n    'examples/hia_bootstrap/composite_function_render.hepta',\n    'examples/hia_bootstrap/composite_constructor_owner.hepta',\n    'examples/hia_bootstrap/composite_constructor_render.hepta',\n    'examples/hia_bootstrap/composite_outer_owner.hepta',\n    'examples/hia_bootstrap/composite_outer_render.hepta',\n    'examples/hia_bootstrap/retirement_state.hepta',\n    'examples/hia_bootstrap/core_verification.hepta',\n    'examples/hia_bootstrap/assembly_front.hepta',\n    'examples/hia_bootstrap/service_requests.hepta',\n    'examples/hia_bootstrap/proof_contract.hepta',\n    'examples/hia_bootstrap/service_verification.hepta',\n    'examples/hia_bootstrap/service_emission.hepta',\n    'examples/hia_bootstrap/native_build.hepta',\n    'examples/hia_bootstrap/native_byte_abi.hepta',\n    'examples/hia_bootstrap/core_emitter.hepta',\n    'examples/hia_bootstrap/core_lowering.hepta',\n    'examples/hia_bootstrap/machine_elf.hepta',\n    'examples/hia_bootstrap/machine_plan_control.hepta',\n    'examples/hia_bootstrap/service_context.hepta',\n    'examples/hia_bootstrap/source_admission.hepta',\n    'examples/hia_bootstrap/request_journal.hepta',\n    'examples/hia_bootstrap/artifact_namespace.hepta',\n    'examples/hia_bootstrap/slot_ledger_continuation.hepta',\n    'examples/hia_bootstrap/program_execution.hepta',\n    'examples/hia_bootstrap/static_budget.hepta',\n    'examples/hia_bootstrap/heap_bound.hepta',\n    'examples/hia_bootstrap/heap_live_engine.hepta',\n    'examples/hia_bootstrap/heap_payload.hepta',\n    'examples/hia_bootstrap/task_helper_cache.hepta',\n    'examples/hia_bootstrap/enum_match.hepta',\n    'examples/hia_bootstrap/enum_operations.hepta',\n    'examples/hia_bootstrap/record_operations.hepta',\n    'examples/hia_bootstrap/record_transitions.hepta',\n    'examples/hia_bootstrap/nominal_terminators.hepta',\n    'examples/hia_bootstrap/nominal_function.hepta',\n    'examples/hia_bootstrap/call_primitive.hepta',\n    'examples/hia_bootstrap/task_operations.hepta',\n    'examples/hia_bootstrap/nominal_module.hepta',\n    'examples/hia_bootstrap/nominal_admission.hepta',\n    'examples/hia_bootstrap/core_json_bytes.hepta',\n    'examples/hia_bootstrap/program_normalization.hepta',\n    'examples/hia_bootstrap/cpython_note_packer.hepta',\n    'hepta/hia_program_normalization_notes.py',\n    'examples/hia_bootstrap/service_artifacts.hepta',\n    'examples/hia_bootstrap/service_evaluation.hepta',\n)\n\n\n# Standalone source-builder inputs are package data, not runtime image adapters.\n# The executable is explicitly bootstrapped and selected outside wheel setup.\nSOURCE_BUILD_FILES = (\n    'examples/hia_bootstrap/source_build_policy.hepta',\n    'examples/hia_bootstrap/selfhost.hepta',\n    'examples/hia_bootstrap/source_build_packer.hepta',\n)\n\n\n# Additional Core JSON compiler build data, not source-builder repack roles or\n# loadable native-image adapters. Shared compiler/frontend inputs stay above.\nCOMPILER_BUILD_FILES = ('examples/hia_bootstrap/core_json_cli_packer.hepta',)\n\n# Complete multi-image backend source and typed ABI resources.\nBACKEND_BUILD_FILES = (\n    'docs/HIA_CORE_LOWERING_ABI.json',\n    'examples/hia_bootstrap/core_lowering_pool.hepta',\n    'examples/hia_bootstrap/core_lowering_000.hepta',\n    'examples/hia_bootstrap/core_lowering_001.hepta',\n    'examples/hia_bootstrap/core_lowering_002.hepta',\n    'examples/hia_bootstrap/core_lowering_003.hepta',\n    'examples/hia_bootstrap/core_lowering_004.hepta',\n    'examples/hia_bootstrap/core_lowering_005.hepta',\n    'examples/hia_bootstrap/core_lowering_006.hepta',\n    'examples/hia_bootstrap/core_lowering_007.hepta',\n    'examples/hia_bootstrap/core_lowering_008.hepta',\n    'examples/hia_bootstrap/core_lowering_009.hepta',\n    'examples/hia_bootstrap/core_lowering_010.hepta',\n    'examples/hia_bootstrap/core_lowering_011.hepta',\n    'examples/hia_bootstrap/core_lowering_012.hepta',\n    'examples/hia_bootstrap/core_lowering_013.hepta',\n    'examples/hia_bootstrap/core_lowering_014.hepta',\n    'examples/hia_bootstrap/core_lowering_015.hepta',\n    'examples/hia_bootstrap/core_lowering_016.hepta',\n    'examples/hia_bootstrap/core_lowering_017.hepta',\n    'examples/hia_bootstrap/core_lowering_018.hepta',\n    'examples/hia_bootstrap/core_lowering_019.hepta',\n    'examples/hia_bootstrap/core_lowering_020.hepta',\n    'examples/hia_bootstrap/core_lowering_021.hepta',\n    'examples/hia_bootstrap/core_lowering_022.hepta',\n    'examples/hia_bootstrap/core_lowering_023.hepta',\n    'examples/hia_bootstrap/core_lowering_024.hepta',\n    'examples/hia_bootstrap/core_lowering_025.hepta',\n    'examples/hia_bootstrap/core_lowering_026.hepta',\n    'examples/hia_bootstrap/core_lowering_027.hepta',\n    'examples/hia_bootstrap/core_lowering_028.hepta',\n    'examples/hia_bootstrap/core_lowering_029.hepta',\n    'examples/hia_bootstrap/core_lowering_030.hepta',\n)\n\n\n# Separately source-bound whole-program Emitter bundle.\nEMITTER_BUILD_FILES = (\n    'docs/HIA_CORE_EMITTER_ABI.json',\n    'examples/hia_bootstrap/core_emitter_pool.hepta',\n    'examples/hia_bootstrap/core_emitter_000.hepta',\n    'examples/hia_bootstrap/core_emitter_001.hepta',\n    'examples/hia_bootstrap/core_emitter_002.hepta',\n    'examples/hia_bootstrap/core_emitter_003.hepta',\n    'examples/hia_bootstrap/core_emitter_004.hepta',\n    'examples/hia_bootstrap/core_emitter_005.hepta',\n    'examples/hia_bootstrap/core_emitter_006.hepta',\n    'examples/hia_bootstrap/core_emitter_007.hepta',\n)\n\n# Borrowed-byte admission and wrapper-emission multi-image resources.\nBYTE_WRAPPER_BUILD_FILES = (\n    'docs/HIA_BYTE_WRAPPER_ABI.json',\n    'examples/hia_bootstrap/byte_wrapper_pool.hepta',\n    'examples/hia_bootstrap/byte_wrapper_000.hepta',\n    'examples/hia_bootstrap/byte_wrapper_001.hepta',\n    'examples/hia_bootstrap/byte_wrapper_002.hepta',\n    'examples/hia_bootstrap/byte_wrapper_003.hepta',\n    'examples/hia_bootstrap/byte_wrapper_004.hepta',\n    'examples/hia_bootstrap/byte_wrapper_005.hepta',\n    'examples/hia_bootstrap/byte_wrapper_006.hepta',\n    'examples/hia_bootstrap/byte_wrapper_007.hepta',\n)\n\n# Exact execution-result ledger policy resources; not a runtime replacement.\nCONTINUATION_BUILD_FILES = ('docs/HIA_NATIVE_CONTINUATION_ABI.json', 'examples/hia_bootstrap/continuation_policy.hepta', 'examples/hia_bootstrap/continuation_packer.hepta', 'examples/hia_bootstrap/continuation_inprocess_packer.hepta')\n\nEXECUTION_OBSERVATION_BUILD_FILES = ('docs/HIA_EXECUTION_OBSERVATION_ABI.json', 'examples/hia_bootstrap/execution_observation_pool.hepta', 'examples/hia_bootstrap/execution_observation_000.hepta', 'examples/hia_bootstrap/execution_observation_001.hepta', 'examples/hia_bootstrap/execution_observation_002.hepta', 'examples/hia_bootstrap/execution_observation_003.hepta', 'examples/hia_bootstrap/execution_observation_004.hepta', 'examples/hia_bootstrap/execution_observation_005.hepta', 'examples/hia_bootstrap/execution_observation_006.hepta')\n\n# Exact source-bound ELF object writer resources, separate from prior roles.\nMACHINE_OBJECT_BUILD_FILES = (\n    'docs/HIA_MACHINE_OBJECT_ABI.json',\n    'examples/hia_bootstrap/machine_object_pool.hepta',\n    'examples/hia_bootstrap/machine_object_000.hepta',\n    'examples/hia_bootstrap/machine_object_001.hepta',\n    'examples/hia_bootstrap/machine_object_002.hepta',\n    'examples/hia_bootstrap/machine_object_003.hepta',\n    'examples/hia_bootstrap/machine_object_004.hepta',\n    'examples/hia_bootstrap/machine_object_005.hepta',\n    'examples/hia_bootstrap/machine_object_006.hepta',\n    'examples/hia_bootstrap/machine_object_007.hepta',\n    'examples/hia_bootstrap/machine_object_008.hepta',\n    'examples/hia_bootstrap/machine_object_009.hepta',\n    'examples/hia_bootstrap/machine_object_010.hepta',\n    'examples/hia_bootstrap/machine_object_011.hepta',\n)\n\n# Build-input custody assets, not loadable native image adapters. The streaming\n# SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.\nPUBLICATION_BUILD_FILES = (\n    'examples/hia_bootstrap/artifact_publication_policy.hepta',\n    'examples/hia_bootstrap/artifact_publication_packer.hepta',\n    'tools/hia_artifact_publication_syscalls.S',\n    'tools/generate_hia_artifact_publication.py',\n)\n\n\ndef catalog():\n    data = CATALOG_PATH.read_bytes()\n    value = json.loads(data)\n    for tool in value[\"tools\"]:\n        check_vocabulary(tool[\"inputSchema\"])\n        check_vocabulary(tool[\"outputSchema\"])\n    return value, sha256(data).hexdigest()\n\n\ndef installation_manifest():\n    \"\"\"Hash actual installed source bytes, never infer a clean Git commit.\"\"\"\n    entries = {}\n    for path in sorted((ROOT / \"hepta\").rglob(\"*.py\")):\n        if path.relative_to(ROOT / \"hepta\").parts[0] == \"_data\":\n            continue  # Explicit build assets below are data, never Python modules.\n        entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()\n    for filename in DISCOVERY_FILES:\n        path = _agent_resource_path(\"docs/\" + filename)\n        entries[\"docs/\" + filename] = sha256(path.read_bytes()).hexdigest()\n    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES):\n        resource_sha256 = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()\n        if native_source.startswith(\"hepta/\") and native_source.endswith(\".py\"):\n            package_sha256 = entries.get(native_source)\n            if package_sha256 is None or package_sha256 != resource_sha256:\n                raise ValueError(\"installed Python resource differs from its package module: \" + native_source)\n        entries[native_source] = resource_sha256\n    from .hia_program_native import _implementation_hash\n    from .hia_native_helpers import native_helpers_identity\n    return {\"worker_sha256\": sha256(wire(entries)).hexdigest(),\n            \"backend_sha256\": _implementation_hash(),\n            \"catalog_sha256\": entries[\"docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json\"],\n            **native_helpers_identity()}\n\n\n_KEYWORDS = frozenset({\"$schema\", \"type\", \"properties\", \"required\", \"additionalProperties\",\n    \"enum\", \"const\", \"pattern\", \"minLength\", \"maxLength\", \"minimum\", \"maximum\", \"items\",\n    \"minItems\", \"maxItems\", \"uniqueItems\", \"oneOf\", \"anyOf\", \"allOf\", \"if\", \"then\", \"else\",\n    \"not\", \"contains\", \"description\", \"title\", \"minProperties\", \"maxProperties\"})\n\n\ndef check_vocabulary(schema):\n    if type(schema) is bool:\n        return\n    if type(schema) is not dict or set(schema) - _KEYWORDS:\n        raise ValueError(\"unsupported catalog JSON-Schema vocabulary\")\n    for key in (\"oneOf\", \"anyOf\", \"allOf\"):\n        for sub in schema.get(key, []):\n            check_vocabulary(sub)\n    for key in (\"items\", \"contains\", \"if\", \"then\", \"else\", \"not\"):\n        if key in schema:\n            check_vocabulary(schema[key])\n    for sub in schema.get(\"properties\", {}).values():\n        check_vocabulary(sub)\n    if type(schema.get(\"additionalProperties\")) is dict:\n        check_vocabulary(schema[\"additionalProperties\"])\n\n\ndef validate(value, schema, label=\"arguments\"):\n    def fail(reason):\n        reject(\"E_HIA_SCHEMA\", label + \": \" + reason)\n\n    def matches(sub):\n        try:\n            validate(value, sub, label)\n            return True\n        except AgentRejected:\n            return False\n\n    if schema is True:\n        return\n    if schema is False:\n        fail(\"not allowed\")\n    typ = schema.get(\"type\")\n    valid_type = {\"object\": type(value) is dict, \"array\": type(value) is list,\n        \"string\": type(value) is str, \"integer\": type(value) is int or\n            type(value) is float and math.isfinite(value) and value.is_integer(),\n        \"number\": type(value) is int or type(value) is float and math.isfinite(value),\n        \"boolean\": type(value) is bool, \"null\": value is None}\n    if typ is not None and not valid_type.get(typ, False):\n        fail(\"expected \" + str(typ))\n    if \"const\" in schema and wire(value) != wire(schema[\"const\"]):\n        fail(\"constant differs\")\n    if \"enum\" in schema and not any(wire(value) == wire(v) for v in schema[\"enum\"]):\n        fail(\"not in the declared choices\")\n    for key, wanted in ((\"oneOf\", 1), (\"anyOf\", None)):\n        if key in schema:\n            count = sum(matches(sub) for sub in schema[key])\n            if (wanted is not None and count != wanted) or (wanted is None and count == 0):\n                # A tagged union can name the actual failing field without\n                # relaxing admission or echoing the caller's data.  Reporting\n                # only \"does not match oneOf\" hid the import source/format\n                # contract from a real first-use learner.  A uniquely matching\n                # discriminator is diagnostic evidence, never a valid branch.\n                if count == 0 and type(value) is dict:\n                    tagged = []\n                    for sub in schema[key]:\n                        if type(sub) is not dict:\n                            continue\n                        tags = {name: child[\"const\"] for name, child in\n                            sub.get(\"properties\", {}).items() if type(child) is dict and \"const\" in child}\n                        if tags and all(name in value and wire(value[name]) == wire(tag)\n                                        for name, tag in tags.items()):\n                            tagged.append(sub)\n                    if len(tagged) == 1:\n                        validate(value, tagged[0], label)\n                fail(\"does not match \" + key)\n    for sub in schema.get(\"allOf\", []):\n        validate(value, sub, label)\n    if \"not\" in schema and matches(schema[\"not\"]):\n        fail(\"forbidden shape\")\n    if \"if\" in schema:\n        branch = \"then\" if matches(schema[\"if\"]) else \"else\"\n        if branch in schema:\n            validate(value, schema[branch], label)\n    if type(value) is dict:\n        missing = set(schema.get(\"required\", [])) - set(value)\n        if missing:\n            fail(\"missing fields \" + \", \".join(sorted(missing)))\n        properties = schema.get(\"properties\", {})\n        for name, child in value.items():\n            if name in properties:\n                validate(child, properties[name], label + \".\" + name)\n            elif schema.get(\"additionalProperties\", True) is False:\n                fail(\"unknown field \" + name)\n            elif type(schema.get(\"additionalProperties\")) is dict:\n                validate(child, schema[\"additionalProperties\"], label + \".\" + name)\n        if len(value) < schema.get(\"minProperties\", 0) or len(value) > schema.get(\"maxProperties\", 1 << 63):\n            fail(\"object field count is outside limits\")\n    if type(value) is list:\n        if len(value) < schema.get(\"minItems\", 0) or len(value) > schema.get(\"maxItems\", 1 << 63):\n            fail(\"array length is outside limits\")\n        if schema.get(\"uniqueItems\") and len({wire(item) for item in value}) != len(value):\n            fail(\"duplicate array item\")\n        for i, item in enumerate(value):\n            if \"items\" in schema:\n                validate(item, schema[\"items\"], label + \"[\" + str(i) + \"]\")\n        if \"contains\" in schema and not any(_valid(item, schema[\"contains\"]) for item in value):\n            fail(\"array does not contain the required item\")\n    if type(value) is str:\n        if len(value) < schema.get(\"minLength\", 0) or len(value) > schema.get(\"maxLength\", 1 << 63):\n            fail(\"string length is outside limits\")\n        if \"pattern\" in schema and re.search(schema[\"pattern\"], value) is None:\n            fail(\"string does not match the declared pattern\")\n    if type(value) in (int, float):\n        if (type(value) is float and not math.isfinite(value)) or value < schema.get(\"minimum\", -math.inf) or value > schema.get(\"maximum\", math.inf):\n            fail(\"number is outside limits\")\n\n\ndef _valid(value, schema):\n    try:\n        validate(value, schema)\n        return True\n    except AgentRejected:\n        return False\n\n\ndef input_diagnostic(tool, arguments, *, catalog_document=None):\n    \"\"\"Explain a confirmed local input-schema rejection without changing it.\n\n    A recording MCP bridge may append this to its own rejection response after\n    charging the attempt. It must not substitute this validator's success for\n    its existing validator, dispatch corrected arguments, refund a call, or\n    classify an accepted/unknown server operation as a local rejection.\n    \"\"\"\n    document = catalog()[0] if catalog_document is None else catalog_document\n    records = [record for record in document[\"tools\"] if record[\"name\"] == tool]\n    if len(records) != 1:\n        return None\n    try:\n        validate(arguments, records[0][\"inputSchema\"])\n    except AgentRejected as exc:\n        return {\"schema\": \"hepta.hia.agent.input-diagnostic.v1\", \"tool\": tool,\n            \"message\": str(exc)[:4096], \"basis\": \"published inputSchema only\",\n            \"automatic_repair\": False, \"attempt_refunded\": False,\n            \"recovery\": \"Use the exact schema and issued references. After a confirmed rejection, changed writer arguments require a new request key; accepted or unknown operations retain their original identity.\"}\n    return None\n\n\ndef obj(properties, required=None):\n    return {\"type\": \"object\", \"properties\": properties,\n            \"required\": list(properties) if required is None else required, \"additionalProperties\": False}\n\n\nU64 = {\"type\": \"string\", \"pattern\": \"^(0|[1-9][0-9]{0,19})$\"}\nSCALAR = {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"boolean\"}, {\"type\": \"null\"}]}\nEXPECTED = {\"oneOf\": [obj({\"status\": {\"const\": \"returned\"},\n    \"values\": {\"type\": \"array\", \"items\": SCALAR, \"maxItems\": 1}}),\n    obj({\"status\": {\"const\": \"trapped\"}})]}\nSCALAR_WORKLOAD_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.workload.v1\"},\n    \"cases\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 512, \"items\": obj({\n        \"function\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128},\n        \"arguments\": {\"type\": \"array\", \"items\": SCALAR, \"maxItems\": 128},\n        \"expected\": EXPECTED}, [\"function\", \"arguments\"])},\n    \"warmup_iterations\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 100},\n    \"repetitions\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 10000},\n})\nBUFFER_SNAPSHOT = {\"oneOf\": [\n    obj({\"bytes_hex\": {\"type\": \"string\", \"pattern\": \"^(?:[0-9a-f]{2})*$\", \"maxLength\": 2 * 1024**2}}),\n    obj({\"byte_length\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 1024**2},\n         \"fill_byte\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 255}}),\n]}\nBUFFER_OBSERVATION = obj({\n    \"argument\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 127},\n    \"kind\": {\"enum\": [\"readbuf\", \"mutbuf\"]},\n    \"byte_length\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 1024**2},\n    \"sha256\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{64}$\"},\n})\nBUFFER_EXPECTED = {\"oneOf\": [\n    obj({\"status\": {\"const\": \"returned\"},\n         \"values\": {\"type\": \"array\", \"items\": SCALAR, \"maxItems\": 1},\n         \"buffers\": {\"type\": \"array\", \"items\": BUFFER_OBSERVATION, \"maxItems\": 8}}, [\"status\", \"values\"]),\n    obj({\"status\": {\"const\": \"trapped\"},\n         \"buffers\": {\"type\": \"array\", \"items\": BUFFER_OBSERVATION, \"maxItems\": 8}}, [\"status\"]),\n]}\nBUFFER_WORKLOAD_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.workload.v2\"},\n    \"foreign_buffer_exports\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 128, \"items\": obj({\n        \"function\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128},\n        \"max_buffer_bytes\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 1024**2}})},\n    \"cases\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 512, \"items\": obj({\n        \"function\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128},\n        \"arguments\": {\"type\": \"array\", \"items\": {\"anyOf\": [SCALAR, BUFFER_SNAPSHOT]}, \"maxItems\": 128},\n        \"expected\": BUFFER_EXPECTED}, [\"function\", \"arguments\"])},\n    \"warmup_iterations\": {\"type\": \"integer\", \"minimum\": 0, \"maximum\": 100},\n    \"repetitions\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 10000},\n})\nWORKLOAD_SCHEMA = {\"oneOf\": [SCALAR_WORKLOAD_SCHEMA, BUFFER_WORKLOAD_SCHEMA]}\nOBJECTIVE_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.objective.v1\"},\n    \"metric\": {\"enum\": [\"latency_ns\", \"artifact_bytes\"]},\n    \"required_claims\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 4, \"uniqueItems\": True,\n        \"items\": {\"enum\": [\"core_admission\", \"behavior_equivalence\", \"lowering_refinement\", \"encoding_check\"]},\n        \"contains\": {\"const\": \"core_admission\"}},\n    \"allow_unchanged\": {\"type\": \"boolean\"},\n    \"min_improvement_ratio\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1},\n    \"require_net_benefit\": {\"type\": \"boolean\"},\n}, [\"schema\", \"metric\", \"required_claims\", \"allow_unchanged\", \"min_improvement_ratio\"])\nCOST_POLICY_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.cost-policy.v1\"},\n    \"external_costs\": obj({\n        \"model_tokens\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0, \"maximum\": 100000000}, {\"type\": \"null\"}]},\n        \"model_wall_ns\": {\"anyOf\": [U64, {\"type\": \"null\"}]},\n        \"discovery_wall_ns\": {\"anyOf\": [U64, {\"type\": \"null\"}]},\n    }),\n    \"external_costs_complete\": {\"type\": \"boolean\"},\n    \"expected_invocations\": U64,\n})\nBLOCK_PLAN_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.block-layout.v1\"},\n    \"core_sha256\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{64}$\"},\n    \"block_order\": {\"type\": \"object\", \"minProperties\": 1, \"maxProperties\": 1024,\n        \"additionalProperties\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 4096,\n            \"items\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128}, \"uniqueItems\": True}},\n})\n\n# Artifact-referenced plans preserve the eleven-tool wire catalog. Discovery\n# publishes the original layout profile and the explicit v2/v3/v4 choices.\nMACHINE_PLAN_SCHEMA = obj({\n    \"schema\": {\"const\": \"hepta.hia.agent.machine-plan.v2\"},\n    \"core_sha256\": {\"type\": \"string\", \"pattern\": \"^[0-9a-f]{64}$\"},\n    \"block_order\": {\"type\": \"object\", \"maxProperties\": 1024,\n        \"additionalProperties\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 4096,\n            \"items\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128}, \"uniqueItems\": True}},\n    \"function_order\": {\"type\": \"array\", \"minItems\": 1, \"maxItems\": 1024, \"uniqueItems\": True,\n        \"items\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 128}},\n    \"scratch_registers\": obj({\"r10\": {\"enum\": [\"r10\", \"r11\"]}, \"r11\": {\"enum\": [\"r10\", \"r11\"]}}),\n    \"instruction_selection\": obj({\n        \"move_immediate\": {\"enum\": [\"movabs\", \"mov32_if_exact\"]},\n        \"alu_immediate\": {\"enum\": [\"imm32\", \"imm8_if_exact\"]}}),\n    \"function_alignment\": {\"type\": \"integer\", \"enum\": [1, 16, 32, 64]},\n})\nVALUE_REGISTER_PLAN_SCHEMA = obj({\n    **MACHINE_PLAN_SCHEMA[\"properties\"],\n    \"schema\": {\"const\": \"hepta.hia.agent.machine-plan.v3\"},\n    \"instruction_selection\": obj({\n        **MACHINE_PLAN_SCHEMA[\"properties\"][\"instruction_selection\"][\"properties\"],\n        \"scalar_select\": {\"enum\": [\"branch\", \"cmov_scalar\"]}}),\n    \"value_registers\": {\"type\": \"object\", \"maxProperties\": 1024,\n        \"additionalProperties\": {\"type\": \"object\", \"maxProperties\": 65536,\n            \"additionalProperties\": {\"enum\": [\"rbx\", \"r12\", \"r13\", \"r14\", \"r15\"]}}},\n})\nLEAF_REGISTER_PLAN_SCHEMA = obj({\n    **VALUE_REGISTER_PLAN_SCHEMA[\"properties\"],\n    \"schema\": {\"const\": \"hepta.hia.agent.machine-plan.v4\"},\n    \"value_registers\": {\"type\": \"object\", \"maxProperties\": 1024,\n        \"additionalProperties\": {\"type\": \"object\", \"maxProperties\": 65536,\n            \"additionalProperties\": {\"enum\": [\"rbx\", \"r12\", \"r13\", \"r14\", \"r15\", \"r8\", \"r9\"]}}},\n})\nPLAN_SCHEMA = {\"oneOf\": [BLOCK_PLAN_SCHEMA, MACHINE_PLAN_SCHEMA, VALUE_REGISTER_PLAN_SCHEMA,\n                         LEAF_REGISTER_PLAN_SCHEMA]}\n"
+      },
+      "unified_diff": "--- a/hepta/hia_agent_contract.py\n+++ b/hepta/hia_agent_contract.py\n@@ -76,6 +76,45 @@\n     'examples/hia_bootstrap/composite_outer_owner.hepta',\n     'examples/hia_bootstrap/composite_outer_render.hepta',\n     'examples/hia_bootstrap/retirement_state.hepta',\n+    'examples/hia_bootstrap/core_verification.hepta',\n+    'examples/hia_bootstrap/assembly_front.hepta',\n+    'examples/hia_bootstrap/service_requests.hepta',\n+    'examples/hia_bootstrap/proof_contract.hepta',\n+    'examples/hia_bootstrap/service_verification.hepta',\n+    'examples/hia_bootstrap/service_emission.hepta',\n+    'examples/hia_bootstrap/native_build.hepta',\n+    'examples/hia_bootstrap/native_byte_abi.hepta',\n+    'examples/hia_bootstrap/core_emitter.hepta',\n+    'examples/hia_bootstrap/core_lowering.hepta',\n+    'examples/hia_bootstrap/machine_elf.hepta',\n+    'examples/hia_bootstrap/machine_plan_control.hepta',\n+    'examples/hia_bootstrap/service_context.hepta',\n+    'examples/hia_bootstrap/source_admission.hepta',\n+    'examples/hia_bootstrap/request_journal.hepta',\n+    'examples/hia_bootstrap/artifact_namespace.hepta',\n+    'examples/hia_bootstrap/slot_ledger_continuation.hepta',\n+    'examples/hia_bootstrap/program_execution.hepta',\n+    'examples/hia_bootstrap/static_budget.hepta',\n+    'examples/hia_bootstrap/heap_bound.hepta',\n+    'examples/hia_bootstrap/heap_live_engine.hepta',\n+    'examples/hia_bootstrap/heap_payload.hepta',\n+    'examples/hia_bootstrap/task_helper_cache.hepta',\n+    'examples/hia_bootstrap/enum_match.hepta',\n+    'examples/hia_bootstrap/enum_operations.hepta',\n+    'examples/hia_bootstrap/record_operations.hepta',\n+    'examples/hia_bootstrap/record_transitions.hepta',\n+    'examples/hia_bootstrap/nominal_terminators.hepta',\n+    'examples/hia_bootstrap/nominal_function.hepta',\n+    'examples/hia_bootstrap/call_primitive.hepta',\n+    'examples/hia_bootstrap/task_operations.hepta',\n+    'examples/hia_bootstrap/nominal_module.hepta',\n+    'examples/hia_bootstrap/nominal_admission.hepta',\n+    'examples/hia_bootstrap/core_json_bytes.hepta',\n+    'examples/hia_bootstrap/program_normalization.hepta',\n+    'examples/hia_bootstrap/cpython_note_packer.hepta',\n+    'hepta/hia_program_normalization_notes.py',\n+    'examples/hia_bootstrap/service_artifacts.hepta',\n+    'examples/hia_bootstrap/service_evaluation.hepta',\n )\n \n \n"
+    }
+  ],
+  "verification": {
+    "schema": "hia.agent-contract.resource-union-closure.r1",
+    "base_tree": "f5610f07a4a43bfc83aaffaedec2c0c89933126a",
+    "fixed_heads": {
+      "main": "f33d8da316de8fdf27b504371f1a5310997ff548",
+      "a733": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9"
+    },
+    "union_packet": "eeb56be16f917f3b58687e82d6a8a3eb3ffd6bae",
+    "canonical_mapping_packet": "04a602b65b589d6dff0c311c765688e98da1b6b5",
+    "physical_migration_count": 55,
+    "group_counts": {
+      "DISCOVERY_FILES": {
+        "before": 11,
+        "after": 11,
+        "added": 0
+      },
+      "NATIVE_SOURCE_FILES": {
+        "before": 49,
+        "after": 88,
+        "added": 39
+      },
+      "SOURCE_BUILD_FILES": {
+        "before": 3,
+        "after": 3,
+        "added": 0
+      },
+      "COMPILER_BUILD_FILES": {
+        "before": 1,
+        "after": 1,
+        "added": 0
+      },
+      "PUBLICATION_BUILD_FILES": {
+        "before": 4,
+        "after": 4,
+        "added": 0
+      },
+      "BACKEND_BUILD_FILES": {
+        "before": 33,
+        "after": 33,
+        "added": 0
+      },
+      "EMITTER_BUILD_FILES": {
+        "before": 10,
+        "after": 10,
+        "added": 0
+      },
+      "BYTE_WRAPPER_BUILD_FILES": {
+        "before": 10,
+        "after": 10,
+        "added": 0
+      },
+      "MACHINE_OBJECT_BUILD_FILES": {
+        "before": 14,
+        "after": 14,
+        "added": 0
+      },
+      "EXECUTION_OBSERVATION_BUILD_FILES": {
+        "before": 9,
+        "after": 9,
+        "added": 0
+      },
+      "CONTINUATION_BUILD_FILES": {
+        "before": 4,
+        "after": 4,
+        "added": 0
+      }
+    },
+    "resource_total_before": 148,
+    "resource_total_after": 187,
+    "cross_group_duplicates": [],
+    "all_original_main_group_order_retained": true,
+    "all_canonical_a733_resources_preserved": true,
+    "all_resources_exist": true,
+    "missing_manifest_explicit_include": [],
+    "outside_native_tuple_AST_unchanged": true,
+    "exact_before": {
+      "bytes": 25138,
+      "sha256": "ddc1b01548cdbd7a64e5ff2cc2e9219cc8d588478d6ad1d2d2b22adb1d78bdd1",
+      "git_blob": "498e3ef00122514c93cc55648198a315c10387d3"
+    },
+    "exact_after": {
+      "bytes": 27190,
+      "sha256": "78a2d489966aa84cff42cf206d5fd4c04e99f6b32513de932f958a0cceeb038c",
+      "git_blob": "ad34ba8b1846b529f6780aac0abb2d07159389f3"
+    },
+    "resource_identity_rows": [
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_AGENT_NATIVE_TOOL_CATALOG.json",
+        "path": "docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json",
+        "bytes": 226963,
+        "sha256": "6ec74dddbffeef5270c5eebb0638c87a8f7a540f8f38b8703ef8e471af582393",
+        "git_blob": "5d69d45291559cc17c17b50581ee006dedda644f"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_AGENT_ASSEMBLY.md",
+        "path": "docs/HIA_AGENT_ASSEMBLY.md",
+        "bytes": 3513,
+        "sha256": "13e3880dc06e5dbde7776f23ed1fdcce97584c722c0efc7fa04b3c2553caed62",
+        "git_blob": "799a3ef3bae8655b2d36e5edf13f126502335a74"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_PROGRAM.md",
+        "path": "docs/HIA_PROGRAM.md",
+        "bytes": 6318,
+        "sha256": "edd21968a793f028e04d9f867638a89454a393cf8c0e43bec7970d4e9528de65",
+        "git_blob": "131784c858d685e54e04dd85cc5c406acbb249c3"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_AGENT_MACHINE_PLANS.md",
+        "path": "docs/HIA_AGENT_MACHINE_PLANS.md",
+        "bytes": 13756,
+        "sha256": "4674bfb733df2e82ee816e71d003c79b0529fa7d2363e822d0f150dfd1b5ad2c",
+        "git_blob": "d5f79658ecd5331d3d5e23937701d3f21cfc6c4f"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_AGENT_MACRO_POLICY.md",
+        "path": "docs/HIA_AGENT_MACRO_POLICY.md",
+        "bytes": 21292,
+        "sha256": "7bd17f7447894ee6e0ac0ede64971523695053d715b6646403393fae43699526",
+        "git_blob": "ba65a902e98ac4d77c6563a40d135214263d8ce8"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_DIRECT_BYTE_BOOTSTRAP.md",
+        "path": "docs/HIA_DIRECT_BYTE_BOOTSTRAP.md",
+        "bytes": 10001,
+        "sha256": "d7d422540ab72b4b163022c40016f3d4254de0ad61d6e0754bb9600833dc2519",
+        "git_blob": "7052e2c3116bf649bc42dd4d346903f411715954"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_SELF_HOSTING_CORE.md",
+        "path": "docs/HIA_SELF_HOSTING_CORE.md",
+        "bytes": 96178,
+        "sha256": "006bf90046d5190ccc8d9812f466907c1223f32362b1ebe6069140e56ea600a6",
+        "git_blob": "df72aa361b00fefd90b9302ab6d1dfc75a3e23ca"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_SELFHOST_CORE_SUPPORT.json",
+        "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+        "bytes": 171295,
+        "sha256": "8cbf1595eeaef6280621120dd407066ae4f992ff9f9129f3404f8c36965a304c",
+        "git_blob": "006f05833b7c17bdebab2ad66fd411e6a69d299f"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_AGENT_PROOF_RESULTS.md",
+        "path": "docs/HIA_AGENT_PROOF_RESULTS.md",
+        "bytes": 11979,
+        "sha256": "94b994d8cec3abe8fda89852ca2c9ad6b67d519f48f86f328303a3e0eb480601",
+        "git_blob": "8ea6b7640aa3cd68a15870190d61575c19d7954d"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_SAFE_CORE_MACHINE_VALIDATION.md",
+        "path": "docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md",
+        "bytes": 16952,
+        "sha256": "3dc8fa9670fe38e5248deeb177281c250d8b8f414fce06c16c199a32547c6b03",
+        "git_blob": "19fd08f586bb611f14dea763a593a570292dbb3a"
+      },
+      {
+        "group": "DISCOVERY_FILES",
+        "resource": "HIA_AGENT_BUFFER_LIFECYCLE.md",
+        "path": "docs/HIA_AGENT_BUFFER_LIFECYCLE.md",
+        "bytes": 7380,
+        "sha256": "19da24a8bd3480cc169e9eceeb065b4ca7b94bb381708cb0c28795738e065aa2",
+        "git_blob": "d95928d0d92f27fffa1afd20f51513149b16b4f6"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/machine_plan.hepta",
+        "path": "examples/hia_bootstrap/machine_plan.hepta",
+        "bytes": 178730,
+        "sha256": "3603c47b5fdadfdae783c52d0b1e713ea16c573363394d00b72d4dc29d534f6c",
+        "git_blob": "706d510d2c7d0457c501cace62dea79e02f35465"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/machine_encoding.hepta",
+        "path": "examples/hia_bootstrap/machine_encoding.hepta",
+        "bytes": 30865,
+        "sha256": "77e8894d68889a79d1dd97b6e5f6f5b1fe712871bfcc4618dc7f4e8632e88b90",
+        "git_blob": "a0e40d6c21301e890879e6a8bcf11de48a80ec53"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/machine_state.hepta",
+        "path": "examples/hia_bootstrap/machine_state.hepta",
+        "bytes": 182987,
+        "sha256": "b4e7af2b89e856840190fb3ea61dc7425b3be4439e70721cc86dd30b22276481",
+        "git_blob": "4da6fc035675e099443d24d170a762d7b0a68ab1"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/machine_instructions.hepta",
+        "path": "examples/hia_bootstrap/machine_instructions.hepta",
+        "bytes": 214095,
+        "sha256": "775539c68d7fb8c25f996412a26c520bcfec1f814640e25ee28b23519285eba4",
+        "git_blob": "8a0e351515f442843dd445b898017ffa89a33ac8"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/worker_report.hepta",
+        "path": "examples/hia_bootstrap/worker_report.hepta",
+        "bytes": 211386,
+        "sha256": "ca6db3cb6e37ea205eee30214d7e269e2912adf23400648ac96db71684151213",
+        "git_blob": "dbe8d793e790f48fa01ac14d16cb1068de1cf92c"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/json_wire.hepta",
+        "path": "examples/hia_bootstrap/json_wire.hepta",
+        "bytes": 348098,
+        "sha256": "32f5242960ac8c473f1c2135196e4de666a2b587d15042d491c2808364920224",
+        "git_blob": "0d81dd677d569104f93b87af0666452901cd21a4"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/cli_control.hepta",
+        "path": "examples/hia_bootstrap/cli_control.hepta",
+        "bytes": 253656,
+        "sha256": "967bbdac6fdce81b9e685a9e3457575e3173bbe33d57611f46b1b7aaa5eed89f",
+        "git_blob": "33dca3a9cd0028cc4a35d0eedff8c25041246198"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/cli_format.hepta",
+        "path": "examples/hia_bootstrap/cli_format.hepta",
+        "bytes": 311170,
+        "sha256": "6baf13910b7ea439039d50b63277000ab6910fbfd0d4b3b6a2985dc214f8647e",
+        "git_blob": "24c5152bbad22cea6124b69b3127df62cdffa266"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/candidate_budget.hepta",
+        "path": "examples/hia_bootstrap/candidate_budget.hepta",
+        "bytes": 35670,
+        "sha256": "ce029c1ac38cc965a3073b530c97c3cc10daf0f25f4226f60826fc828a2b3ddf",
+        "git_blob": "f47988c78df0c44bc69671ecedb7db17f875fd6d"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/slot_ledger.hepta",
+        "path": "examples/hia_bootstrap/slot_ledger.hepta",
+        "bytes": 110025,
+        "sha256": "fbd8e74c95458534c61bdd06ce90dfc1a0fb46950df366846b29c3670a8359b9",
+        "git_blob": "d4ef20c83b2131ca2a3e9682cc844cd25a7f29ab"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/nominal_json.hepta",
+        "path": "examples/hia_bootstrap/nominal_json.hepta",
+        "bytes": 138836,
+        "sha256": "2c8db3b1adbdb9d521e815a2908870fca566227171e9bcd11116ab45c0bccead",
+        "git_blob": "e227d9da4632cfc997724771f8f93901fbb65280"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/agent_journal.hepta",
+        "path": "examples/hia_bootstrap/agent_journal.hepta",
+        "bytes": 399108,
+        "sha256": "7d96f0c3fac0d71d18f49e01204c02d3a9a0ed2d91b0a9493903e8227a62be9c",
+        "git_blob": "7bb7f7288e62d12a9ce14f1bef5272363b8b32b9"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/execution_budget.hepta",
+        "path": "examples/hia_bootstrap/execution_budget.hepta",
+        "bytes": 80539,
+        "sha256": "43274fb7abe9f3fb6fea667791a8302016ab4365774b8466c901379bf84e9c70",
+        "git_blob": "2822af98f26bfed2abbfb403776e64a4c0b89e8a"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/worker_request.hepta",
+        "path": "examples/hia_bootstrap/worker_request.hepta",
+        "bytes": 298591,
+        "sha256": "05ddb7ec85b68f57caf4c80174e3ec7ed5cf52731fb0b3922233b97410f06cb4",
+        "git_blob": "efec4c597f0ab568f549dd2126ef69a5579c3562"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/agent_identity.hepta",
+        "path": "examples/hia_bootstrap/agent_identity.hepta",
+        "bytes": 9204,
+        "sha256": "cfa0aebe791398dfffa6a7cf1cb2508ce17361a290412ab4fdab9001f9e78c02",
+        "git_blob": "b6e3ebdd8ecd9efab0a4d0f0e554d55b39b53d34"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/agent_slice.hepta",
+        "path": "examples/hia_bootstrap/agent_slice.hepta",
+        "bytes": 66303,
+        "sha256": "9488f216d816be617bd30915daa7849e1259a534b2bc2637ea2f7ed370e8de97",
+        "git_blob": "cdea4ca6c66abdafce1ac85fe8201475ac26189a"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/agent_data_json.hepta",
+        "path": "examples/hia_bootstrap/agent_data_json.hepta",
+        "bytes": 92852,
+        "sha256": "12e4eac655f5e1bdc26c48463c6e9f3c5ffc295e39a8d9f43b681ed68a5589db",
+        "git_blob": "8a045974a6739d0704dc903aceb42570fa99ff49"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/agent_binary64.hepta",
+        "path": "examples/hia_bootstrap/agent_binary64.hepta",
+        "bytes": 43375,
+        "sha256": "e0d7095abb649dd5f043bba8b6ee92bd7a841a78cae362ff652f1b0c942acb6a",
+        "git_blob": "31f0a84bede703add8406b94da34e1ed819d6beb"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/agent_snapshot_json.hepta",
+        "path": "examples/hia_bootstrap/agent_snapshot_json.hepta",
+        "bytes": 119455,
+        "sha256": "a2f6ebb8fe6e72167f8aae1d1f0ac5bbf4602a5de85ad023fda08eb73106eddf",
+        "git_blob": "faf0cc343fe4b5926200a9597501a90576b4a505"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/agent_snapshot.hepta",
+        "path": "examples/hia_bootstrap/agent_snapshot.hepta",
+        "bytes": 19274,
+        "sha256": "c90c3f1a9f82b7249c404fa9cdafa4415827212ff2e0165779563edc2bce2d3f",
+        "git_blob": "7cac9595dcebe26f6d5db78101fc8d7fd6660746"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/capability_renaming.hepta",
+        "path": "examples/hia_bootstrap/capability_renaming.hepta",
+        "bytes": 26706,
+        "sha256": "254e04de3bfc8e36f9b678deb13bced1299264761a4f1270a2956ab48aed2f14",
+        "git_blob": "92753c731285d182dbf940e113676b104a711242"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_json_frontend.hepta",
+        "path": "examples/hia_bootstrap/core_json_frontend.hepta",
+        "bytes": 165525,
+        "sha256": "07aaa374f6b83fd54cc03d4578c31c558842783b2e72a0752aeafe93d8a3e532",
+        "git_blob": "124d0d6540e8cd7d856af797d798318e1b8d9455"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_module_graph.hepta",
+        "path": "examples/hia_bootstrap/core_module_graph.hepta",
+        "bytes": 61190,
+        "sha256": "35b7a42093ea22ab67ec27c5109646cf90de21ac83209920286c4a191a549452",
+        "git_blob": "c4c433885802c1d71d4c911a4117b335e09fcd77"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_workspace_facts.hepta",
+        "path": "examples/hia_bootstrap/core_workspace_facts.hepta",
+        "bytes": 193221,
+        "sha256": "cefdbeed963ffd1b2219d3a8958814dd291858a5db37cd526131ddf20ac6e28a",
+        "git_blob": "2d21c84333a86f0313a1b02442bb9e18dccd8acc"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_workspace_json.hepta",
+        "path": "examples/hia_bootstrap/core_workspace_json.hepta",
+        "bytes": 260029,
+        "sha256": "490e69274680f66eb8796f0d447e0215974c4d48059a758b18413e4df8106d77",
+        "git_blob": "6dd9b0cf6b7817c8322e6a07bed8ba4c0b6650a8"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_workspace_materialize.hepta",
+        "path": "examples/hia_bootstrap/core_workspace_materialize.hepta",
+        "bytes": 357043,
+        "sha256": "0f01bc1d93927d5f3846c8548dc7bfa5ce6746dfe634414fabf70e683549b253",
+        "git_blob": "b1f99f5e669513701e54074f082417e685c31108"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/function_shape.hepta",
+        "path": "examples/hia_bootstrap/function_shape.hepta",
+        "bytes": 179136,
+        "sha256": "250cb79063521cf99aaeee50ab2fb8c1a884b54c83923ac725356b78aaeda552",
+        "git_blob": "9df664b913cfa60ceb59413d312de49609df56e3"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/instruction_policy.hepta",
+        "path": "examples/hia_bootstrap/instruction_policy.hepta",
+        "bytes": 112969,
+        "sha256": "2fe236da60aef53c63861f17eeddfac07ad76cd65055a14ec085460b23a87b1c",
+        "git_blob": "1d8e73a7fd47b9d49cc9f662dd3d65dc84234281"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/json_canonical.hepta",
+        "path": "examples/hia_bootstrap/json_canonical.hepta",
+        "bytes": 111109,
+        "sha256": "c224e05b5f57dae96cd7894438a5097f305a1420eccab035b6f4ee7824274064",
+        "git_blob": "ca144e47223f13fc375af29e3871acc84961eee0"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/json_decode.hepta",
+        "path": "examples/hia_bootstrap/json_decode.hepta",
+        "bytes": 86790,
+        "sha256": "3f5476bfb49956371389f8c1d35c1cbcaac35b9c987f343dbcff878c1c211123",
+        "git_blob": "1c29360f5faa014e70834b2ff085b4609621ad7a"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/json_preflight.hepta",
+        "path": "examples/hia_bootstrap/json_preflight.hepta",
+        "bytes": 61360,
+        "sha256": "2a8917ba8de7417fbf11c7a0c500342c9abe4c65d1e254ead41c2b8959045993",
+        "git_blob": "b1a29bd2cc487ed563b963ff384e76d7bdcb80d6"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/program_shape.hepta",
+        "path": "examples/hia_bootstrap/program_shape.hepta",
+        "bytes": 188463,
+        "sha256": "cec4ceb819ededdb08cb72477b690f88bcdf97ed2cba0b987e3e227dcad2ae3b",
+        "git_blob": "578760c0e93ee1512092119dcb5429e8ab5da082"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/sha256.hepta",
+        "path": "examples/hia_bootstrap/sha256.hepta",
+        "bytes": 24442,
+        "sha256": "93e97ac37f91fea4e0fa927f1af3b197bff31fb5f8edd2bfd4e70566fdc23c80",
+        "git_blob": "8004cba2db2d0ddebe5ed296ff289cb87858af2c"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/sha256_stream.hepta",
+        "path": "examples/hia_bootstrap/sha256_stream.hepta",
+        "bytes": 30747,
+        "sha256": "5818184f4decbde6a56741238a9d017fda66a3ed41136f9ceb9533a81c552a20",
+        "git_blob": "a6cf0c0dd43a804db8ff74f979cb0d4eff6b51d3"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/agent_binary64_format.hepta",
+        "path": "examples/hia_bootstrap/agent_binary64_format.hepta",
+        "bytes": 50025,
+        "sha256": "911f7613e47197b91ffb7afea9d7adc77602f999aa8d45fc53592f9310b2b421",
+        "git_blob": "ba95fc247120b9b4f44de9f0bcfeb66c35cb0e30"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_admission.hepta",
+        "path": "examples/hia_bootstrap/core_admission.hepta",
+        "bytes": 374567,
+        "sha256": "f5f0abb3906c90590c3557f8b4cbef15a406c36561370d7b9aa0981f56792e85",
+        "git_blob": "0c4764a0c086b8a999ded6b67dc17c33d0fd54b7"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_patch.hepta",
+        "path": "examples/hia_bootstrap/core_patch.hepta",
+        "bytes": 244866,
+        "sha256": "5c54da8c9d94ccc85816c185918d53e39ef5b7b52e616f9f6b57fe24c64010a4",
+        "git_blob": "4a39f358f37605c4735b79dfd19da18d2cf4425a"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_types.hepta",
+        "path": "examples/hia_bootstrap/composite_types.hepta",
+        "bytes": 378674,
+        "sha256": "1f4d61b658705ed7275ff1296426eac587a4c656b73ef791c6059796655439ca",
+        "git_blob": "75927a1e06806529830b83666df22556696bbfe9"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/task_helpers.hepta",
+        "path": "examples/hia_bootstrap/task_helpers.hepta",
+        "bytes": 122362,
+        "sha256": "f3ce0e3d44b62e0bd41e7a75ee3acdad406286b42b4769a0b139c2c12b275b57",
+        "git_blob": "fffe476979ebced85f67b6199dafb25c1ec8e69e"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_function_admit.hepta",
+        "path": "examples/hia_bootstrap/composite_function_admit.hepta",
+        "bytes": 178183,
+        "sha256": "b962208aea9073f56441edfcc974aeeb3f4177c87a1cb5dbd77c79f976c02761",
+        "git_blob": "8ed1ad0e2dc86af12c9bd4aa7ddb48caaf878e55"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_function_records.hepta",
+        "path": "examples/hia_bootstrap/composite_function_records.hepta",
+        "bytes": 232817,
+        "sha256": "ccd1eb02101a98c5980a8afda5cb26149db9f1e2fa478994974b605761fdc4ea",
+        "git_blob": "5fb1730233642be45a9966e2341120e8873e48b5"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_function_advanced.hepta",
+        "path": "examples/hia_bootstrap/composite_function_advanced.hepta",
+        "bytes": 201883,
+        "sha256": "78ce2e1159008db8bdab8234567d942214d2c7eb45a54fccabddc9d730f0d759",
+        "git_blob": "7b4d4b1b60ee39fb4c4d3641302553aad537c89f"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_function_terms.hepta",
+        "path": "examples/hia_bootstrap/composite_function_terms.hepta",
+        "bytes": 221193,
+        "sha256": "c8afe8555b534d1a9e5c1c39258700dd1d0884438ed2f78d40edf9e68e8aa383",
+        "git_blob": "81fb125c62a95f35d3f4f10834e7c4373f3ec0dc"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_function_render.hepta",
+        "path": "examples/hia_bootstrap/composite_function_render.hepta",
+        "bytes": 20917,
+        "sha256": "f33dd6ae377ee7c57fad650b56e482c4c0f7e0920d083fff91517f1874a24bfb",
+        "git_blob": "105e54f0bc3ba928b22881dff61e50c577b22316"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_constructor_owner.hepta",
+        "path": "examples/hia_bootstrap/composite_constructor_owner.hepta",
+        "bytes": 114662,
+        "sha256": "a58f1eb0a18b7631dc7e711fbc369b9fe7990b9c7fd8a7f8bef35fe1f203ea20",
+        "git_blob": "8dccf6e1053dd5e5cc3d99aa38e15c00ed2f7891"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_constructor_render.hepta",
+        "path": "examples/hia_bootstrap/composite_constructor_render.hepta",
+        "bytes": 20920,
+        "sha256": "24493cfe761d233bd2fe9d39e701ae828f8b3fa4f6f23fb8a9b38eb2c2cc50ab",
+        "git_blob": "fb848a77c2fdc45eac212163b45b6a5baf5abdef"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_outer_owner.hepta",
+        "path": "examples/hia_bootstrap/composite_outer_owner.hepta",
+        "bytes": 119071,
+        "sha256": "aff9284cc20048a896ede218567709aba5a39dfd665191b33023520579259007",
+        "git_blob": "43285aa9efa6236125cf89abfcd7eb11ce3f94aa"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/composite_outer_render.hepta",
+        "path": "examples/hia_bootstrap/composite_outer_render.hepta",
+        "bytes": 20913,
+        "sha256": "de975e59b19fe2ee51d10f84ae5914778accf8e954cf2bbc3ce7adf3da515c65",
+        "git_blob": "b38c03c9e900b7e1f658c9e9b5551d2c9dd56c0f"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/retirement_state.hepta",
+        "path": "examples/hia_bootstrap/retirement_state.hepta",
+        "bytes": 110243,
+        "sha256": "a2d2ece149725327602a9e2b62ae863cbcc80f5986086902d133c8227c130512",
+        "git_blob": "e58ae1998dd3aab1fad7c5d82a57d4fd6907cb7b"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_verification.hepta",
+        "path": "examples/hia_bootstrap/core_verification.hepta",
+        "bytes": 100485,
+        "sha256": "2931664bb7af879f48c82bb36e897654ca25d3708d198b9edb06da34de647546",
+        "git_blob": "915285c23c0169529528b57832fa2fe3a0822989"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/assembly_front.hepta",
+        "path": "examples/hia_bootstrap/assembly_front.hepta",
+        "bytes": 245133,
+        "sha256": "440e65fc0e41b8b586b44d3ab3bdad65bf4705eed50ab11d9a123d0d9a40d9d2",
+        "git_blob": "64b1c710e397c20f0f91ab0ed8114306fb4f189d"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/service_requests.hepta",
+        "path": "examples/hia_bootstrap/service_requests.hepta",
+        "bytes": 321332,
+        "sha256": "e8bbdf237548c45f74fd699ca91740354c92d4adec5b85f5cfdd6b631cecd665",
+        "git_blob": "2b78079c04987191cd6cfb7b4cf80757a2d6f25d"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/proof_contract.hepta",
+        "path": "examples/hia_bootstrap/proof_contract.hepta",
+        "bytes": 346808,
+        "sha256": "20415328e0b1b86069be3da960efd17416d97cbc3812ee422af97da9b266e72c",
+        "git_blob": "23b20f4707539a80138858b9caa6d6f024a6a294"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/service_verification.hepta",
+        "path": "examples/hia_bootstrap/service_verification.hepta",
+        "bytes": 272972,
+        "sha256": "10a6d4861b81771ca040fc462b9232c44e1b63381339647f3772ada99aa0c81f",
+        "git_blob": "0c14a8b5ce4cdaeab8231b0e835d55a8d1b8038a"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/service_emission.hepta",
+        "path": "examples/hia_bootstrap/service_emission.hepta",
+        "bytes": 162609,
+        "sha256": "55a308fd06b05457527d1460bac4fed501d312bf19472d4f0622595ceabc1653",
+        "git_blob": "479ca040450815b6bcd462189e1585465225db05"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/native_build.hepta",
+        "path": "examples/hia_bootstrap/native_build.hepta",
+        "bytes": 313438,
+        "sha256": "b653284b303a9af61b446e2a206c884dbc9ee3242545777665e2221e8d923c17",
+        "git_blob": "7f6ba0574cc7b49b7d8d5258e8a13d9672df7c66"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/native_byte_abi.hepta",
+        "path": "examples/hia_bootstrap/native_byte_abi.hepta",
+        "bytes": 175590,
+        "sha256": "3aeffd81c5f579e90b4eec37e5e630bd9d639959280f15f007fa00147e639189",
+        "git_blob": "ae8a14e0bb120cdb9a6784a0f4d19d24ca8a3237"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter.hepta",
+        "path": "examples/hia_bootstrap/core_emitter.hepta",
+        "bytes": 164182,
+        "sha256": "0b5af4919fe1f33d04f8c755190cd63431935336a4a881170295cf9e917ecd11",
+        "git_blob": "6721cce4d80e5921c36430b9b77e543d5b37c632"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering.hepta",
+        "path": "examples/hia_bootstrap/core_lowering.hepta",
+        "bytes": 428668,
+        "sha256": "db7dfb440cfb5619b5c329f58c8504a8477a5401835766cdd85159e5b03d0e3f",
+        "git_blob": "f859cae056e65315dee9570b4fa65c9264e491cd"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/machine_elf.hepta",
+        "path": "examples/hia_bootstrap/machine_elf.hepta",
+        "bytes": 290257,
+        "sha256": "d8ea1f2f83dd043729b22d371c400a97c321d2171b633ab2df71e58ab0c6b8e3",
+        "git_blob": "d723fcaae759530cc61e5c3fc9ba41530fae0be5"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/machine_plan_control.hepta",
+        "path": "examples/hia_bootstrap/machine_plan_control.hepta",
+        "bytes": 325629,
+        "sha256": "a4e61d79922004e15ecd9e23311f29978aca6b14911f247750068d09647fdf6c",
+        "git_blob": "2dd9429242ff57f622da03c2cc28d81e8c34666d"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/service_context.hepta",
+        "path": "examples/hia_bootstrap/service_context.hepta",
+        "bytes": 174630,
+        "sha256": "11548b403f7e9a623ab180cd88c3c2f879bcce288bf6c722c43871c14f4fd5ca",
+        "git_blob": "5b6a7ff6e2cda16ff86580437bf8e63f91a7e3a1"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/source_admission.hepta",
+        "path": "examples/hia_bootstrap/source_admission.hepta",
+        "bytes": 89056,
+        "sha256": "e7e0bdf576dd721c36d98a2b1855bcd34a2ab480094c322a3629ddc26de192f6",
+        "git_blob": "db3734dba418e75b03c96a272978dff2871a732b"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/request_journal.hepta",
+        "path": "examples/hia_bootstrap/request_journal.hepta",
+        "bytes": 112897,
+        "sha256": "b35d2b3f2d0e3a4cbd8856a6ebf95b7553461994af2e8766b83df91e02bc64ba",
+        "git_blob": "3f0b1a99c2d5d46f93ea50f45b39045824203541"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/artifact_namespace.hepta",
+        "path": "examples/hia_bootstrap/artifact_namespace.hepta",
+        "bytes": 219890,
+        "sha256": "d4cc55f3fe0768db348e362f3370f87cc72926397afdda200087aa7e75c6578f",
+        "git_blob": "65789a6068c52d66c19bb0f42d661d25a0bf81ee"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/slot_ledger_continuation.hepta",
+        "path": "examples/hia_bootstrap/slot_ledger_continuation.hepta",
+        "bytes": 226997,
+        "sha256": "4f6334255d6f28db19e5c5d44a011c2e8c7dd61d249de79ed7ab7a9a36cdb961",
+        "git_blob": "f0ad9d947eba734de5c586c5e59f915943eb16c8"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/program_execution.hepta",
+        "path": "examples/hia_bootstrap/program_execution.hepta",
+        "bytes": 298173,
+        "sha256": "0c49119ecc9ba026b1cab597c670b7abd56e16050ad6a9a0fbdaae1c7cfa9bf4",
+        "git_blob": "67ef06496f11ddd3aa5fc574cf3288bece60bb70"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/static_budget.hepta",
+        "path": "examples/hia_bootstrap/static_budget.hepta",
+        "bytes": 368297,
+        "sha256": "f0dae06283047bab0fcba099b3bd8b425c65e550467ad855f33278d7c0542cd0",
+        "git_blob": "b747b4a484c059125078f388cbad626aa48a8b91"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/heap_bound.hepta",
+        "path": "examples/hia_bootstrap/heap_bound.hepta",
+        "bytes": 340198,
+        "sha256": "36f7dac31a8b0e19e2e7782a4c4a5699f00025ef05c2b49cc1d19076f809c8db",
+        "git_blob": "9431a5701b3426796b30cd721f730c180e2ee341"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/heap_live_engine.hepta",
+        "path": "examples/hia_bootstrap/heap_live_engine.hepta",
+        "bytes": 391471,
+        "sha256": "fa1dd4dc425f4f647669fff68d61d85b68fc8e45dead5769fad3373f024ec973",
+        "git_blob": "711eafc48d643b4ccbad3930223c4aa35e675a10"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/heap_payload.hepta",
+        "path": "examples/hia_bootstrap/heap_payload.hepta",
+        "bytes": 261516,
+        "sha256": "17f3f7591ae0b539f29002dd2288c7cb536971fab7b1a5f9b09d30c461b7b535",
+        "git_blob": "4540103817fac8c1ab20bd3de88bd5b2d3449012"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/task_helper_cache.hepta",
+        "path": "examples/hia_bootstrap/task_helper_cache.hepta",
+        "bytes": 90827,
+        "sha256": "cd28f153ff95be43d1369a4679e8dff653434ecf434b5ff0751eb1e126899ed0",
+        "git_blob": "4bf4562554bc7c6b8ec5b8e4c44efba06c59b2c8"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/enum_match.hepta",
+        "path": "examples/hia_bootstrap/enum_match.hepta",
+        "bytes": 185264,
+        "sha256": "da5d2e3d7bc1c011c4d5dc3dd84e78977eb959f3af9a4fceb5362ecb70b4e6d2",
+        "git_blob": "8dcd668397fb8c8c4231f408afb54a37ca6e31c7"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/enum_operations.hepta",
+        "path": "examples/hia_bootstrap/enum_operations.hepta",
+        "bytes": 144980,
+        "sha256": "a84b4a28333b40caed9c7b6bb2088b96bceddb189945d0cd9df992d042b1ce72",
+        "git_blob": "a85dd89a37aa1baf2a091b389c62ba7f625014e0"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/record_operations.hepta",
+        "path": "examples/hia_bootstrap/record_operations.hepta",
+        "bytes": 120621,
+        "sha256": "b54c035d71fac8ac2b791fffc97f7c6d83708ec460c857b6e9fc9f20d33439d9",
+        "git_blob": "5aa0b7eccdd06810f3f0efdd4b2d0aa363fa4c7c"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/record_transitions.hepta",
+        "path": "examples/hia_bootstrap/record_transitions.hepta",
+        "bytes": 187939,
+        "sha256": "2a7f3ed36137a7b1d909b8b22319a67c63dd7b20eb724eae2984373c7b21427c",
+        "git_blob": "5b95eee0cfbca007beebf17fa404cfb58523639f"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/nominal_terminators.hepta",
+        "path": "examples/hia_bootstrap/nominal_terminators.hepta",
+        "bytes": 123132,
+        "sha256": "c17477282124024567724ace0d896d04813819debc391b9fab04ceefedc7c3b2",
+        "git_blob": "167b9d18f9ee4775519e962a90a23f0b78419494"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/nominal_function.hepta",
+        "path": "examples/hia_bootstrap/nominal_function.hepta",
+        "bytes": 225259,
+        "sha256": "1f6f1fbc1e6604fc700f3713c5488d65481cab5ad540139ef0527527cc413f83",
+        "git_blob": "15e9154f1757ba2f965a8dd5eb1cf62267ce9582"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/call_primitive.hepta",
+        "path": "examples/hia_bootstrap/call_primitive.hepta",
+        "bytes": 126123,
+        "sha256": "3a475754f80a361407230052cefd28f5dd80aa42ac3585f47d88581d0c2ed4d5",
+        "git_blob": "56f128e3ae09cb798414e9f31fe85e7e9c319aad"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/task_operations.hepta",
+        "path": "examples/hia_bootstrap/task_operations.hepta",
+        "bytes": 161515,
+        "sha256": "7de60b9e86ed7938f35d5fa07880ae009c0be538f340906b27b42d1074c41f00",
+        "git_blob": "fa9a60b6365282369dc1dd3955578f66af67f0bc"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/nominal_module.hepta",
+        "path": "examples/hia_bootstrap/nominal_module.hepta",
+        "bytes": 94927,
+        "sha256": "57179a503f08a450e748088467753697d35cf48b1aab7d307a339b21c0785592",
+        "git_blob": "f897b19252e0dce9b9c5ef4e58c8431cbec6f09b"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/nominal_admission.hepta",
+        "path": "examples/hia_bootstrap/nominal_admission.hepta",
+        "bytes": 125304,
+        "sha256": "ba595fddbce55d66bf6679767759243ff7bafa85be97269d7163015de1ccc33a",
+        "git_blob": "fcd2f62817f54e978fa0974ec6c29b8eb4731d08"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/core_json_bytes.hepta",
+        "path": "examples/hia_bootstrap/core_json_bytes.hepta",
+        "bytes": 181025,
+        "sha256": "68ba8d06107628454c0e842fc0361b11e2a95222c393780d161d9b30ca897e55",
+        "git_blob": "d7ddcd109f56115ef47e8abe80e2707b4fcf2f1e"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/program_normalization.hepta",
+        "path": "examples/hia_bootstrap/program_normalization.hepta",
+        "bytes": 329624,
+        "sha256": "8e9eaebd1b24cdd6a3a081b8697c2cc55c26cdfe8d04d0040cf8c062b3feec12",
+        "git_blob": "0b1ca964f522a2201432b86d8b77749329139351"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/cpython_note_packer.hepta",
+        "path": "examples/hia_bootstrap/cpython_note_packer.hepta",
+        "bytes": 7001,
+        "sha256": "10c5f3900720bca949c0db051c76ef6710d34d2042e4099b34c8465f93086bbc",
+        "git_blob": "2412b6fa6bf41dc54aab32c92cb335623e22a236"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "hepta/hia_program_normalization_notes.py",
+        "path": "hepta/hia_program_normalization_notes.py",
+        "bytes": 8623,
+        "sha256": "dec1e9bf90d7e376422b7d38423420971565e1fde64184af38797430dadffd45",
+        "git_blob": "46ac5a087f714c7b506775cbd5801805ea087eaf"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/service_artifacts.hepta",
+        "path": "examples/hia_bootstrap/service_artifacts.hepta",
+        "bytes": 137838,
+        "sha256": "2dc911ebf8fec617320b5cffc0525841e832bba08c9cbe22e7b54ddc6b98e885",
+        "git_blob": "76a843894f782b71e321d249cae02a0a56af145a"
+      },
+      {
+        "group": "NATIVE_SOURCE_FILES",
+        "resource": "examples/hia_bootstrap/service_evaluation.hepta",
+        "path": "examples/hia_bootstrap/service_evaluation.hepta",
+        "bytes": 319630,
+        "sha256": "80cc97e3d38301a3cb03e2cef51536fb1f67ccf835ba71f89f88073e97c79611",
+        "git_blob": "3cb1ac7615e9e280eaba7fd99090b2a54619fde2"
+      },
+      {
+        "group": "SOURCE_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/source_build_policy.hepta",
+        "path": "examples/hia_bootstrap/source_build_policy.hepta",
+        "bytes": 63680,
+        "sha256": "b34817be433bbefa521c8ca345f1660c50e9ababc38eba21021ec1d787f3c813",
+        "git_blob": "7851613c2527571d9fcd7e042c5ca56e756f6d74"
+      },
+      {
+        "group": "SOURCE_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/selfhost.hepta",
+        "path": "examples/hia_bootstrap/selfhost.hepta",
+        "bytes": 466227,
+        "sha256": "388b182e42675f11435867dd99520e9452a4ff48e23c0766a3952b662acc7627",
+        "git_blob": "c4c6ca0c9db815cc862d824915489c51cb4e3570"
+      },
+      {
+        "group": "SOURCE_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/source_build_packer.hepta",
+        "path": "examples/hia_bootstrap/source_build_packer.hepta",
+        "bytes": 23187,
+        "sha256": "6068463ef08e946eee926b8f2c57af48945dfeb2d28460f84c63b6ff55610de7",
+        "git_blob": "17c1e2e385eb1ece2164593aedccc18ac9727bba"
+      },
+      {
+        "group": "COMPILER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_json_cli_packer.hepta",
+        "path": "examples/hia_bootstrap/core_json_cli_packer.hepta",
+        "bytes": 17710,
+        "sha256": "d3c922f86fdfa4cdf80e7ce1c7e8aaef22abb4a25c7a6463493a4661237a012d",
+        "git_blob": "d593df26fbe7010a0885ecc93641b06b397122f0"
+      },
+      {
+        "group": "PUBLICATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/artifact_publication_policy.hepta",
+        "path": "examples/hia_bootstrap/artifact_publication_policy.hepta",
+        "bytes": 74740,
+        "sha256": "c3b50c550e079498f5a5f60d7af8d1022283b466ab0f4342f4bec62d7d7c49af",
+        "git_blob": "1358d5e16953881fe094bc974a3717b9f5068fe9"
+      },
+      {
+        "group": "PUBLICATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/artifact_publication_packer.hepta",
+        "path": "examples/hia_bootstrap/artifact_publication_packer.hepta",
+        "bytes": 78361,
+        "sha256": "0f6a5f68e26d89f8d1768bb98424009743802fe27c51053ba9b66f135731b8d6",
+        "git_blob": "85f0896033a3a4633920bb8e994441fe6fe8cd25"
+      },
+      {
+        "group": "PUBLICATION_BUILD_FILES",
+        "resource": "tools/hia_artifact_publication_syscalls.S",
+        "path": "tools/hia_artifact_publication_syscalls.S",
+        "bytes": 13554,
+        "sha256": "0042cf07a91f7a61ca2dd440ec838e0aaafc9d986d584acaa2c0c7dfbb80ddbf",
+        "git_blob": "7687690813fbed626d1c9b61dfc6304ae52df6e4"
+      },
+      {
+        "group": "PUBLICATION_BUILD_FILES",
+        "resource": "tools/generate_hia_artifact_publication.py",
+        "path": "tools/generate_hia_artifact_publication.py",
+        "bytes": 14842,
+        "sha256": "80f66021e7b3fdb97360bab5d2624561822937d3952a4d36972a17ffdffcf56b",
+        "git_blob": "720425385dd2ee12e0e60c3b5e1d66bfe35cc210"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "docs/HIA_CORE_LOWERING_ABI.json",
+        "path": "docs/HIA_CORE_LOWERING_ABI.json",
+        "bytes": 3021,
+        "sha256": "bd8a8d512b6dc323cad6d9bfe6384a315f62b5a055df6e62acc468dc94b7c57f",
+        "git_blob": "e50d24f62d42bf1c98e054b5b0928a1ce9ab8cf5"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_pool.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_pool.hepta",
+        "bytes": 103347,
+        "sha256": "2048feb5a9ac873998247fb307e105d67dadc6f04c069f7be1f0f0a84c8f00b1",
+        "git_blob": "ad09ad031fdc78d67331a6926cdb384391f6e217"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_000.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_000.hepta",
+        "bytes": 259204,
+        "sha256": "7d09225bda99113b8b70d9a03653f316d3b2d83bd31a8589bda95c7410920337",
+        "git_blob": "dbaaf8bba5b4d280516d4863dece32d81caa3c45"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_001.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_001.hepta",
+        "bytes": 174321,
+        "sha256": "f56f759b70cdbb71c0e8b88772a8b63f3706b834210f327761922ec401fc81ad",
+        "git_blob": "bd4bceaed794a2950804f702d8464b8067159a66"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_002.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_002.hepta",
+        "bytes": 154858,
+        "sha256": "ab716cda8462600657785b41e7d5d1fae3c34f923136299d668328bfeb53bf66",
+        "git_blob": "c4296b27c4280a9e8783f3358595cc88b8142943"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_003.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_003.hepta",
+        "bytes": 136866,
+        "sha256": "ccdd2b99fb01b02e61c155e0e918399298760cf152051671f74538a205532574",
+        "git_blob": "e845a64b9a7eca068377280072fdb7c4df6af133"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_004.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_004.hepta",
+        "bytes": 166430,
+        "sha256": "d5eefd323990831f37ca61f4574231e847814c9159c99fb5421d86e4728701a4",
+        "git_blob": "853b0dde5d4935914abc416b22fc22f56f2d68a0"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_005.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_005.hepta",
+        "bytes": 182104,
+        "sha256": "c6205d3a60e4393226123f8806a99d38b51c4a9b217b1779320ec71627ab1e4c",
+        "git_blob": "e020c95e08608eab0c8814e95e5b8b6d20303130"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_006.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_006.hepta",
+        "bytes": 182109,
+        "sha256": "c48bfdf4678220a969f5ffa51be5766062d94cbadbad0a8618b8b9eb1e88184e",
+        "git_blob": "c21659b3a1e5118a129ceb4a383e24c32a49221f"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_007.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_007.hepta",
+        "bytes": 149346,
+        "sha256": "51fd6a8511a0857d08e10727455a7349b8261a29af526ebcfbf032e6ee6465d9",
+        "git_blob": "0fb86488d0e1b2da5e21164653428518d8385d64"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_008.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_008.hepta",
+        "bytes": 164440,
+        "sha256": "c6c0ce14245477deac198434031caf53dd4e1aa4f53e6b44c524957cdddcd6c0",
+        "git_blob": "8c97fdd2a52caf7097faebfdc81a9f6d10fcd725"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_009.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_009.hepta",
+        "bytes": 155846,
+        "sha256": "edafc8b4446f6af64bd92f1b94cc8801b58c002ca7b1509d729c9e235d598d1b",
+        "git_blob": "299414c36a7550bd8ae0a1d7cf3c7a9ca22dd0ba"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_010.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_010.hepta",
+        "bytes": 169640,
+        "sha256": "28393cee2b198dd39846814026018f3a0265e65bd4adab75edb82b02f9fd03e4",
+        "git_blob": "696fd639c56b8e59455d0d2d4b904ceccdd892ec"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_011.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_011.hepta",
+        "bytes": 189974,
+        "sha256": "09749f13542780e583f40dc364e52b728e3a34a18e0e2ea70179ac37eca9a337",
+        "git_blob": "3f99b5520826b1f7caff519fe9ffefe7f6c2e9b6"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_012.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_012.hepta",
+        "bytes": 177916,
+        "sha256": "07f258d012f1f809f6cb08daaf9436631ab99df62d42e503034ad71128e97b80",
+        "git_blob": "26d5ad6ea1ecf4bc5f0e70326ce5b06434490afa"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_013.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_013.hepta",
+        "bytes": 185964,
+        "sha256": "7f52313d3415f70670f8bbba42eae0c2a5b566c97dc249dfb325036576cab9ff",
+        "git_blob": "dd931579dee6eeb0ccbeb88f992900f0fd85afbf"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_014.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_014.hepta",
+        "bytes": 178842,
+        "sha256": "f0cc0d3d9e18bf8ee259852076af0d1a11d20aa4a814d54fd661651cb0f974e6",
+        "git_blob": "5ae2516e3ddef57bb5437f873c7267da95aa9160"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_015.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_015.hepta",
+        "bytes": 180684,
+        "sha256": "aabbb5d59ed6c919acb9563c851d0922bce3546227025b1c95c9c4f4225392d9",
+        "git_blob": "61e4927cf76ae7668fbee7278260d3ce71b1d0a2"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_016.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_016.hepta",
+        "bytes": 174703,
+        "sha256": "d82b30522e82109cfe7c59e4b0166fb39d68bf75deefabd3d5bcdec5db01e173",
+        "git_blob": "e98f71af0203543fc1c4a76375336f4c17a359fe"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_017.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_017.hepta",
+        "bytes": 188157,
+        "sha256": "5f1f0a1d7023bb220647ef026b8c94e9eb0e6702d425020017286cd9a4c2d544",
+        "git_blob": "7c6bd70312345c70cf06e6f3a787b7d40b45a6d0"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_018.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_018.hepta",
+        "bytes": 196059,
+        "sha256": "7c64f86c7fa92bc11f7fb60be11fb4decc8903ef61c276b78643383e59464b1e",
+        "git_blob": "496223ddd97b90c1828cbc6439a55db2655aae4e"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_019.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_019.hepta",
+        "bytes": 177090,
+        "sha256": "631aa05977414092de33d9923c68a38ecf5d980a01fdcb2e40a3f820ec774d8a",
+        "git_blob": "ff35ee45a63acc6ae73e2fdb0ba04ec93380c8dc"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_020.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_020.hepta",
+        "bytes": 197269,
+        "sha256": "059bfbde4cc3eb57ab4ce6d6b4aaae27fc013b0023c4a6d4a1993829cb5ace41",
+        "git_blob": "7ee92abd2e5c216adb70005df4cbb51eaf48c781"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_021.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_021.hepta",
+        "bytes": 179225,
+        "sha256": "1813e3ccc45355724c96c1bb6f7ae5109d970ce01c9b9c93463e8b8d0bb08ecc",
+        "git_blob": "deb5377f568e7d83a1efe14ac75f37cc7b201098"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_022.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_022.hepta",
+        "bytes": 189152,
+        "sha256": "d2b1ef64ff50c0662d2c35b91febd64de91963100d02870466b5e844a02835a7",
+        "git_blob": "c63e157606ed805e055ee9a53901a9ec30cd2187"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_023.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_023.hepta",
+        "bytes": 167509,
+        "sha256": "248770e3f80df26ccdd910f9cf0babffb9e6df24c8de069ee53965e44670af11",
+        "git_blob": "47c908c096e141c52b6d3c3754a55b25a34277b8"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_024.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_024.hepta",
+        "bytes": 202131,
+        "sha256": "d8b664c706ce537033456f1e060b4882ab1355aa022e7d9532d9b5fe5d7461ba",
+        "git_blob": "5cba92ee138f3b4fefaf4263f7da90d52a8472ca"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_025.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_025.hepta",
+        "bytes": 193456,
+        "sha256": "b2c537b21708f2a0916588aca472ffc84b791488fb725cbf2e49d86d5894e2f5",
+        "git_blob": "73a8cef5d9c074f168cff2ca84081f47365d1154"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_026.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_026.hepta",
+        "bytes": 190332,
+        "sha256": "8b1d31d277b8c0a4aa32a12a6d7da81af73fe2466c6d0ab4fbbba1732c31ea9a",
+        "git_blob": "c2c3aee0466f3c73e4e56a03663af72b7459e657"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_027.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_027.hepta",
+        "bytes": 176161,
+        "sha256": "a7a1091a50e20c99cbdc00c41cd018eb88c9938f15ade72fc079ffa47fc6985d",
+        "git_blob": "5a4f7424aac866847f598db140ceaa3d8a63bc89"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_028.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_028.hepta",
+        "bytes": 180817,
+        "sha256": "8aa5bcb54018fffe4ded00a3a15b0aae9f7eaedadd60a5fa299c3febaa3a564f",
+        "git_blob": "1124005ed2554bea45c47e7af755bf571951ea3b"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_029.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_029.hepta",
+        "bytes": 193288,
+        "sha256": "7b4d7d5677f19f63f08e676ea71ba0692098d37c26f6ca4cd755fd9b21f82148",
+        "git_blob": "c15ae81e933597bdc92c84959f3153b93b7a7eab"
+      },
+      {
+        "group": "BACKEND_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_lowering_030.hepta",
+        "path": "examples/hia_bootstrap/core_lowering_030.hepta",
+        "bytes": 27801,
+        "sha256": "5f41c4c6be2af38ab429b6f0ccc41322d9297918bb31bc1774d56abb5f20de06",
+        "git_blob": "4b2e9a22e4ad904a54e1a3932327ba28ccade8b5"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "docs/HIA_CORE_EMITTER_ABI.json",
+        "path": "docs/HIA_CORE_EMITTER_ABI.json",
+        "bytes": 898,
+        "sha256": "431aa7a5f6566f912bcc33302853e4f5952c1e54f19c3a601ee54122954fb1d6",
+        "git_blob": "0b7e457dce794039351a5cb96a47c3bea0f42004"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_pool.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_pool.hepta",
+        "bytes": 53774,
+        "sha256": "045bf372aa96a5a909929fb8d7b03fc5bc2d1fbc176a622126779c4e55aa2aa3",
+        "git_blob": "05032ec438cb3e4a4a98c320d21f5f7924f83a39"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_000.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_000.hepta",
+        "bytes": 191216,
+        "sha256": "428158819bff201f7826f3d8a33ed648525e8d987196bec98930d0b431d39643",
+        "git_blob": "931e7a71ab8a367c356f7efb71443a6d035e8971"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_001.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_001.hepta",
+        "bytes": 159159,
+        "sha256": "67a5437fde42f554c3727c0254007ba059dbecc54ba203b49d5fd9a2e4a57553",
+        "git_blob": "2e85c32fe88c921a4ebfa3365517a53c1418dfa9"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_002.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_002.hepta",
+        "bytes": 153333,
+        "sha256": "c1c79ad8c55710f7c29f319a8deec1f94606ec0d0aba9fdbd5f1d1805fd18322",
+        "git_blob": "f47d328d49c208c9e05b8bc93884b263abf38204"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_003.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_003.hepta",
+        "bytes": 172988,
+        "sha256": "3f134b4a6db49f675c3446aa126e977b9a57cb18e61e81cea76f107869992ffa",
+        "git_blob": "a589f40416992b7a55023a11cb3b24c9114bf6e0"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_004.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_004.hepta",
+        "bytes": 193536,
+        "sha256": "02b329e2c9e06fb9755fb6a4d2c325208a3d1f37427c146cde7d86b1653ab696",
+        "git_blob": "10115a82b7af032e23505e819f101aaa0767c343"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_005.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_005.hepta",
+        "bytes": 159380,
+        "sha256": "d89c91bc5d3af62e899b99869c867cff1424927403de6eb6b63029daa64656b5",
+        "git_blob": "e9fff19f9e2296a8beda1e7a934b242fddf4c441"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_006.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_006.hepta",
+        "bytes": 159751,
+        "sha256": "35bf028d1e7faf4ead4138e85c690dee8a8196d4a0269ff261bcb3e659bd29c2",
+        "git_blob": "19e385654ff3465d45990d9e44d7515076691959"
+      },
+      {
+        "group": "EMITTER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/core_emitter_007.hepta",
+        "path": "examples/hia_bootstrap/core_emitter_007.hepta",
+        "bytes": 172127,
+        "sha256": "3d5964fbf1ee8527b75c45a51655a2b28b2ac6fbf6c98fe9eeb761d26eb303c0",
+        "git_blob": "454839f5327da9ca373cf7676ba2765a6dd71a0d"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "docs/HIA_BYTE_WRAPPER_ABI.json",
+        "path": "docs/HIA_BYTE_WRAPPER_ABI.json",
+        "bytes": 676,
+        "sha256": "2c190f967a740b7c72b0ebf854a06361886e407fb1c8cbcb83ea7a5ddfe89d51",
+        "git_blob": "f7fc56ef15b09ff456e6869548bbfbca75fe52d5"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_pool.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_pool.hepta",
+        "bytes": 46337,
+        "sha256": "1969998f0a95bc684f7dea44e1db596950f3d2e4bf90022ec2d57f307a1f0ec9",
+        "git_blob": "03ddbda98f3fd11e021e5f7e7e19bdf449133163"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_000.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_000.hepta",
+        "bytes": 168293,
+        "sha256": "249ec65466086c03cbb063f572077a0660a22eb4762fde3153eb23fa465f0041",
+        "git_blob": "668a1ede033fff19fef7d8787008adcc08dc66af"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_001.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_001.hepta",
+        "bytes": 162118,
+        "sha256": "d97807fceaec94bf45edbad665683c7fb989d38fe798e7c609d6368a6ea01de3",
+        "git_blob": "13d4edf2232786c3da3ef8d3af918cfe1a282ba8"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_002.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_002.hepta",
+        "bytes": 163287,
+        "sha256": "50d54cacd84976a2c0b2dc3a204bca160af787f7cdbeff17320bba338b5a33f5",
+        "git_blob": "43f7c311b021150b2cc556f24a4246dc7fa2bc1b"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_003.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_003.hepta",
+        "bytes": 164333,
+        "sha256": "228779ddcb14a25f4026161afdc6ced307ffc9f3424fbf16ef0ca7a4d52ec7a6",
+        "git_blob": "d939c3445bcfaeed594e896176b3b97340857033"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_004.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_004.hepta",
+        "bytes": 178689,
+        "sha256": "46b2b1db9a48696b518305b9bcb38c361069c791a9e6c2e403b213a4d7f14d3f",
+        "git_blob": "d322479c2aefd0b01762fcbd8064a5d70b69eb25"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_005.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_005.hepta",
+        "bytes": 178040,
+        "sha256": "88552303733f93433b797ef7c1a3439c3e4d8ca6e1e7e6f1fee3371d2f3048c2",
+        "git_blob": "2ace84d9d3d16218569302fa71debc3d0d5aebb7"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_006.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_006.hepta",
+        "bytes": 196131,
+        "sha256": "167bb522e2357051c44e7b1a21d3eb7aff9d434008d0aeb9f2323770c93619e5",
+        "git_blob": "0c0fe3a30a1f1b1cc6ab4adec6cf1008d666dd2a"
+      },
+      {
+        "group": "BYTE_WRAPPER_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/byte_wrapper_007.hepta",
+        "path": "examples/hia_bootstrap/byte_wrapper_007.hepta",
+        "bytes": 65982,
+        "sha256": "546e909d281cfa5e19b30dc51fdd89f12400a00886ff0d25b50ac5c8c8886350",
+        "git_blob": "ed72a5ee558b238be1c389b10680e03c123b5c3f"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "docs/HIA_MACHINE_OBJECT_ABI.json",
+        "path": "docs/HIA_MACHINE_OBJECT_ABI.json",
+        "bytes": 1252,
+        "sha256": "1cf2884ca1b5da7fd43d0e29ca8a575e4240e0a55548e0ca6d1fa430d75714c3",
+        "git_blob": "e08d0fbb89fde64832bf1f95152cf0434589d3e6"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_pool.hepta",
+        "path": "examples/hia_bootstrap/machine_object_pool.hepta",
+        "bytes": 43262,
+        "sha256": "311a4b0f0f45af1b70387aabf061259078eeaf7c08bafe2bb83079d5354a7153",
+        "git_blob": "f637420bda3f0d5f8c06076663daa853e904b131"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_000.hepta",
+        "path": "examples/hia_bootstrap/machine_object_000.hepta",
+        "bytes": 190323,
+        "sha256": "73b26be3cb08b219bc6af660869f67d04dbc88cf3c3e70d5f321cba56f9a84c9",
+        "git_blob": "6a0b482ee88fba9cae08f2f5dd3d2349e36a2c41"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_001.hepta",
+        "path": "examples/hia_bootstrap/machine_object_001.hepta",
+        "bytes": 171464,
+        "sha256": "c16aa4593c6fd1fffb80ee1c9d9f7b97ba02104fe7b5f2cf15b983ce1f4a4e57",
+        "git_blob": "480cac4f6baa3de39c586c79cfd5062a507e2748"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_002.hepta",
+        "path": "examples/hia_bootstrap/machine_object_002.hepta",
+        "bytes": 146435,
+        "sha256": "7dd3737604697d5500941bd82172c0fa9e89adf5d13d911eb09c6eb5fd3ed5df",
+        "git_blob": "9a0d152764d45770b3a944ed92a1f441fec81b20"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_003.hepta",
+        "path": "examples/hia_bootstrap/machine_object_003.hepta",
+        "bytes": 167888,
+        "sha256": "3f7290f598f4a835a4b5c0cadf2f7b193fa06b1bc13fe7742838b0191c3aa23d",
+        "git_blob": "924ead3b55fea8ff9863dae793897e43029716df"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_004.hepta",
+        "path": "examples/hia_bootstrap/machine_object_004.hepta",
+        "bytes": 157609,
+        "sha256": "adf7d6f6465161f895a6599382e462a16c9de26761dd1ee80006db65d81e6de8",
+        "git_blob": "68abd905278ac89f9c6904dd9453c3f5e163a1dd"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_005.hepta",
+        "path": "examples/hia_bootstrap/machine_object_005.hepta",
+        "bytes": 167973,
+        "sha256": "c4f02a3986443fd57c9980b08e048cdd56b9d9896f9dc4c6f105f86b75a3aa14",
+        "git_blob": "00f7577fa20ea4af2880b7900f98721221a460fe"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_006.hepta",
+        "path": "examples/hia_bootstrap/machine_object_006.hepta",
+        "bytes": 185346,
+        "sha256": "260465ddb9e728855e14f84a5df027d8f77ed1247a8a73be05b4795759d145e6",
+        "git_blob": "425c1c6fb97cff4bff8546dbfa6293518503eafa"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_007.hepta",
+        "path": "examples/hia_bootstrap/machine_object_007.hepta",
+        "bytes": 169516,
+        "sha256": "44f61eefc798dc1d635a0bc71a4a8e726905005c6e4048d99f9eee246598f8d7",
+        "git_blob": "c679a05e69bd50d6397e28b6024ebaaa86aaf3dc"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_008.hepta",
+        "path": "examples/hia_bootstrap/machine_object_008.hepta",
+        "bytes": 184797,
+        "sha256": "7741220d164ac96afaffbebbe4c49d3ecf5f5df5be51d92faf72f5a73eccf48f",
+        "git_blob": "6179e1aece013690a66ddd4f18e2d26357177c7b"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_009.hepta",
+        "path": "examples/hia_bootstrap/machine_object_009.hepta",
+        "bytes": 183305,
+        "sha256": "8c80c1a789401b482d6924fabfcf6d7f17c6ff4b0e331ff18061a4d2c31d1d00",
+        "git_blob": "a31054a78aa4d9e3c099a8189bf0f8404de15f90"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_010.hepta",
+        "path": "examples/hia_bootstrap/machine_object_010.hepta",
+        "bytes": 194662,
+        "sha256": "befcf668410f8183d0996fdf395e55de504feb76016c212d88e9ee908bc72281",
+        "git_blob": "9f64104d44972d6d5da8cf6b8c1bf25e6cb0b12e"
+      },
+      {
+        "group": "MACHINE_OBJECT_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/machine_object_011.hepta",
+        "path": "examples/hia_bootstrap/machine_object_011.hepta",
+        "bytes": 109606,
+        "sha256": "56dea1f8cef4039369d7749cf4c37c713af96281daae17348e005b56dbe36b60",
+        "git_blob": "a58b21d85ae288ae9299988472af4c2d2e315f4a"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "docs/HIA_EXECUTION_OBSERVATION_ABI.json",
+        "path": "docs/HIA_EXECUTION_OBSERVATION_ABI.json",
+        "bytes": 733,
+        "sha256": "c204c6ac7a20a569ac59392b6b8e7451987e5e3ae01dcaa5bf0bdf422fc2f19b",
+        "git_blob": "7240cc859052e9eb22636985268d38c0445e0135"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/execution_observation_pool.hepta",
+        "path": "examples/hia_bootstrap/execution_observation_pool.hepta",
+        "bytes": 42868,
+        "sha256": "67753912cd01dbf59821ea76e658b5a0ce2de20402f613cca4bba8f5b975fddf",
+        "git_blob": "172d17709cd0a815f7149e73a17af30cf0edbb1b"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/execution_observation_000.hepta",
+        "path": "examples/hia_bootstrap/execution_observation_000.hepta",
+        "bytes": 163672,
+        "sha256": "c99da383b741b145c6860da7d9b9484510d7ed91c9279ff345385a660b6dc929",
+        "git_blob": "fb42abea9ec306471b46f286cd29e5e614d234ad"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/execution_observation_001.hepta",
+        "path": "examples/hia_bootstrap/execution_observation_001.hepta",
+        "bytes": 158094,
+        "sha256": "2274ded03fde48cd779d27e384a270b95fe339220dd72ac6529265b079137cea",
+        "git_blob": "b799cbea3af3ceb6b91263b432695dddfa83a087"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/execution_observation_002.hepta",
+        "path": "examples/hia_bootstrap/execution_observation_002.hepta",
+        "bytes": 148887,
+        "sha256": "6a9b946df5a6ebc858eefb1320c233acdb1f755c510119fe6937ec622775b716",
+        "git_blob": "340eff0941de2038c3b5c4d9262b4f5b97c80f9c"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/execution_observation_003.hepta",
+        "path": "examples/hia_bootstrap/execution_observation_003.hepta",
+        "bytes": 170940,
+        "sha256": "b487502a815d48c4b640c1be2bbe3c9bbbea7003a710a6c1f9635ff6df55d920",
+        "git_blob": "8fbf81abfa10a8fd7cf7ac7ee867434dcfb7c082"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/execution_observation_004.hepta",
+        "path": "examples/hia_bootstrap/execution_observation_004.hepta",
+        "bytes": 149541,
+        "sha256": "4b215ead66498c00d338af5c1f42725f4668c356f84355ce43399a32b488cf64",
+        "git_blob": "e94b1eb11019c1746df4e483eec119593072aac5"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/execution_observation_005.hepta",
+        "path": "examples/hia_bootstrap/execution_observation_005.hepta",
+        "bytes": 145688,
+        "sha256": "98907a87e90a039ead2df35a916626ac71c997680dc86f49694b2623d05910e6",
+        "git_blob": "c8c573b0131995c17e442c882080fc99710d9d64"
+      },
+      {
+        "group": "EXECUTION_OBSERVATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/execution_observation_006.hepta",
+        "path": "examples/hia_bootstrap/execution_observation_006.hepta",
+        "bytes": 31750,
+        "sha256": "90a8efbdc15dd86ea7b4598b05c2d0220a3c30acecb6afa3bf2428f1e260922f",
+        "git_blob": "258303551180e194f86b22c228221c645ff5ef73"
+      },
+      {
+        "group": "CONTINUATION_BUILD_FILES",
+        "resource": "docs/HIA_NATIVE_CONTINUATION_ABI.json",
+        "path": "docs/HIA_NATIVE_CONTINUATION_ABI.json",
+        "bytes": 753,
+        "sha256": "8a40d54ce0294f129794d03b8fefd0f60dbb526d524dbcef08bcc041ec43556a",
+        "git_blob": "eb344416b5a2f0d750e14dae0da39e3f741cb1c8"
+      },
+      {
+        "group": "CONTINUATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/continuation_policy.hepta",
+        "path": "examples/hia_bootstrap/continuation_policy.hepta",
+        "bytes": 32738,
+        "sha256": "d64cfdd53ecdf5bd7c7c672c9c48c1439543ba3fdd88f80d5bfa72ecf2a1ba16",
+        "git_blob": "df9c44e67b2228b17bfddb2bccb78a2f730d4717"
+      },
+      {
+        "group": "CONTINUATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/continuation_packer.hepta",
+        "path": "examples/hia_bootstrap/continuation_packer.hepta",
+        "bytes": 33344,
+        "sha256": "cc863035fba9bee49033aa7f8938d30ee120cf15549e326e6e2e80744ecf3388",
+        "git_blob": "022659429baf10ff33183cb58fe79a11b0652ef7"
+      },
+      {
+        "group": "CONTINUATION_BUILD_FILES",
+        "resource": "examples/hia_bootstrap/continuation_inprocess_packer.hepta",
+        "path": "examples/hia_bootstrap/continuation_inprocess_packer.hepta",
+        "bytes": 29127,
+        "sha256": "c4f7f0198e08e3a231652bc67165083fc59dbac03e781b901712c32811857b19",
+        "git_blob": "0bc175517ee06a592c371829341f57216406a4b2"
+      }
+    ],
+    "execution": "ACTUAL_LOCAL_AST_AND_FULL187_RESOURCE_BYTE_VERIFICATION",
+    "business_execution": false,
+    "wheel_execution": false,
+    "cold": false,
+    "whole": false
+  },
+  "role": "Restores the complete already-reviewed ordered 11-group union, no new policy/body/default or duplicate resource.",
+  "unexecuted": [
+    "installed wheel",
+    "current-source cold",
+    "whole qualification"
+  ],
+  "preserved_failures": [
+    "original related31 source controls: front resource count0 at both resources",
+    "all original front generated hash assertions remain unchanged"
+  ]
+}

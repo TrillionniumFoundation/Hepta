@@ -1,0 +1,32 @@
+[
+  {
+    "label": "fresh-source-build-and-source-admission-cold-families",
+    "removed": "    'LINKED_OBSERVER', 'PROGRAM_NORMALIZATION', 'CORE_JSON_BYTES', 'NOMINAL_JSON',\n)",
+    "added": "    'LINKED_OBSERVER', 'PROGRAM_NORMALIZATION', 'CORE_JSON_BYTES', 'NOMINAL_JSON',\n    'SOURCE_BUILD', 'SOURCE_ADMISSION',\n)"
+  },
+  {
+    "label": "complete-new-owner-module-inventory",
+    "removed": "LINKED_OBSERVER_GROUP = ['tests.test_hia_selfhost_linked_observer']",
+    "added": "SOURCE_RELEASE_GROUP = [\n    'tests.test_hia_source_build',\n    'tests.test_hia_program_selfhost',\n    'tests.test_hia_source_release_integration',\n    'tests.test_hia_source_admission_native',\n]\n\nLINKED_OBSERVER_GROUP = ['tests.test_hia_selfhost_linked_observer']"
+  },
+  {
+    "label": "independent-output-paths-for-each-suite-and-full-discovery",
+    "removed": "        ('HEPTA_HIA_NOMINAL_JSON_EVIDENCE', 'nominal-json'),",
+    "added": "        ('HEPTA_HIA_NOMINAL_JSON_EVIDENCE', 'nominal-json'),\n        ('HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS', 'source-build'),\n        ('HEPTA_HIA_SELFHOST_BUILD_EVIDENCE', 'selfhost-build'),\n        ('HEPTA_HIA_SOURCE_ADMISSION_EVIDENCE', 'source-admission'),"
+  },
+  {
+    "label": "execute-all-72-new-owner-controls-with-current-cold",
+    "removed": "    # Append complete new families; the 27 retained groups above are unchanged.\n",
+    "added": "    # Append complete new families; the 27 retained groups above are unchanged.\n    ok = suite('source-build-and-admission', SOURCE_RELEASE_GROUP, expected_tests=72) and ok\n"
+  },
+  {
+    "label": "distinct-harness-revision-no-inherited-results",
+    "removed": "'schema': 'hepta.hia.native-rewrite-qualification.v8'",
+    "added": "'schema': 'hepta.hia.native-rewrite-qualification.v9'"
+  },
+  {
+    "label": "record-new-owner-suite-separately",
+    "removed": "          'normalization': normalization_outcomes,",
+    "added": "          'source_build_and_admission': suite_outcomes.get('source-build-and-admission'),\n          'normalization': normalization_outcomes,"
+  }
+]

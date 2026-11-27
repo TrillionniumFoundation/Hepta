@@ -1,0 +1,799 @@
+{
+  "schema": "hepta.source-admission-authoring-frozen-operation-repair.v1",
+  "scope": "DEVELOPMENT_AUTHOR_GENERATION_ONLY",
+  "repository": "TrillionniumFoundation/Hepta",
+  "base_scope": "/workspace/scratch/dda74a4fae35/recovered-v85/candidate-r2",
+  "candidate_scope": "/workspace/scratch/dda74a4fae35/v85-source-admission-canonical-fix-r1/source",
+  "files": [
+    {
+      "path": "tools/generate_hia_source_admission.py",
+      "mode": "100644",
+      "before": {
+        "bytes": 16691,
+        "git_blob": "8c68135b168c13b694bd60a4426f22181f572000",
+        "sha256": "f8100926cbe96da68c58b8e4704cced439e21040d30eee2207c6005733ed12a2",
+        "text": "\"\"\"Author the explicit HIA fresh checkout-source admission owner.\n\nThe runtime never imports this generator. Path union, ordering, deduplication,\nread claims, SHA-256 and complete-map decisions are all emitted as HIA.\nThe canonical asset is byte-identical to the frozen revision-three prototype.\n\"\"\"\nfrom __future__ import annotations\nimport argparse\nimport ast\nfrom hashlib import sha256\nimport json\nfrom pathlib import Path\nimport sys\n\nROOT = Path(__file__).resolve().parents[1]\nif __package__ in {None, ''}:\n    sys.path.insert(0, str(ROOT))\nSOURCE = ROOT / 'examples/hia_bootstrap/source_admission.hepta'\nFROZEN_HIA_SHA256 = 'e7e0bdf576dd721c36d98a2b1855bcd34a2ab480094c322a3629ddc26de192f6'\n\nfrom hepta.hia_agent_assembly import render_assembly\nfrom tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions\nfrom tools.generate_hia_sha256 import INITIAL, ROUND, BODY as SHA_BODY\n\nPOLICY = r'''\ndef entry(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(o) < 48 or length(s) < 8:\n        return 4294967281\n    fill_range(o, 0, length(o), 0)\n    op = read_word(s, 0)\n    if op == 0:\n        return initialize(s, o, w)\n    if length(s) < 24 or valid_state(w) == 0:\n        return refuse(o, 16)\n    if read_word(s, 8) != get(w, 24):\n        return refuse(o, 16)\n    if op == 4:\n        if length(s) != 24:\n            return refuse(o, 16)\n        receipt(o, 0, 3, get(w, 24), get(w, 32), get(w, 16), get(w, 56))\n        return 0\n    if read_word(s, 16) != get(w, 32):\n        return refuse(o, 16)\n    if op == 1:\n        return next_file(s, o, w)\n    if op == 2:\n        return accept_bytes(s, o, w)\n    if op == 3:\n        if length(s) != 32 or get(w, 16) != 2:\n            return refuse(o, 16)\n        put(w, 16, 5)\n        put(w, 104, read_word(s, 24))\n        seal(w)\n        receipt(o, 4, 4, get(w, 24), get(w, 32), get(w, 96), get(w, 104))\n        return 4\n    return refuse(o, 16)\n\ndef initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(s) < 32 or read_word(s, 8) == 0:\n        return refuse(o, 16)\n    declared = read_word(s, 16)\n    dynamic = read_word(s, 24)\n    count = declared + dynamic\n    if count < declared or count > ((length(s) - 32) >> 4):\n        return refuse(o, 16)\n    if count > 192153584101141146:\n        return refuse(o, 16)\n    base = 1536 + count * 96\n    extent = base + length(s)\n    if base < 1536 or extent < base:\n        return refuse(o, 16)\n    at = 32\n    i = 0\n    while i < count:\n        if at > length(s) or length(s) - at < 16:\n            return refuse(o, 16)\n        if read_word(s, at) != i:\n            return refuse(o, 16)\n        size = read_word(s, at + 8)\n        at = at + 16\n        if size > length(s) - at:\n            return refuse(o, 16)\n        at = at + size\n        i = i + 1\n    if at != length(s):\n        return refuse(o, 16)\n    i = 0\n    while i < length(w):\n        if byte(w, i) != 0:\n            return refuse(o, 16)\n        i = i + 1\n    if length(w) < extent:\n        receipt(o, 1, 5, read_word(s, 8), 0, count, extent)\n        return 1\n    fill_range(w, 0, length(w), 0)\n    put(w, 0, 3548931266558574920)\n    put(w, 8, 1)\n    put(w, 16, 1)\n    put(w, 24, read_word(s, 8))\n    put(w, 40, count)\n    put(w, 64, extent)\n    put(w, 72, base)\n    put(w, 80, length(s))\n    i = 0\n    while i < length(s):\n        store(w, base + i, byte(s, i))\n        i = i + 1\n    at = 32\n    i = 0\n    while i < count:\n        size = read_word(s, at + 8)\n        record = 1536 + i * 96\n        put(w, record, base + at + 16)\n        put(w, record + 8, size)\n        put(w, record + 16, i)\n        at = at + 16 + size\n        i = i + 1\n    sort_records(w, count)\n    unique = 0\n    i = 0\n    while i < count:\n        admit = 1\n        if unique > 0:\n            if compare_names(w, 1536 + (unique - 1) * 96, 1536 + i * 96) == 0:\n                admit = 0\n        if admit == 1:\n            copy_record(w, 1536 + unique * 96, 1536 + i * 96)\n            unique = unique + 1\n        i = i + 1\n    put(w, 48, unique)\n    seal(w)\n    receipt(o, 0, 0, get(w, 24), 0, unique, extent)\n    return 0\n\ndef next_file(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(s) != 24 or get(w, 16) != 1:\n        return refuse(o, 16)\n    cursor = get(w, 56)\n    count = get(w, 48)\n    if cursor < count:\n        if get(w, 32) == 18446744073709551615:\n            return refuse(o, 16)\n        record = 1536 + cursor * 96\n        if get(w, record + 88) != 0:\n            return refuse(o, 16)\n        put(w, 32, get(w, 32) + 1)\n        put(w, 96, get(w, record + 16))\n        put(w, 16, 2)\n        seal(w)\n        receipt(o, 0, 1, get(w, 24), get(w, 32), get(w, 96), get(w, record + 8))\n        return 0\n    if count > 256204778801521549:\n        return refuse(o, 16)\n    required = 48 + count * 72\n    if length(o) < required:\n        receipt(o, 1, 6, get(w, 24), get(w, 32), count, required)\n        return 1\n    i = 0\n    while i < count:\n        if get(w, 1536 + i * 96 + 88) != 1:\n            return refuse(o, 16)\n        i = i + 1\n    i = 0\n    while i < count:\n        record = 1536 + i * 96\n        destination = 48 + i * 72\n        put(o, destination, get(w, record + 16))\n        j = 0\n        while j < 64:\n            store(o, destination + 8 + j, byte(w, record + 24 + j))\n            j = j + 1\n        i = i + 1\n    put(w, 16, 4)\n    seal(w)\n    receipt(o, 0, 2, get(w, 24), get(w, 32), count, required)\n    return 0\n\ndef accept_bytes(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(s) < 32 or get(w, 16) != 2:\n        return refuse(o, 16)\n    size = read_word(s, 24)\n    if size != length(s) - 32:\n        return refuse(o, 16)\n    record = 1536 + get(w, 56) * 96\n    if get(w, 56) >= get(w, 48) or get(w, record + 88) != 0:\n        return refuse(o, 16)\n    put(w, 16, 3)\n    sha_file(s, 32, size, w, record + 24)\n    put(w, record + 88, 1)\n    put(w, 56, get(w, 56) + 1)\n    put(w, 16, 1)\n    seal(w)\n    receipt(o, 0, 0, get(w, 24), get(w, 32), get(w, 56), get(w, 64))\n    return 0\n\ndef valid_state(w:mutbuf) -> u64:\n    if length(w) < 1536:\n        return 0\n    if get(w, 0) != 3548931266558574920 or get(w, 8) != 1 or get(w, 24) == 0:\n        return 0\n    extent = get(w, 64)\n    count = get(w, 40)\n    if extent < 1568 or extent > length(w) or count > ((extent - 1536) >> 4):\n        return 0\n    if count > 192153584101141146:\n        return 0\n    base = 1536 + count * 96\n    if base > extent or get(w, 72) != base or get(w, 80) != extent - base:\n        return 0\n    if get(w, 80) < 32 or get(w, 48) > count or get(w, 56) > get(w, 48):\n        return 0\n    if get(w, 16) < 1 or get(w, 16) > 5 or get(w, 16) == 3:\n        return 0\n    if get(w, 16) == 2 and get(w, 56) >= get(w, 48):\n        return 0\n    if checksum(w) != get(w, 120):\n        return 0\n    i = 0\n    while i < get(w, 48):\n        record = 1536 + i * 96\n        offset = get(w, record)\n        size = get(w, record + 8)\n        if offset < base or offset > extent or size > extent - offset:\n            return 0\n        if get(w, record + 16) >= count or get(w, record + 88) > 1:\n            return 0\n        i = i + 1\n    return 1\n\ndef checksum(w:mutbuf) -> u64:\n    h = 14695981039346656037\n    i = 0\n    extent = get(w, 64)\n    while i < 120:\n        h = (h ^ byte(w, i + 0)) * 1099511628211\n        h = (h ^ byte(w, i + 1)) * 1099511628211\n        h = (h ^ byte(w, i + 2)) * 1099511628211\n        h = (h ^ byte(w, i + 3)) * 1099511628211\n        h = (h ^ byte(w, i + 4)) * 1099511628211\n        h = (h ^ byte(w, i + 5)) * 1099511628211\n        h = (h ^ byte(w, i + 6)) * 1099511628211\n        h = (h ^ byte(w, i + 7)) * 1099511628211\n        i = i + 8\n    i = 128\n    while i <= extent - 8:\n        h = (h ^ byte(w, i + 0)) * 1099511628211\n        h = (h ^ byte(w, i + 1)) * 1099511628211\n        h = (h ^ byte(w, i + 2)) * 1099511628211\n        h = (h ^ byte(w, i + 3)) * 1099511628211\n        h = (h ^ byte(w, i + 4)) * 1099511628211\n        h = (h ^ byte(w, i + 5)) * 1099511628211\n        h = (h ^ byte(w, i + 6)) * 1099511628211\n        h = (h ^ byte(w, i + 7)) * 1099511628211\n        i = i + 8\n    while i < extent:\n        h = (h ^ byte(w, i)) * 1099511628211\n        i = i + 1\n    return h\n\ndef seal(w:mutbuf) -> u64:\n    put(w, 120, checksum(w))\n    return 0\n\ndef receipt(o:mutbuf, status:u64, action:u64, nonce:u64, sequence:u64, value:u64, required:u64) -> u64:\n    put(o, 0, status)\n    put(o, 8, action)\n    put(o, 16, nonce)\n    put(o, 24, sequence)\n    put(o, 32, value)\n    put(o, 40, required)\n    return status\n\ndef refuse(o:mutbuf, status:u64) -> u32:\n    put(o, 0, status)\n    return status\n\ndef compare_names(w:mutbuf, left:u64, right:u64) -> u64:\n    a = get(w, left)\n    b = get(w, right)\n    an = get(w, left + 8)\n    bn = get(w, right + 8)\n    i = 0\n    while i < an and i < bn:\n        x = byte(w, a + i)\n        y = byte(w, b + i)\n        if x < y:\n            return 1\n        if x > y:\n            return 2\n        i = i + 1\n    if an < bn:\n        return 1\n    if an > bn:\n        return 2\n    return 0\n\ndef greater(w:mutbuf, left:u64, right:u64) -> u64:\n    relation = compare_names(w, left, right)\n    if relation == 2:\n        return 1\n    if relation == 0 and get(w, left + 16) > get(w, right + 16):\n        return 1\n    return 0\n\ndef copy_record(w:mutbuf, destination:u64, source:u64) -> u64:\n    if destination != source:\n        i = 0\n        while i < 96:\n            store(w, destination + i, byte(w, source + i))\n            i = i + 1\n    return 0\n\ndef swap_records(w:mutbuf, left:u64, right:u64) -> u64:\n    i = 0\n    while i < 96:\n        value = byte(w, left + i)\n        store(w, left + i, byte(w, right + i))\n        store(w, right + i, value)\n        i = i + 1\n    return 0\n\ndef sift(w:mutbuf, root:u64, count:u64) -> u64:\n    active = 1\n    while active == 1 and root < (count >> 1):\n        child = root * 2 + 1\n        if child + 1 < count:\n            if greater(w, 1536 + (child + 1) * 96, 1536 + child * 96) == 1:\n                child = child + 1\n        if greater(w, 1536 + child * 96, 1536 + root * 96) == 1:\n            swap_records(w, 1536 + root * 96, 1536 + child * 96)\n            root = child\n        else:\n            active = 0\n    return 0\n\ndef sort_records(w:mutbuf, count:u64) -> u64:\n    start = count >> 1\n    while start > 0:\n        start = start - 1\n        sift(w, start, count)\n    end = count\n    while end > 1:\n        end = end - 1\n        swap_records(w, 1536, 1536 + end * 96)\n        sift(w, 0, end)\n    return 0\n\ndef read_word(s:readbuf, at:u64) -> u64:\n    return (byte(s, at + 0) << 0) | (byte(s, at + 1) << 8) | (byte(s, at + 2) << 16) | (byte(s, at + 3) << 24) | (byte(s, at + 4) << 32) | (byte(s, at + 5) << 40) | (byte(s, at + 6) << 48) | (byte(s, at + 7) << 56)\n\ndef get(w:mutbuf, at:u64) -> u64:\n    return (byte(w, at + 0) << 0) | (byte(w, at + 1) << 8) | (byte(w, at + 2) << 16) | (byte(w, at + 3) << 24) | (byte(w, at + 4) << 32) | (byte(w, at + 5) << 40) | (byte(w, at + 6) << 48) | (byte(w, at + 7) << 56)\n\ndef put(w:mutbuf, at:u64, value:u64) -> u64:\n    store(w, at + 0, (value >> 0) & 255)\n    store(w, at + 1, (value >> 8) & 255)\n    store(w, at + 2, (value >> 16) & 255)\n    store(w, at + 3, (value >> 24) & 255)\n    store(w, at + 4, (value >> 32) & 255)\n    store(w, at + 5, (value >> 40) & 255)\n    store(w, at + 6, (value >> 48) & 255)\n    store(w, at + 7, (value >> 56) & 255)\n    return 0\n'''\n\n\ndef sha_source():\n    source = 'def sha_file(s:readbuf, start:u64, count:u64, w:mutbuf, destination:u64) -> u64:\\n'\n    for i, value in enumerate(ROUND):\n        source += f'    sha_put(w, {i*8}, {value})\\n'\n    for i, value in enumerate(INITIAL):\n        source += f'    sha_put(w, {1024+i*8}, {value})\\n'\n    fragment = '        while i < 16:\\n            value = 0\\n            j = 0\\n            while j < 4:\\n                value = (value << 8) | padded_byte(s, block + i * 4 + j, padded)\\n                j = j + 1\\n            put(w, 512 + i * 8, value)\\n            i = i + 1\\n'\n    replacement = '        if block <= count and count - block >= 64:\\n            while i < 16:\\n                at = start + block + i * 4\\n                value = (byte(s, at) << 24) | (byte(s, at + 1) << 16) | (byte(s, at + 2) << 8) | byte(s, at + 3)\\n                put(w, 512 + i * 8, value)\\n                i = i + 1\\n        else:\\n            while i < 16:\\n                value = 0\\n                j = 0\\n                while j < 4:\\n                    value = (value << 8) | padded_byte(s, block + i * 4 + j, padded)\\n                    j = j + 1\\n                put(w, 512 + i * 8, value)\\n                i = i + 1\\n'\n    assert SHA_BODY.count(fragment) == 1\n    body = SHA_BODY.replace(fragment, replacement).replace('length(s)', 'count')\n    body = body.replace('padded_byte(s, block + i * 4 + j, padded)',\n                        'sha_padded_byte(s, start, count, block + i * 4 + j, padded)')\n    body = body.replace('get(', 'sha_get(').replace('put(', 'sha_put(').replace('rotate(', 'sha_rotate(')\n    source += body\n    for i, name in enumerate('abcdefgh'):\n        source += f'        sha_put(w, {1024+i*8}, (sha_get(w, {1024+i*8}) + {name}) & 4294967295)\\n'\n    source += '''        block = block + 64\n    i = 0\n    while i < 8:\n        value = sha_get(w, 1024 + i * 8)\n        j = 0\n        while j < 8:\n            nibble = (value >> ((7 - j) * 4)) & 15\n            character = nibble + 48\n            if nibble > 9:\n                character = nibble + 87\n            store(w, destination + i * 8 + j, character)\n            j = j + 1\n        i = i + 1\n    return 0\n\ndef sha_padded_byte(s:readbuf, start:u64, count:u64, index:u64, total:u64) -> u64:\n    if index < count:\n        return byte(s, start + index)\n    if index == count:\n        return 128\n    if index < total - 8:\n        return 0\n    return (((count & 2305843009213693951) << 3) >> ((total - 1 - index) * 8)) & 255\n\ndef sha_rotate(value:u64, shift:u64) -> u64:\n    return (value >> shift) | ((value << (32 - shift)) & 4294967295)\n\ndef sha_get(w:mutbuf, index:u64) -> u64:\n    at = 256 + index\n    return byte(w, at) | (byte(w, at + 1) << 8) | (byte(w, at + 2) << 16) | (byte(w, at + 3) << 24)\n\ndef sha_put(w:mutbuf, index:u64, value:u64) -> u64:\n    at = 256 + index\n    store(w, at + 0, (value >> 0) & 255)\n    store(w, at + 1, (value >> 8) & 255)\n    store(w, at + 2, (value >> 16) & 255)\n    store(w, at + 3, (value >> 24) & 255)\n    store(w, at + 4, 0)\n    store(w, at + 5, 0)\n    store(w, at + 6, 0)\n    store(w, at + 7, 0)\n    return 0\n'''\n    return source\n\n\ndef source_program():\n    return POLICY + sha_source()\n\n\ndef document():\n    nodes = ast.parse(source_program()).body\n    names = {node.name: 'f'+str(i) for i, node in enumerate(nodes)}\n    signatures = {node.name: ([a.annotation.id for a in node.args.args], node.returns.id) for node in nodes}\n    total = total_scalar_functions(nodes)\n    functions = []\n    for node in nodes:\n        builder = Builder(node, names, signatures, total)\n        builder.statements(node.body)\n        functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],\n                          'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],\n                          'entry': 'b0', 'blocks': builder.blocks})\n    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'checkout_source_admission',\n                                  'functions': functions})\n\n\ndef main():\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--check', action='store_true')\n    args = parser.parse_args()\n    doc = document()\n    raw = render_assembly(doc).encode()\n    functions = doc['functions']\n    blocks = [b for f in functions for b in f['blocks']]\n    info = {'functions': len(functions), 'blocks': len(blocks),\n            'ops': sum(len(b['ops']) for b in blocks),\n            'max_block_params': max(len(b['params']) for b in blocks),\n            'assembly_bytes': len(raw), 'sha256': sha256(raw).hexdigest()}\n    if not (info['functions'] <= 128 and info['blocks'] <= 1536\n            and info['ops'] <= 8192 and info['max_block_params'] <= 16\n            and len(raw) <= 1 << 20):\n        raise ValueError('source-admission authoring exceeds the original compiler profile')\n    if info['sha256'] != FROZEN_HIA_SHA256:\n        raise ValueError('canonical HIA differs from the retained revision-three source')\n    if args.check:\n        if SOURCE.read_bytes() != raw:\n            raise ValueError('checked-in source-admission HIA is not generated from this owner')\n    else:\n        SOURCE.write_bytes(raw)\n    print(json.dumps(info, sort_keys=True))\n\n\nif __name__ == '__main__':\n    main()\n"
+      },
+      "after": {
+        "git_blob": "60f60a1aadea509879145883661f6a7af6a1f9cd",
+        "sha256": "21f5f4a5140ca52ed8c1acbeab9b7111b85f33b6955051b03e992fdb9b2b118e",
+        "bytes": 17079,
+        "text": "\"\"\"Author the explicit HIA fresh checkout-source admission owner.\n\nThe runtime never imports this generator. Path union, ordering, deduplication,\nread claims, SHA-256 and complete-map decisions are all emitted as HIA.\nThe canonical asset is byte-identical to the frozen revision-three prototype.\n\"\"\"\nfrom __future__ import annotations\nimport argparse\nimport ast\nfrom hashlib import sha256\nimport json\nfrom pathlib import Path\nimport sys\n\nROOT = Path(__file__).resolve().parents[1]\nif __package__ in {None, ''}:\n    sys.path.insert(0, str(ROOT))\nSOURCE = ROOT / 'examples/hia_bootstrap/source_admission.hepta'\nFROZEN_HIA_SHA256 = 'e7e0bdf576dd721c36d98a2b1855bcd34a2ab480094c322a3629ddc26de192f6'\n\nfrom hepta.hia_agent_assembly import render_assembly\nfrom tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions\nfrom tools.generate_hia_sha256 import INITIAL, ROUND, BODY as SHA_BODY\n\n\nclass _SourceAdmissionBuilder(Builder):\n    \"\"\"Preserve the frozen revision-three operation stream for this owner.\"\"\"\n\n    def op(self,op,args,t=None,**attrs):\n        out=[] if t is None else [self.value(t)]\n        self.block['ops'].append({'op':op,'args':[a[0] for a in args],'out':[self.param(x) for x in out],'attrs':attrs})\n        return out[0] if out else None\n\n\nPOLICY = r'''\ndef entry(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(o) < 48 or length(s) < 8:\n        return 4294967281\n    fill_range(o, 0, length(o), 0)\n    op = read_word(s, 0)\n    if op == 0:\n        return initialize(s, o, w)\n    if length(s) < 24 or valid_state(w) == 0:\n        return refuse(o, 16)\n    if read_word(s, 8) != get(w, 24):\n        return refuse(o, 16)\n    if op == 4:\n        if length(s) != 24:\n            return refuse(o, 16)\n        receipt(o, 0, 3, get(w, 24), get(w, 32), get(w, 16), get(w, 56))\n        return 0\n    if read_word(s, 16) != get(w, 32):\n        return refuse(o, 16)\n    if op == 1:\n        return next_file(s, o, w)\n    if op == 2:\n        return accept_bytes(s, o, w)\n    if op == 3:\n        if length(s) != 32 or get(w, 16) != 2:\n            return refuse(o, 16)\n        put(w, 16, 5)\n        put(w, 104, read_word(s, 24))\n        seal(w)\n        receipt(o, 4, 4, get(w, 24), get(w, 32), get(w, 96), get(w, 104))\n        return 4\n    return refuse(o, 16)\n\ndef initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(s) < 32 or read_word(s, 8) == 0:\n        return refuse(o, 16)\n    declared = read_word(s, 16)\n    dynamic = read_word(s, 24)\n    count = declared + dynamic\n    if count < declared or count > ((length(s) - 32) >> 4):\n        return refuse(o, 16)\n    if count > 192153584101141146:\n        return refuse(o, 16)\n    base = 1536 + count * 96\n    extent = base + length(s)\n    if base < 1536 or extent < base:\n        return refuse(o, 16)\n    at = 32\n    i = 0\n    while i < count:\n        if at > length(s) or length(s) - at < 16:\n            return refuse(o, 16)\n        if read_word(s, at) != i:\n            return refuse(o, 16)\n        size = read_word(s, at + 8)\n        at = at + 16\n        if size > length(s) - at:\n            return refuse(o, 16)\n        at = at + size\n        i = i + 1\n    if at != length(s):\n        return refuse(o, 16)\n    i = 0\n    while i < length(w):\n        if byte(w, i) != 0:\n            return refuse(o, 16)\n        i = i + 1\n    if length(w) < extent:\n        receipt(o, 1, 5, read_word(s, 8), 0, count, extent)\n        return 1\n    fill_range(w, 0, length(w), 0)\n    put(w, 0, 3548931266558574920)\n    put(w, 8, 1)\n    put(w, 16, 1)\n    put(w, 24, read_word(s, 8))\n    put(w, 40, count)\n    put(w, 64, extent)\n    put(w, 72, base)\n    put(w, 80, length(s))\n    i = 0\n    while i < length(s):\n        store(w, base + i, byte(s, i))\n        i = i + 1\n    at = 32\n    i = 0\n    while i < count:\n        size = read_word(s, at + 8)\n        record = 1536 + i * 96\n        put(w, record, base + at + 16)\n        put(w, record + 8, size)\n        put(w, record + 16, i)\n        at = at + 16 + size\n        i = i + 1\n    sort_records(w, count)\n    unique = 0\n    i = 0\n    while i < count:\n        admit = 1\n        if unique > 0:\n            if compare_names(w, 1536 + (unique - 1) * 96, 1536 + i * 96) == 0:\n                admit = 0\n        if admit == 1:\n            copy_record(w, 1536 + unique * 96, 1536 + i * 96)\n            unique = unique + 1\n        i = i + 1\n    put(w, 48, unique)\n    seal(w)\n    receipt(o, 0, 0, get(w, 24), 0, unique, extent)\n    return 0\n\ndef next_file(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(s) != 24 or get(w, 16) != 1:\n        return refuse(o, 16)\n    cursor = get(w, 56)\n    count = get(w, 48)\n    if cursor < count:\n        if get(w, 32) == 18446744073709551615:\n            return refuse(o, 16)\n        record = 1536 + cursor * 96\n        if get(w, record + 88) != 0:\n            return refuse(o, 16)\n        put(w, 32, get(w, 32) + 1)\n        put(w, 96, get(w, record + 16))\n        put(w, 16, 2)\n        seal(w)\n        receipt(o, 0, 1, get(w, 24), get(w, 32), get(w, 96), get(w, record + 8))\n        return 0\n    if count > 256204778801521549:\n        return refuse(o, 16)\n    required = 48 + count * 72\n    if length(o) < required:\n        receipt(o, 1, 6, get(w, 24), get(w, 32), count, required)\n        return 1\n    i = 0\n    while i < count:\n        if get(w, 1536 + i * 96 + 88) != 1:\n            return refuse(o, 16)\n        i = i + 1\n    i = 0\n    while i < count:\n        record = 1536 + i * 96\n        destination = 48 + i * 72\n        put(o, destination, get(w, record + 16))\n        j = 0\n        while j < 64:\n            store(o, destination + 8 + j, byte(w, record + 24 + j))\n            j = j + 1\n        i = i + 1\n    put(w, 16, 4)\n    seal(w)\n    receipt(o, 0, 2, get(w, 24), get(w, 32), count, required)\n    return 0\n\ndef accept_bytes(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(s) < 32 or get(w, 16) != 2:\n        return refuse(o, 16)\n    size = read_word(s, 24)\n    if size != length(s) - 32:\n        return refuse(o, 16)\n    record = 1536 + get(w, 56) * 96\n    if get(w, 56) >= get(w, 48) or get(w, record + 88) != 0:\n        return refuse(o, 16)\n    put(w, 16, 3)\n    sha_file(s, 32, size, w, record + 24)\n    put(w, record + 88, 1)\n    put(w, 56, get(w, 56) + 1)\n    put(w, 16, 1)\n    seal(w)\n    receipt(o, 0, 0, get(w, 24), get(w, 32), get(w, 56), get(w, 64))\n    return 0\n\ndef valid_state(w:mutbuf) -> u64:\n    if length(w) < 1536:\n        return 0\n    if get(w, 0) != 3548931266558574920 or get(w, 8) != 1 or get(w, 24) == 0:\n        return 0\n    extent = get(w, 64)\n    count = get(w, 40)\n    if extent < 1568 or extent > length(w) or count > ((extent - 1536) >> 4):\n        return 0\n    if count > 192153584101141146:\n        return 0\n    base = 1536 + count * 96\n    if base > extent or get(w, 72) != base or get(w, 80) != extent - base:\n        return 0\n    if get(w, 80) < 32 or get(w, 48) > count or get(w, 56) > get(w, 48):\n        return 0\n    if get(w, 16) < 1 or get(w, 16) > 5 or get(w, 16) == 3:\n        return 0\n    if get(w, 16) == 2 and get(w, 56) >= get(w, 48):\n        return 0\n    if checksum(w) != get(w, 120):\n        return 0\n    i = 0\n    while i < get(w, 48):\n        record = 1536 + i * 96\n        offset = get(w, record)\n        size = get(w, record + 8)\n        if offset < base or offset > extent or size > extent - offset:\n            return 0\n        if get(w, record + 16) >= count or get(w, record + 88) > 1:\n            return 0\n        i = i + 1\n    return 1\n\ndef checksum(w:mutbuf) -> u64:\n    h = 14695981039346656037\n    i = 0\n    extent = get(w, 64)\n    while i < 120:\n        h = (h ^ byte(w, i + 0)) * 1099511628211\n        h = (h ^ byte(w, i + 1)) * 1099511628211\n        h = (h ^ byte(w, i + 2)) * 1099511628211\n        h = (h ^ byte(w, i + 3)) * 1099511628211\n        h = (h ^ byte(w, i + 4)) * 1099511628211\n        h = (h ^ byte(w, i + 5)) * 1099511628211\n        h = (h ^ byte(w, i + 6)) * 1099511628211\n        h = (h ^ byte(w, i + 7)) * 1099511628211\n        i = i + 8\n    i = 128\n    while i <= extent - 8:\n        h = (h ^ byte(w, i + 0)) * 1099511628211\n        h = (h ^ byte(w, i + 1)) * 1099511628211\n        h = (h ^ byte(w, i + 2)) * 1099511628211\n        h = (h ^ byte(w, i + 3)) * 1099511628211\n        h = (h ^ byte(w, i + 4)) * 1099511628211\n        h = (h ^ byte(w, i + 5)) * 1099511628211\n        h = (h ^ byte(w, i + 6)) * 1099511628211\n        h = (h ^ byte(w, i + 7)) * 1099511628211\n        i = i + 8\n    while i < extent:\n        h = (h ^ byte(w, i)) * 1099511628211\n        i = i + 1\n    return h\n\ndef seal(w:mutbuf) -> u64:\n    put(w, 120, checksum(w))\n    return 0\n\ndef receipt(o:mutbuf, status:u64, action:u64, nonce:u64, sequence:u64, value:u64, required:u64) -> u64:\n    put(o, 0, status)\n    put(o, 8, action)\n    put(o, 16, nonce)\n    put(o, 24, sequence)\n    put(o, 32, value)\n    put(o, 40, required)\n    return status\n\ndef refuse(o:mutbuf, status:u64) -> u32:\n    put(o, 0, status)\n    return status\n\ndef compare_names(w:mutbuf, left:u64, right:u64) -> u64:\n    a = get(w, left)\n    b = get(w, right)\n    an = get(w, left + 8)\n    bn = get(w, right + 8)\n    i = 0\n    while i < an and i < bn:\n        x = byte(w, a + i)\n        y = byte(w, b + i)\n        if x < y:\n            return 1\n        if x > y:\n            return 2\n        i = i + 1\n    if an < bn:\n        return 1\n    if an > bn:\n        return 2\n    return 0\n\ndef greater(w:mutbuf, left:u64, right:u64) -> u64:\n    relation = compare_names(w, left, right)\n    if relation == 2:\n        return 1\n    if relation == 0 and get(w, left + 16) > get(w, right + 16):\n        return 1\n    return 0\n\ndef copy_record(w:mutbuf, destination:u64, source:u64) -> u64:\n    if destination != source:\n        i = 0\n        while i < 96:\n            store(w, destination + i, byte(w, source + i))\n            i = i + 1\n    return 0\n\ndef swap_records(w:mutbuf, left:u64, right:u64) -> u64:\n    i = 0\n    while i < 96:\n        value = byte(w, left + i)\n        store(w, left + i, byte(w, right + i))\n        store(w, right + i, value)\n        i = i + 1\n    return 0\n\ndef sift(w:mutbuf, root:u64, count:u64) -> u64:\n    active = 1\n    while active == 1 and root < (count >> 1):\n        child = root * 2 + 1\n        if child + 1 < count:\n            if greater(w, 1536 + (child + 1) * 96, 1536 + child * 96) == 1:\n                child = child + 1\n        if greater(w, 1536 + child * 96, 1536 + root * 96) == 1:\n            swap_records(w, 1536 + root * 96, 1536 + child * 96)\n            root = child\n        else:\n            active = 0\n    return 0\n\ndef sort_records(w:mutbuf, count:u64) -> u64:\n    start = count >> 1\n    while start > 0:\n        start = start - 1\n        sift(w, start, count)\n    end = count\n    while end > 1:\n        end = end - 1\n        swap_records(w, 1536, 1536 + end * 96)\n        sift(w, 0, end)\n    return 0\n\ndef read_word(s:readbuf, at:u64) -> u64:\n    return (byte(s, at + 0) << 0) | (byte(s, at + 1) << 8) | (byte(s, at + 2) << 16) | (byte(s, at + 3) << 24) | (byte(s, at + 4) << 32) | (byte(s, at + 5) << 40) | (byte(s, at + 6) << 48) | (byte(s, at + 7) << 56)\n\ndef get(w:mutbuf, at:u64) -> u64:\n    return (byte(w, at + 0) << 0) | (byte(w, at + 1) << 8) | (byte(w, at + 2) << 16) | (byte(w, at + 3) << 24) | (byte(w, at + 4) << 32) | (byte(w, at + 5) << 40) | (byte(w, at + 6) << 48) | (byte(w, at + 7) << 56)\n\ndef put(w:mutbuf, at:u64, value:u64) -> u64:\n    store(w, at + 0, (value >> 0) & 255)\n    store(w, at + 1, (value >> 8) & 255)\n    store(w, at + 2, (value >> 16) & 255)\n    store(w, at + 3, (value >> 24) & 255)\n    store(w, at + 4, (value >> 32) & 255)\n    store(w, at + 5, (value >> 40) & 255)\n    store(w, at + 6, (value >> 48) & 255)\n    store(w, at + 7, (value >> 56) & 255)\n    return 0\n'''\n\n\ndef sha_source():\n    source = 'def sha_file(s:readbuf, start:u64, count:u64, w:mutbuf, destination:u64) -> u64:\\n'\n    for i, value in enumerate(ROUND):\n        source += f'    sha_put(w, {i*8}, {value})\\n'\n    for i, value in enumerate(INITIAL):\n        source += f'    sha_put(w, {1024+i*8}, {value})\\n'\n    fragment = '        while i < 16:\\n            value = 0\\n            j = 0\\n            while j < 4:\\n                value = (value << 8) | padded_byte(s, block + i * 4 + j, padded)\\n                j = j + 1\\n            put(w, 512 + i * 8, value)\\n            i = i + 1\\n'\n    replacement = '        if block <= count and count - block >= 64:\\n            while i < 16:\\n                at = start + block + i * 4\\n                value = (byte(s, at) << 24) | (byte(s, at + 1) << 16) | (byte(s, at + 2) << 8) | byte(s, at + 3)\\n                put(w, 512 + i * 8, value)\\n                i = i + 1\\n        else:\\n            while i < 16:\\n                value = 0\\n                j = 0\\n                while j < 4:\\n                    value = (value << 8) | padded_byte(s, block + i * 4 + j, padded)\\n                    j = j + 1\\n                put(w, 512 + i * 8, value)\\n                i = i + 1\\n'\n    assert SHA_BODY.count(fragment) == 1\n    body = SHA_BODY.replace(fragment, replacement).replace('length(s)', 'count')\n    body = body.replace('padded_byte(s, block + i * 4 + j, padded)',\n                        'sha_padded_byte(s, start, count, block + i * 4 + j, padded)')\n    body = body.replace('get(', 'sha_get(').replace('put(', 'sha_put(').replace('rotate(', 'sha_rotate(')\n    source += body\n    for i, name in enumerate('abcdefgh'):\n        source += f'        sha_put(w, {1024+i*8}, (sha_get(w, {1024+i*8}) + {name}) & 4294967295)\\n'\n    source += '''        block = block + 64\n    i = 0\n    while i < 8:\n        value = sha_get(w, 1024 + i * 8)\n        j = 0\n        while j < 8:\n            nibble = (value >> ((7 - j) * 4)) & 15\n            character = nibble + 48\n            if nibble > 9:\n                character = nibble + 87\n            store(w, destination + i * 8 + j, character)\n            j = j + 1\n        i = i + 1\n    return 0\n\ndef sha_padded_byte(s:readbuf, start:u64, count:u64, index:u64, total:u64) -> u64:\n    if index < count:\n        return byte(s, start + index)\n    if index == count:\n        return 128\n    if index < total - 8:\n        return 0\n    return (((count & 2305843009213693951) << 3) >> ((total - 1 - index) * 8)) & 255\n\ndef sha_rotate(value:u64, shift:u64) -> u64:\n    return (value >> shift) | ((value << (32 - shift)) & 4294967295)\n\ndef sha_get(w:mutbuf, index:u64) -> u64:\n    at = 256 + index\n    return byte(w, at) | (byte(w, at + 1) << 8) | (byte(w, at + 2) << 16) | (byte(w, at + 3) << 24)\n\ndef sha_put(w:mutbuf, index:u64, value:u64) -> u64:\n    at = 256 + index\n    store(w, at + 0, (value >> 0) & 255)\n    store(w, at + 1, (value >> 8) & 255)\n    store(w, at + 2, (value >> 16) & 255)\n    store(w, at + 3, (value >> 24) & 255)\n    store(w, at + 4, 0)\n    store(w, at + 5, 0)\n    store(w, at + 6, 0)\n    store(w, at + 7, 0)\n    return 0\n'''\n    return source\n\n\ndef source_program():\n    return POLICY + sha_source()\n\n\ndef document():\n    nodes = ast.parse(source_program()).body\n    names = {node.name: 'f'+str(i) for i, node in enumerate(nodes)}\n    signatures = {node.name: ([a.annotation.id for a in node.args.args], node.returns.id) for node in nodes}\n    total = total_scalar_functions(nodes)\n    functions = []\n    for node in nodes:\n        builder = _SourceAdmissionBuilder(node, names, signatures, total)\n        builder.statements(node.body)\n        functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],\n                          'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],\n                          'entry': 'b0', 'blocks': builder.blocks})\n    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'checkout_source_admission',\n                                  'functions': functions})\n\n\ndef main():\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--check', action='store_true')\n    args = parser.parse_args()\n    doc = document()\n    raw = render_assembly(doc).encode()\n    functions = doc['functions']\n    blocks = [b for f in functions for b in f['blocks']]\n    info = {'functions': len(functions), 'blocks': len(blocks),\n            'ops': sum(len(b['ops']) for b in blocks),\n            'max_block_params': max(len(b['params']) for b in blocks),\n            'assembly_bytes': len(raw), 'sha256': sha256(raw).hexdigest()}\n    if not (info['functions'] <= 128 and info['blocks'] <= 1536\n            and info['ops'] <= 8192 and info['max_block_params'] <= 16\n            and len(raw) <= 1 << 20):\n        raise ValueError('source-admission authoring exceeds the original compiler profile')\n    if info['sha256'] != FROZEN_HIA_SHA256:\n        raise ValueError('canonical HIA differs from the retained revision-three source')\n    if args.check:\n        if SOURCE.read_bytes() != raw:\n            raise ValueError('checked-in source-admission HIA is not generated from this owner')\n    else:\n        SOURCE.write_bytes(raw)\n    print(json.dumps(info, sort_keys=True))\n\n\nif __name__ == '__main__':\n    main()\n"
+      }
+    }
+  ],
+  "reason": {
+    "actual_original_failure": "The original merged generator rejected its newly generated bytes before reading/writing the canonical asset.",
+    "canonical_seed_valid": true,
+    "original_generated": {
+      "bytes": 88709,
+      "git_blob": "ddec3abf18ff86b568e5bda75664ade37e28cdae",
+      "sha256": "e3d910bdc5908e4a526b0c0daa37a298db1ef9130eab00bfb4b1f9755132f7bf"
+    },
+    "original_generated_ops": 1689,
+    "restored_generated": {
+      "bytes": 89056,
+      "git_blob": "db3734dba418e75b03c96a272978dff2871a732b",
+      "sha256": "e7e0bdf576dd721c36d98a2b1855bcd34a2ab480094c322a3629ddc26de192f6"
+    },
+    "restored_generated_ops": 1698,
+    "change": "Use an owner-local Builder subclass whose op AST exactly equals the original a733 Builder.op; keep main/sha_source/source_program complete text, nonfunction policy/constants/imports, frozen hash and limits unchanged.",
+    "shared_builder_preserved": true,
+    "old_builder_git_blob": "e0d1b9c7d3a3e85e28cc7308e1bc8208128452a7",
+    "current_shared_builder_git_blob": "073f641cf9217f050313a46de7c2bf1334e82858"
+  },
+  "original_failure": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "-B",
+      "-m",
+      "tools.generate_hia_source_admission"
+    ],
+    "cleanup": [],
+    "cwd": "/workspace/scratch/dda74a4fae35/recovered-v85/candidate-r2",
+    "elapsed_ns": 717237468,
+    "finished_at": "2026-11-13T07:04:47.100073+00:00",
+    "limit_seconds": 300,
+    "returncode": 1,
+    "started_at": "2026-11-13T07:04:46.382845+00:00",
+    "stderr": {
+      "blob": "8cd1e13bc0d9e965ea3216dc07839906df1e55dd",
+      "bytes": 567,
+      "file": "commands/0090-generate-88-source_admission.stderr",
+      "sha256": "5568d3c2730ef6cb6c9ecdd6d0c9d49759dc2692b56fee1fa22b50323406f61c"
+    },
+    "stdout": {
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "file": "commands/0090-generate-88-source_admission.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "timed_out": false
+  },
+  "original_observation": {
+    "blocks": 250,
+    "canonical_seed": {
+      "bytes": 89056,
+      "git_blob": "db3734dba418e75b03c96a272978dff2871a732b",
+      "sha256": "e7e0bdf576dd721c36d98a2b1855bcd34a2ab480094c322a3629ddc26de192f6"
+    },
+    "canonical_seed_matches_frozen": true,
+    "frozen_sha256": "e7e0bdf576dd721c36d98a2b1855bcd34a2ab480094c322a3629ddc26de192f6",
+    "functions": 23,
+    "generated_matches_frozen": false,
+    "native_requested": false,
+    "observed_at": "2026-11-13T07:09:08.454930+00:00",
+    "ops": 1689,
+    "raw": {
+      "bytes": 88709,
+      "git_blob": "ddec3abf18ff86b568e5bda75664ade37e28cdae",
+      "sha256": "e3d910bdc5908e4a526b0c0daa37a298db1ef9130eab00bfb4b1f9755132f7bf"
+    },
+    "source_program": {
+      "bytes": 16663,
+      "git_blob": "2fb172a93d208526bc79c5577b0da4218f6b6ffc",
+      "sha256": "60c06ffa7508141b545505a6ed9563834f78d162acf18ea92f4acaf3a5610893"
+    }
+  },
+  "revision_checks": {
+    "after": {
+      "bytes": 17079,
+      "git_blob": "60f60a1aadea509879145883661f6a7af6a1f9cd",
+      "sha256": "21f5f4a5140ca52ed8c1acbeab9b7111b85f33b6955051b03e992fdb9b2b118e"
+    },
+    "all_nonfunction_policy_import_constant_asts_unchanged": true,
+    "before": {
+      "bytes": 16691,
+      "git_blob": "8c68135b168c13b694bd60a4426f22181f572000",
+      "sha256": "f8100926cbe96da68c58b8e4704cced439e21040d30eee2207c6005733ed12a2"
+    },
+    "document_only_constructor_name_changed": true,
+    "frozen_sha_guard_unchanged": true,
+    "limits_unchanged": true,
+    "local_op_exact_a733_ast": true,
+    "native_requested": false,
+    "only_source_delta": "tools/generate_hia_source_admission.py",
+    "scope": "DEVELOPMENT_AUTHOR_GENERATION_ONLY",
+    "shared_builder_unchanged": true,
+    "unchanged_complete_function_texts": [
+      "main",
+      "sha_source",
+      "source_program"
+    ]
+  },
+  "actual_result": {
+    "actual_executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "all_109_generation_not_run": true,
+    "blocks": 250,
+    "canonical_seed_equal": true,
+    "commands": [
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-B",
+          "-m",
+          "tools.generate_hia_source_admission"
+        ],
+        "cleanup": [],
+        "cwd": "/workspace/scratch/dda74a4fae35/v85-source-admission-canonical-fix-r1/source",
+        "elapsed_ns": 1592832497,
+        "finished_at": "2026-11-13T07:12:11.529886+00:00",
+        "limit_seconds": 300,
+        "returncode": 0,
+        "source_bytes_modes_unchanged": true,
+        "started_at": "2026-11-13T07:12:09.937069+00:00",
+        "stderr": {
+          "bytes": 0,
+          "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 173,
+          "git_blob": "4a2c2be734cf034ecb1c10106159a34803c0c309",
+          "sha256": "b45503da3f48b81c42177f295929b9b4023c45a2f7ae5712b40cc5019bd93a5a"
+        },
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+          "-B",
+          "-m",
+          "tools.generate_hia_source_admission",
+          "--check"
+        ],
+        "cleanup": [],
+        "cwd": "/workspace/scratch/dda74a4fae35/v85-source-admission-canonical-fix-r1/source",
+        "elapsed_ns": 1761959900,
+        "finished_at": "2026-11-13T07:12:13.292504+00:00",
+        "limit_seconds": 300,
+        "returncode": 0,
+        "source_bytes_modes_unchanged": true,
+        "started_at": "2026-11-13T07:12:11.530541+00:00",
+        "stderr": {
+          "bytes": 0,
+          "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 173,
+          "git_blob": "4a2c2be734cf034ecb1c10106159a34803c0c309",
+          "sha256": "b45503da3f48b81c42177f295929b9b4023c45a2f7ae5712b40cc5019bd93a5a"
+        },
+        "timed_out": false
+      }
+    ],
+    "functions": 23,
+    "max_block_params": 16,
+    "native_requested": false,
+    "ops": 1698,
+    "original_failed_tree_unchanged": true,
+    "owner": {
+      "bytes": 17079,
+      "git_blob": "60f60a1aadea509879145883661f6a7af6a1f9cd",
+      "sha256": "21f5f4a5140ca52ed8c1acbeab9b7111b85f33b6955051b03e992fdb9b2b118e"
+    },
+    "policy_equal": true,
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "raw": {
+      "bytes": 89056,
+      "git_blob": "db3734dba418e75b03c96a272978dff2871a732b",
+      "sha256": "e7e0bdf576dd721c36d98a2b1855bcd34a2ab480094c322a3629ddc26de192f6"
+    },
+    "remaining_generator_files_read_only": 20,
+    "removed_environment_names": [],
+    "scope": "DEVELOPMENT_AUTHOR_GENERATION_ONLY",
+    "source_bytes_modes_unchanged_after_authoring": true,
+    "source_test_bodies_not_run": true,
+    "status": "PASS"
+  },
+  "remaining_generator_review": {
+    "files": [
+      {
+        "bytes": 42523,
+        "git_blob": "898cf1ba24282f18cd9d5cf7976daaeff167881e",
+        "path": "tools/generate_hia_machine_elf.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 21,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          }
+        ],
+        "sha256": "5653acbed44675a73662ab61d9b83ba2ebe6000e71851b5058669bacf772dd06"
+      },
+      {
+        "bytes": 17031,
+        "git_blob": "4e7ed776bab8089159ce12109422252eeae43945",
+        "path": "tools/generate_hia_machine_plan_control.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 18,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 20,
+            "module": "tools.hia_machine_plan_control",
+            "names": [
+              "compile_policy",
+              "OPS"
+            ]
+          }
+        ],
+        "sha256": "10ce06f3897627bd53129c189a83d74cddc8e3c94ad29aa617ce78bbe81455be"
+      },
+      {
+        "bytes": 14755,
+        "git_blob": "60475ebff7471f019212fc65a0734891b15e32d9",
+        "path": "tools/generate_hia_service_context.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 14,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          }
+        ],
+        "sha256": "e6459cd2b97ceefc7133a6df0f8962c291dc86b74448171d2d087032d231f176"
+      },
+      {
+        "bytes": 5007,
+        "git_blob": "f517cf2fd1df4400881c7ef68ab38d893d6e48bc",
+        "path": "tools/generate_hia_core_lowering_control.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 20,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 21,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "helpers",
+              "table",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 24,
+            "module": "tools.hia_core_lowering_control",
+            "names": [
+              "compile_policy",
+              "OPS"
+            ]
+          },
+          {
+            "line": 25,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "0859f3919bf953252b03a273e5eba66eb2f25da8d5944e9666264ba9744e475e"
+      },
+      {
+        "bytes": 21822,
+        "git_blob": "bb796883cad237790d82c99c99041fd367e04fe4",
+        "path": "tools/generate_hia_service_emission.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 13,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          }
+        ],
+        "sha256": "7af0e060410de3b22c2b2c149da31942cd61264cbbff520a1be56bb0b49f70f4"
+      },
+      {
+        "bytes": 3288,
+        "git_blob": "e422a1af8f17b4497d84e015e61a55a614ff6d40",
+        "path": "tools/generate_hia_core_emitter_control.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 14,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 15,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "table",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 16,
+            "module": "tools.generate_hia_core_lowering_control",
+            "names": [
+              "emission",
+              "transport_helpers"
+            ]
+          },
+          {
+            "line": 17,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "f3025ead0d1230d68b21378013d43f7ed24510e13f61e3cdb52a47feee41d397"
+      },
+      {
+        "bytes": 3320,
+        "git_blob": "2d9ca77497e5d15c33e88b52034d017cf7ef3af0",
+        "path": "tools/generate_hia_native_byte_abi.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 14,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 15,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "table",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 17,
+            "module": "tools.generate_hia_core_lowering_control",
+            "names": [
+              "emission",
+              "transport_helpers"
+            ]
+          },
+          {
+            "line": 18,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "b31acc9c32ccfec9b71be5f9301128ce77e3b11c780bd37c873bcaf5c1c46376"
+      },
+      {
+        "bytes": 11860,
+        "git_blob": "ac674b8f0ffe4c4ebf8522c840332fe39a4b270f",
+        "path": "tools/generate_hia_native_build_foreign.py",
+        "pin_declarations": [],
+        "relevant_imports": [],
+        "sha256": "33620d183bcf73dcb6070c30f94176c8cc896d421cd6bbabb88eb691569352b8"
+      },
+      {
+        "bytes": 7323,
+        "git_blob": "5ca383a07fae0156631b574fdcef7ed897dfa7f3",
+        "path": "tools/generate_hia_native_build.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 15,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 16,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 18,
+            "module": "tools.generate_hia_core_lowering_control",
+            "names": [
+              "emission",
+              "transport_helpers"
+            ]
+          },
+          {
+            "line": 19,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "f13c2adf995cecada2bd9dbfb10cf03a07aa5b4c7270b7cc7ab6ca0acfb2b9d4"
+      },
+      {
+        "bytes": 7843,
+        "git_blob": "adf7d2d6ab6cfd582d52de6f4d3a7b809e18f6f6",
+        "path": "tools/generate_hia_service_verification_foreign.py",
+        "pin_declarations": [],
+        "relevant_imports": [],
+        "sha256": "487d03fd4430269b65e302322fcd88a26dcf14d43a0419e3394b516eb5f45616"
+      },
+      {
+        "bytes": 5027,
+        "git_blob": "f02d4fcd988b34fa92b6543c0941c135d40f98e6",
+        "path": "tools/generate_hia_service_verification.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 20,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 21,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "helpers",
+              "table",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 25,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "b8dfc423cf8f7e3c31439c45b6461f92e28b2861889d2c53b2530ce1043f5798"
+      },
+      {
+        "bytes": 5129,
+        "git_blob": "b5c234a060f45bdb9dcad313e2a9e51aa62ed0cf",
+        "path": "tools/generate_hia_proof_contract.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 20,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 21,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "helpers",
+              "table",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 25,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "b977db6f3003150b89b58fefbda3ba104ee851555d93725417602e65e3afd16e"
+      },
+      {
+        "bytes": 7428,
+        "git_blob": "ec4a054a70593229fd157f01810d6a77e644e03b",
+        "path": "tools/generate_hia_service_requests.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 15,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 16,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 18,
+            "module": "tools.generate_hia_core_lowering_control",
+            "names": [
+              "emission",
+              "transport_helpers"
+            ]
+          },
+          {
+            "line": 19,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "a2185f2a00fbfc7915108a9164e3b4c7a133b9c367cce01f86548e200bbf1fa8"
+      },
+      {
+        "bytes": 12885,
+        "git_blob": "453607e983d3464970be21bb6e39fe78ee7f2f6f",
+        "path": "tools/generate_hia_service_requests_foreign.py",
+        "pin_declarations": [],
+        "relevant_imports": [],
+        "sha256": "c54a9a944d06d966a2307c67cc6c84c95750a33da735e311763f927fc905b035"
+      },
+      {
+        "bytes": 2252,
+        "git_blob": "a60ddbf6beb3202367d5a377562420c04481015e",
+        "path": "tools/generate_hia_core_verification.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 14,
+            "module": "tools.hia_front_generator",
+            "names": [
+              "document",
+              "ports_source"
+            ]
+          },
+          {
+            "line": 15,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "table"
+            ]
+          }
+        ],
+        "sha256": "486f77eaa47049c02bf11db71c9357c7f2544f2edf77da00f842779acbc18ab7"
+      },
+      {
+        "bytes": 2308,
+        "git_blob": "bae3f50b453244e8580f733805608e9869ffc329",
+        "path": "tools/generate_hia_assembly_front.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 14,
+            "module": "tools.hia_front_generator",
+            "names": [
+              "document",
+              "ports_source"
+            ]
+          },
+          {
+            "line": 15,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "table"
+            ]
+          }
+        ],
+        "sha256": "6a5a2b73cb8eff6b4c497962942d10c21f391ce887e3650b8eca66fc9f460457"
+      },
+      {
+        "bytes": 7432,
+        "git_blob": "39ef74578b4dad11427f3a5bfb3dde1f2eec26a5",
+        "path": "tools/generate_hia_service_artifacts.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 15,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 16,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 18,
+            "module": "tools.generate_hia_core_lowering_control",
+            "names": [
+              "emission",
+              "transport_helpers"
+            ]
+          },
+          {
+            "line": 19,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "73e769bc116a5ecebc4f69026fb83203c190860d6216fc8b3f49b3d78f88a54b"
+      },
+      {
+        "bytes": 12905,
+        "git_blob": "b96d3284851c92b8a17f6d08c2dc05b0d79eca03",
+        "path": "tools/generate_hia_service_artifacts_foreign.py",
+        "pin_declarations": [],
+        "relevant_imports": [],
+        "sha256": "de944d2a9a972fcb516133862a2c5cdf91cdebb9961c68f4aa50ef3cf6bf5061"
+      },
+      {
+        "bytes": 7439,
+        "git_blob": "ce7ef0ff12da38ef56010e150e116bf5c6d8c370",
+        "path": "tools/generate_hia_service_evaluation.py",
+        "pin_declarations": [],
+        "relevant_imports": [
+          {
+            "line": 15,
+            "module": "tools.generate_hia_selfhost",
+            "names": [
+              "Builder",
+              "compact_authoring_cfg",
+              "total_scalar_functions"
+            ]
+          },
+          {
+            "line": 16,
+            "module": "tools.generate_hia_machine_plan_control",
+            "names": [
+              "BODY",
+              "MAGIC",
+              "EMIT_MAGIC",
+              "ABI",
+              "OUTPUT"
+            ]
+          },
+          {
+            "line": 18,
+            "module": "tools.generate_hia_core_lowering_control",
+            "names": [
+              "emission",
+              "transport_helpers"
+            ]
+          },
+          {
+            "line": 19,
+            "module": "tools.hia_core_lowering_table",
+            "names": [
+              "BODY",
+              "compress_table",
+              "reference_expand"
+            ]
+          }
+        ],
+        "sha256": "cb6efcef52393de585ce3c11f4cadbd104b208306a7eeb7b04398c5dc47a7ab3"
+      },
+      {
+        "bytes": 12717,
+        "git_blob": "917df7eabc64d0983d84a232e16326e7d41b221c",
+        "path": "tools/generate_hia_service_evaluation_foreign.py",
+        "pin_declarations": [],
+        "relevant_imports": [],
+        "sha256": "268934c2e6337588d6cd1a100c810a75a3a44017e1799f89dbe780c8fffd0088"
+      }
+    ],
+    "scope": "SOURCE_ONLY_NO_GENERATOR_EXECUTION"
+  },
+  "scope_limits": {
+    "all_109_generators_executed": false,
+    "native_execution": false,
+    "source_test_bodies_executed": false,
+    "cold_or_whole_qualification": false,
+    "source_asset_unchanged": true,
+    "original_failure_retained": true,
+    "no_expected_hash_changes": true,
+    "remaining20_review_is_source_only": true,
+    "front_owner_local_fix_owned_by_native_agent": true,
+    "canonical55_retirement_not_performed": true
+  }
+}

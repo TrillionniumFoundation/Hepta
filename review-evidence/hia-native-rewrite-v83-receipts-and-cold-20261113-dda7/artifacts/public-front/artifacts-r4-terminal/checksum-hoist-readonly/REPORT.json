@@ -1,0 +1,174 @@
+{
+  "baseline_commit": "1cd416ab028a4c59ac76bf4b8e2c4018fb552d9d",
+  "baseline_tree": "eca3dd8ba5067d77fb56454ee354bd0eddb9cfe9",
+  "candidate_complete_tree_independently_recomputed_in_this_review": false,
+  "candidate_report_identity": {
+    "blob": "b3bb9f0b4fc04918ba47fd4c2319e3fd1b93a299",
+    "bytes": 6251,
+    "sha256": "cc7e8e8648f51c736035e993b9ec4a400ad90a4ba2d66284784986ccccda141e"
+  },
+  "candidate_reported_tree": "fa9fa88889e30b96d911d1c85f6a2f87cda8a175",
+  "findings": [
+    "No definite new observable difference was identified for the existing serialized or creator-thread owner calls without external concurrent mutation of their private workspace.",
+    "Every extent snapshot remains after the unchanged complete header read/hash loop and before the first payload byte. The only preceding reassigned scalar is private i; no store, callback or foreign operation occurs inside checksum/get.",
+    "A zero payload still performs its original first extent read. Ordinary s/o/w aliasing alone cannot write the header during the read-only checksum body; all three adapters pass distinct input/output allocations around the held workspace.",
+    "valid_state is not the only checksum path. Initialization sealing and slot-ledger direct_valid_state also invoke it. Existing entry minimum extents and initialized bounded extent words must remain in the real controls.",
+    "NamespaceState.call and cleanup_claim hold the same RLock; RequestState.call and claim_rollback hold their same RLock; LedgerState.check preserves creator PID/thread. No new serialization or GIL claim was introduced.",
+    "The actual entry mapping uses ctypes.CFUNCTYPE. These findings do not prove equivalence for arbitrary direct raw-entry calls sharing a mutable workspace or unsynchronized writes to state.buffer. A writer changing the extent during the payload loop can distinguish a repeated read from one snapshot.",
+    "Existing full workspace/output/canary, invalid header/extent, zero/max payload, original native control and original budget comparisons remain required. This review ran no image, compiler, business test or timing measurement."
+  ],
+  "generators": [
+    {
+      "after": {
+        "blob": "2cc856d5eff9195e561125df20f8c6d0dcfbd7b8",
+        "bytes": 36026,
+        "sha256": "98f97cba8c255dafed178afb2e7ca4fc2fd9403c3d5cb59da7b4505c36544af9"
+      },
+      "before": {
+        "blob": "de6255c197ba5ba68ff2eefba7145c07c379abd3",
+        "bytes": 36006,
+        "sha256": "38bf77b0bb97a35ca9f180bd3d1347d4948072cce6cd525026200b1f07889d29"
+      },
+      "checksum": {
+        "identity": {
+          "blob": "273a70bac379528f0444420f73899dc9ce61df3d",
+          "bytes": 345,
+          "sha256": "3d6ff3cb438ae280ae685e81f3c763c86464e0c2f6d5731e103562df5079e7a1"
+        },
+        "line": 867,
+        "text": "def checksum(w:mutbuf) -> u64:\n    value = 1469598103934665603\n    i = 0\n    while i < 64:\n        if i != 32:\n            value = ((value << 7) | (value >> 57)) ^ get(w, i)\n        i = i + 1\n    extent = get(w, 54)\n    i = 512\n    while i < extent:\n        value = ((value << 7) | (value >> 57)) ^ byte(w, i)\n        i = i + 1\n    return value\n"
+      },
+      "checksum_calls": [
+        "get",
+        "byte",
+        "get"
+      ],
+      "exact_only_hoist": true,
+      "extent_word": 54,
+      "get": {
+        "identity": {
+          "blob": "3755f7d6279aa50c18457c21b7976f9d203ffd7b",
+          "bytes": 173,
+          "sha256": "9d99448c8bb7afb3da2d149c59e184cf50f88a190d6f772d3b1d8c73097e0630"
+        },
+        "line": 911,
+        "text": "def get(w:mutbuf, index:u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | (byte(w, index * 8 + i) << (i * 8))\n        i = i + 1\n    return value\n"
+      },
+      "new_extent_read_after_unchanged_header_loop": true,
+      "path": "tools/generate_hia_artifact_namespace.py",
+      "payload_start": 512
+    },
+    {
+      "after": {
+        "blob": "0759f76baaf54989972012148d600e79211ed402",
+        "bytes": 20070,
+        "sha256": "3f8dafa9dee7618f169965a3c8c53fa35857300aa475ae301900d4aac8f6bed4"
+      },
+      "before": {
+        "blob": "b983ef817cdcf64ae956fdd5d1599f0ef7f80396",
+        "bytes": 20050,
+        "sha256": "3148e094e98b878fe69ecc787b615361294c55b40eb2ec08478b6149ff677598"
+      },
+      "checksum": {
+        "identity": {
+          "blob": "8c63ff891073593164dfdde1ff3fe85d2c082a70",
+          "bytes": 351,
+          "sha256": "222a9a5eee9e056d0f1f15adcbe8887c76229d66db2f64d074c8b29210601a84"
+        },
+        "line": 501,
+        "text": "def checksum(w:mutbuf) -> u64:\n    value = 1469598103934665603\n    i = 0\n    while i < 128:\n        if i != 18:\n            value = ((value << 7) | (value >> 57)) ^ get(w, i)\n        i = i + 1\n    extent = get(w, 11)\n    i = 0\n    while i < extent:\n        value = ((value << 7) | (value >> 57)) ^ byte(w, 1024 + i)\n        i = i + 1\n    return value\n"
+      },
+      "checksum_calls": [
+        "get",
+        "byte",
+        "get"
+      ],
+      "exact_only_hoist": true,
+      "extent_word": 11,
+      "get": {
+        "identity": {
+          "blob": "3755f7d6279aa50c18457c21b7976f9d203ffd7b",
+          "bytes": 173,
+          "sha256": "9d99448c8bb7afb3da2d149c59e184cf50f88a190d6f772d3b1d8c73097e0630"
+        },
+        "line": 520,
+        "text": "def get(w:mutbuf, index:u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | (byte(w, index * 8 + i) << (i * 8))\n        i = i + 1\n    return value\n"
+      },
+      "new_extent_read_after_unchanged_header_loop": true,
+      "path": "tools/generate_hia_request_journal.py",
+      "payload_start": 0
+    },
+    {
+      "after": {
+        "blob": "c583c77e3d16de46a4446aba61e25e77cf3ba596",
+        "bytes": 39013,
+        "sha256": "7f2161ec60738ae6e16b0846a982b359b2ae47355af3c5ddd8715a819d4f8732"
+      },
+      "before": {
+        "blob": "da3675f3bfb466690312c2d132d0da2c5fd45c73",
+        "bytes": 38993,
+        "sha256": "725a48e5fc053227cabd71137417c032d945f48f5fe5278f25970b2256260d3b"
+      },
+      "checksum": {
+        "identity": {
+          "blob": "29cca80d20bdb7a0a9a44ca9ce7542cbf5eba89f",
+          "bytes": 321,
+          "sha256": "c88e54b1751867e979c180c820d6eaf8373dd6574f098e39e1836653902eee72"
+        },
+        "line": 954,
+        "text": "def checksum(w:mutbuf) -> u64:\n    value = 1469598103934665603\n    i = 0\n    while i < 63:\n        value = ((value << 7) | (value >> 57)) ^ get(w, i)\n        i = i + 1\n    extent = get(w, 55)\n    i = 512\n    while i < extent:\n        value = ((value << 7) | (value >> 57)) ^ byte(w, i)\n        i = i + 1\n    return value\n"
+      },
+      "checksum_calls": [
+        "get",
+        "get",
+        "byte"
+      ],
+      "exact_only_hoist": true,
+      "extent_word": 55,
+      "get": {
+        "identity": {
+          "blob": "3755f7d6279aa50c18457c21b7976f9d203ffd7b",
+          "bytes": 173,
+          "sha256": "9d99448c8bb7afb3da2d149c59e184cf50f88a190d6f772d3b1d8c73097e0630"
+        },
+        "line": 993,
+        "text": "def get(w:mutbuf, index:u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | (byte(w, index * 8 + i) << (i * 8))\n        i = i + 1\n    return value\n"
+      },
+      "new_extent_read_after_unchanged_header_loop": true,
+      "path": "tools/generate_hia_slot_ledger.py",
+      "payload_start": 512
+    }
+  ],
+  "provider_source_identities": {
+    "hepta/hia_artifact_namespace_native.py": {
+      "blob": "df0e0befc59a4af8a8cedeccd40a56f8bbf691d9",
+      "bytes": 36182,
+      "sha256": "f7c10bfd3e4a2309a787ec26764ab7ac35ac8a086e758470cce535152a467630"
+    },
+    "hepta/hia_json_preflight_native.py": {
+      "blob": "30a28c139ed357ca6731f66890dbf09de3116973",
+      "bytes": 7788,
+      "sha256": "935ada7ff406468837c28435bdba47969cdea7edc5d0ab1d460e29e0df8c8ad5"
+    },
+    "hepta/hia_request_journal_native.py": {
+      "blob": "9184e53e13d0341a31326466e03edb8bc0769fca",
+      "bytes": 32021,
+      "sha256": "ad53dac18a49385dc41ff0f591dc79922702d0813eb0b7fa0b02377507430cf6"
+    },
+    "hepta/hia_slot_ledger_native.py": {
+      "blob": "0871632f737560d07701bd828f888d4b02f06629",
+      "bytes": 39980,
+      "sha256": "7594943f16a145afbf72b7f2c881dc1dc7edc2d08f8edf47e05738417962f167"
+    }
+  },
+  "reviewer": "hia_surface_audit",
+  "schema": "hia.checksum-extent-hoist.independent-source-review.v1",
+  "scope": {
+    "current_source_cold": false,
+    "machine_tests_run": false,
+    "performance_measured": false,
+    "source_review_only": true,
+    "unrestricted_concurrent_workspace_equivalence": false,
+    "whole_native": false
+  }
+}

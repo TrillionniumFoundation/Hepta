@@ -1,0 +1,379 @@
+﻿2026-11-12T11:37:29.2870994Z Current runner version: '2.338.2'
+2026-11-12T11:37:29.2891065Z ##[group]Runner Image Provisioner
+2026-11-12T11:37:29.2891763Z Hosted Compute Agent
+2026-11-12T11:37:29.2892518Z Version: 20261028.624
+2026-11-12T11:37:29.2893095Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-12T11:37:29.2893728Z Build Date: 2026-10-28T21:51:42Z
+2026-11-12T11:37:29.2894327Z Worker ID: {f1919863-a4d0-4687-8feb-48c042684da9}
+2026-11-12T11:37:29.2894953Z Region: westus2
+2026-11-12T11:37:29.2895495Z Cloud: Azure
+2026-11-12T11:37:29.2895991Z ##[endgroup]
+2026-11-12T11:37:29.2897417Z ##[group]Operating System
+2026-11-12T11:37:29.2897973Z Ubuntu
+2026-11-12T11:37:29.2898431Z 24.04.5
+2026-11-12T11:37:29.2898908Z LTS
+2026-11-12T11:37:29.2899387Z ##[endgroup]
+2026-11-12T11:37:29.2899844Z ##[group]Runner Image
+2026-11-12T11:37:29.2900429Z Image: ubuntu-24.04
+2026-11-12T11:37:29.2900964Z Version: 20261101.360.1
+2026-11-12T11:37:29.2902281Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-12T11:37:29.2903589Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-12T11:37:29.2904496Z ##[endgroup]
+2026-11-12T11:37:29.2905428Z ##[group]GITHUB_TOKEN Permissions
+2026-11-12T11:37:29.2907326Z Contents: read
+2026-11-12T11:37:29.2907834Z Metadata: read
+2026-11-12T11:37:29.2908376Z ##[endgroup]
+2026-11-12T11:37:29.2910352Z Secret source: Actions
+2026-11-12T11:37:29.2911297Z Cache mode: write
+2026-11-12T11:37:29.2911881Z Prepare workflow directory
+2026-11-12T11:37:29.3168712Z Prepare all required actions
+2026-11-12T11:37:29.3206747Z Getting action download info
+2026-11-12T11:37:29.6745389Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-12T11:37:29.7997326Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-12T11:37:29.8909043Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-12T11:37:30.1307536Z Complete job name: cli
+2026-11-12T11:37:30.2079061Z ##[group]Run actions/checkout@v4
+2026-11-12T11:37:30.2079780Z with:
+2026-11-12T11:37:30.2080158Z   path: harness
+2026-11-12T11:37:30.2080567Z   persist-credentials: false
+2026-11-12T11:37:30.2081049Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T11:37:30.2084639Z   token: ***
+2026-11-12T11:37:30.2085032Z   ssh-strict: true
+2026-11-12T11:37:30.2085421Z   ssh-user: git
+2026-11-12T11:37:30.2085793Z   clean: true
+2026-11-12T11:37:30.2086187Z   sparse-checkout-cone-mode: true
+2026-11-12T11:37:30.2086646Z   fetch-depth: 1
+2026-11-12T11:37:30.2087048Z   fetch-tags: false
+2026-11-12T11:37:30.2087439Z   show-progress: true
+2026-11-12T11:37:30.2087841Z   lfs: false
+2026-11-12T11:37:30.2088215Z   submodules: false
+2026-11-12T11:37:30.2088606Z   set-safe-directory: true
+2026-11-12T11:37:30.2089056Z   allow-unsafe-pr-checkout: false
+2026-11-12T11:37:30.2089701Z ##[endgroup]
+2026-11-12T11:37:30.4903055Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T11:37:30.4904826Z ##[group]Getting Git version info
+2026-11-12T11:37:30.4905462Z Working directory is '/home/runner/work/Hepta/Hepta/harness'
+2026-11-12T11:37:30.4906340Z [command]/usr/bin/git version
+2026-11-12T11:37:30.5006111Z git version 2.56.0
+2026-11-12T11:37:30.5024041Z ##[endgroup]
+2026-11-12T11:37:30.5036195Z Temporarily overriding HOME='/home/runner/work/_temp/78531697-8796-4616-8218-d712e780904e' before making global git config changes
+2026-11-12T11:37:30.5038648Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T11:37:30.5041144Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/harness
+2026-11-12T11:37:30.5106608Z ##[group]Initializing the repository
+2026-11-12T11:37:30.5111400Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/harness
+2026-11-12T11:37:30.5201299Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T11:37:30.5203239Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T11:37:30.5204445Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T11:37:30.5205120Z hint: call:
+2026-11-12T11:37:30.5205492Z hint:
+2026-11-12T11:37:30.5205959Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T11:37:30.5206523Z hint:
+2026-11-12T11:37:30.5207215Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T11:37:30.5208023Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T11:37:30.5208656Z hint:
+2026-11-12T11:37:30.5209024Z hint: 	git branch -m <name>
+2026-11-12T11:37:30.5209445Z hint:
+2026-11-12T11:37:30.5210150Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T11:37:30.5215291Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/harness/.git/
+2026-11-12T11:37:30.5225263Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T11:37:30.5270532Z ##[endgroup]
+2026-11-12T11:37:30.5271252Z ##[group]Disabling automatic garbage collection
+2026-11-12T11:37:30.5276116Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T11:37:30.5314438Z ##[endgroup]
+2026-11-12T11:37:30.5315472Z ##[group]Setting up auth
+2026-11-12T11:37:30.5316481Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:37:30.5350221Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:37:30.5719619Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:37:30.5759395Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:37:30.5971089Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:37:30.6011328Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:37:30.6219525Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T11:37:30.6261651Z ##[endgroup]
+2026-11-12T11:37:30.6262900Z ##[group]Fetching the repository
+2026-11-12T11:37:30.6273090Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0d4bb2df3290cc4f3390ea6f3bc5ebc04a158416:refs/remotes/origin/codex/hia-cli-lifecycle-v77-4b19-20261112-dda7
+2026-11-12T11:37:31.0368282Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T11:37:31.0370739Z  * [new ref]         0d4bb2df3290cc4f3390ea6f3bc5ebc04a158416 -> origin/codex/hia-cli-lifecycle-v77-4b19-20261112-dda7
+2026-11-12T11:37:31.0375540Z ##[endgroup]
+2026-11-12T11:37:31.0376695Z ##[group]Determining the checkout info
+2026-11-12T11:37:31.0377728Z ##[endgroup]
+2026-11-12T11:37:31.0380364Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T11:37:31.0437187Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T11:37:31.0478950Z ##[group]Checking out the ref
+2026-11-12T11:37:31.0482389Z [command]/usr/bin/git checkout --progress --force -B codex/hia-cli-lifecycle-v77-4b19-20261112-dda7 refs/remotes/origin/codex/hia-cli-lifecycle-v77-4b19-20261112-dda7
+2026-11-12T11:37:31.0565887Z Switched to a new branch 'codex/hia-cli-lifecycle-v77-4b19-20261112-dda7'
+2026-11-12T11:37:31.0572270Z branch 'codex/hia-cli-lifecycle-v77-4b19-20261112-dda7' set up to track 'origin/codex/hia-cli-lifecycle-v77-4b19-20261112-dda7'.
+2026-11-12T11:37:31.0576740Z ##[endgroup]
+2026-11-12T11:37:31.0617413Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T11:37:31.0647911Z 0d4bb2df3290cc4f3390ea6f3bc5ebc04a158416
+2026-11-12T11:37:31.0657331Z ##[group]Removing auth
+2026-11-12T11:37:31.0660345Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:37:31.0695095Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:37:31.0898290Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:37:31.0927227Z http.https://github.com/.extraheader
+2026-11-12T11:37:31.0933171Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T11:37:31.0969862Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:37:31.1167921Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:37:31.1201349Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:37:31.1396593Z ##[endgroup]
+2026-11-12T11:37:31.2039957Z ##[group]Run actions/checkout@v4
+2026-11-12T11:37:31.2040905Z with:
+2026-11-12T11:37:31.2041691Z   ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+2026-11-12T11:37:31.2042871Z   path: source
+2026-11-12T11:37:31.2043662Z   persist-credentials: false
+2026-11-12T11:37:31.2044552Z   fetch-depth: 2
+2026-11-12T11:37:31.2045390Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T11:37:31.2053113Z   token: ***
+2026-11-12T11:37:31.2053859Z   ssh-strict: true
+2026-11-12T11:37:31.2054620Z   ssh-user: git
+2026-11-12T11:37:31.2055354Z   clean: true
+2026-11-12T11:37:31.2056134Z   sparse-checkout-cone-mode: true
+2026-11-12T11:37:31.2057066Z   fetch-tags: false
+2026-11-12T11:37:31.2057853Z   show-progress: true
+2026-11-12T11:37:31.2058653Z   lfs: false
+2026-11-12T11:37:31.2059384Z   submodules: false
+2026-11-12T11:37:31.2060226Z   set-safe-directory: true
+2026-11-12T11:37:31.2061137Z   allow-unsafe-pr-checkout: false
+2026-11-12T11:37:31.2062148Z ##[endgroup]
+2026-11-12T11:37:31.2786648Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T11:37:31.2789067Z ##[group]Getting Git version info
+2026-11-12T11:37:31.2790762Z Working directory is '/home/runner/work/Hepta/Hepta/source'
+2026-11-12T11:37:31.2820067Z [command]/usr/bin/git version
+2026-11-12T11:37:31.2856574Z git version 2.56.0
+2026-11-12T11:37:31.2873048Z ##[endgroup]
+2026-11-12T11:37:31.2884754Z Temporarily overriding HOME='/home/runner/work/_temp/c47ea5ba-b749-4a74-9842-fc433e78e081' before making global git config changes
+2026-11-12T11:37:31.2888502Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T11:37:31.2891422Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/source
+2026-11-12T11:37:31.2923325Z ##[group]Initializing the repository
+2026-11-12T11:37:31.2934310Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/source
+2026-11-12T11:37:31.2966569Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T11:37:31.2969643Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T11:37:31.2972558Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T11:37:31.2974865Z hint: call:
+2026-11-12T11:37:31.2976449Z hint:
+2026-11-12T11:37:31.2977805Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T11:37:31.2979460Z hint:
+2026-11-12T11:37:31.2981054Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T11:37:31.2983978Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T11:37:31.2986013Z hint:
+2026-11-12T11:37:31.2987136Z hint: 	git branch -m <name>
+2026-11-12T11:37:31.2988420Z hint:
+2026-11-12T11:37:31.2990086Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T11:37:31.2993377Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/source/.git/
+2026-11-12T11:37:31.2998062Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T11:37:31.3176705Z ##[endgroup]
+2026-11-12T11:37:31.3178998Z ##[group]Disabling automatic garbage collection
+2026-11-12T11:37:31.3187279Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T11:37:31.3219786Z ##[endgroup]
+2026-11-12T11:37:31.3221438Z ##[group]Setting up auth
+2026-11-12T11:37:31.3225165Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:37:31.3258320Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:37:31.3517925Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:37:31.3573345Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:37:31.3790449Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:37:31.3827011Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:37:31.4028880Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T11:37:31.4070091Z ##[endgroup]
+2026-11-12T11:37:31.4071354Z ##[group]Fetching the repository
+2026-11-12T11:37:31.4077877Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=2 origin 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+2026-11-12T11:37:34.9494209Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T11:37:34.9495331Z  * branch            4b19af89a766593f7d5f1cc2db256e81aba7afcb -> FETCH_HEAD
+2026-11-12T11:37:34.9498273Z ##[endgroup]
+2026-11-12T11:37:34.9499124Z ##[group]Determining the checkout info
+2026-11-12T11:37:34.9499842Z ##[endgroup]
+2026-11-12T11:37:34.9506190Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T11:37:34.9550650Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T11:37:34.9587797Z ##[group]Checking out the ref
+2026-11-12T11:37:34.9588284Z [command]/usr/bin/git checkout --progress --force 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+2026-11-12T11:37:35.2824236Z Note: switching to '4b19af89a766593f7d5f1cc2db256e81aba7afcb'.
+2026-11-12T11:37:35.2824683Z 
+2026-11-12T11:37:35.2824935Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-12T11:37:35.2825536Z changes and commit them, and you can discard any commits you make in this
+2026-11-12T11:37:35.2826090Z state without impacting any branches by switching back to a branch.
+2026-11-12T11:37:35.2826484Z 
+2026-11-12T11:37:35.2826820Z If you want to create a new branch to retain commits you create, you may
+2026-11-12T11:37:35.2827378Z do so (now or later) by using -c with the switch command. Example:
+2026-11-12T11:37:35.2827741Z 
+2026-11-12T11:37:35.2827865Z   git switch -c <new-branch-name>
+2026-11-12T11:37:35.2828015Z 
+2026-11-12T11:37:35.2828104Z Or undo this operation with:
+2026-11-12T11:37:35.2828243Z 
+2026-11-12T11:37:35.2828327Z   git switch -
+2026-11-12T11:37:35.2828466Z 
+2026-11-12T11:37:35.2828657Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-12T11:37:35.2828892Z 
+2026-11-12T11:37:35.2829113Z HEAD is now at 4b19af8 Integrate HIA ELF, plan and held context owners with native heap optimization
+2026-11-12T11:37:35.2854562Z ##[endgroup]
+2026-11-12T11:37:35.2906054Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T11:37:35.2937628Z 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+2026-11-12T11:37:35.2951388Z ##[group]Removing auth
+2026-11-12T11:37:35.2952249Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:37:35.2985476Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:37:35.3191894Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:37:35.3218555Z http.https://github.com/.extraheader
+2026-11-12T11:37:35.3224410Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T11:37:35.3259409Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:37:35.3460613Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:37:35.3493912Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:37:35.3695014Z ##[endgroup]
+2026-11-12T11:37:35.3863652Z ##[group]Run actions/setup-python@v5
+2026-11-12T11:37:35.3863889Z with:
+2026-11-12T11:37:35.3864073Z   python-version: 3.14.4
+2026-11-12T11:37:35.3864270Z   check-latest: false
+2026-11-12T11:37:35.3866129Z   token: ***
+2026-11-12T11:37:35.3866317Z   update-environment: true
+2026-11-12T11:37:35.3866522Z   allow-prereleases: false
+2026-11-12T11:37:35.3866718Z   freethreaded: false
+2026-11-12T11:37:35.3866901Z ##[endgroup]
+2026-11-12T11:37:35.4960660Z ##[group]Installed versions
+2026-11-12T11:37:35.4978576Z Version 3.14.4 was not found in the local cache
+2026-11-12T11:37:35.5135346Z (node:2422) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T11:37:35.5136243Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T11:37:36.1603781Z Version 3.14.4 is available for downloading
+2026-11-12T11:37:36.1605360Z Download from "https://github.com/actions/python-versions/releases/download/3.14.4-25113653268/python-3.14.4-linux-24.04-x64.tar.gz"
+2026-11-12T11:37:37.3922811Z Extract downloaded archive
+2026-11-12T11:37:37.4032409Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/fcfe3f22-d6a0-4383-a8b0-4f29d0eb2606 -f /home/runner/work/_temp/6f429cb3-2918-4356-a7b8-021e8be14a7f
+2026-11-12T11:37:39.2767252Z Execute installation script
+2026-11-12T11:37:39.2860478Z Check if Python hostedtoolcache folder exist...
+2026-11-12T11:37:39.2861162Z Create Python 3.14.4 folder
+2026-11-12T11:37:39.2892908Z Copy Python binaries to hostedtoolcache folder
+2026-11-12T11:37:39.6734693Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-12T11:37:39.6770210Z Upgrading pip...
+2026-11-12T11:37:42.4434841Z Looking in links: /tmp/tmplsuokacl
+2026-11-12T11:37:42.4437995Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/site-packages (26.0.1)
+2026-11-12T11:37:44.1255339Z Collecting pip
+2026-11-12T11:37:44.1762743Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-12T11:37:44.4101322Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-12T11:37:44.5163265Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 21.4 MB/s  0:00:00
+2026-11-12T11:37:44.5163515Z 
+2026-11-12T11:37:44.5288984Z Installing collected packages: pip
+2026-11-12T11:37:44.5290048Z Attempting uninstall: pip
+2026-11-12T11:37:44.5308058Z Found existing installation: pip 26.0.1
+2026-11-12T11:37:44.5558998Z Uninstalling pip-26.0.1:
+2026-11-12T11:37:44.5601500Z Successfully uninstalled pip-26.0.1
+2026-11-12T11:37:45.5848389Z Successfully installed pip-26.3
+2026-11-12T11:37:45.6323105Z Create complete file
+2026-11-12T11:37:45.6355986Z Successfully set up CPython (3.14.4)
+2026-11-12T11:37:45.6356975Z ##[endgroup]
+2026-11-12T11:37:45.6519235Z ##[group]Run python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+2026-11-12T11:37:45.6520098Z [36;1mpython -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0[0m
+2026-11-12T11:37:45.6545730Z shell: /usr/bin/bash -e {0}
+2026-11-12T11:37:45.6545943Z env:
+2026-11-12T11:37:45.6546169Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:37:45.6546539Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T11:37:45.6546883Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:37:45.6547176Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:37:45.6547460Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:37:45.6547754Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T11:37:45.6548006Z ##[endgroup]
+2026-11-12T11:37:46.5306960Z Collecting setuptools==78.1.1
+2026-11-12T11:37:46.5768776Z   Downloading setuptools-78.1.1-py3-none-any.whl.metadata (6.5 kB)
+2026-11-12T11:37:46.6463508Z Collecting wheel==0.46.3
+2026-11-12T11:37:46.6527812Z   Downloading wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+2026-11-12T11:37:46.7811272Z Collecting z3-solver==4.15.4.0
+2026-11-12T11:37:46.7875750Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-12T11:37:46.8689223Z Collecting jsonschema==4.26.0
+2026-11-12T11:37:46.8755233Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+2026-11-12T11:37:46.9359505Z Collecting packaging>=24.0 (from wheel==0.46.3)
+2026-11-12T11:37:46.9427953Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+2026-11-12T11:37:46.9565334Z Collecting attrs>=22.2.0 (from jsonschema==4.26.0)
+2026-11-12T11:37:46.9628449Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-11-12T11:37:47.0136992Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema==4.26.0)
+2026-11-12T11:37:47.0199745Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-11-12T11:37:47.0677000Z Collecting referencing>=0.28.4 (from jsonschema==4.26.0)
+2026-11-12T11:37:47.0739454Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-11-12T11:37:47.4483877Z Collecting rpds-py>=0.25.0 (from jsonschema==4.26.0)
+2026-11-12T11:37:47.4548425Z   Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-11-12T11:37:47.4709945Z Downloading setuptools-78.1.1-py3-none-any.whl (1.3 MB)
+2026-11-12T11:37:47.6514447Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 6.0 MB/s  0:00:00
+2026-11-12T11:37:47.6578460Z Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+2026-11-12T11:37:47.6754447Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-12T11:37:48.1913170Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 56.5 MB/s  0:00:00
+2026-11-12T11:37:48.1980465Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+2026-11-12T11:37:48.2848156Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-12T11:37:48.3551654Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-11-12T11:37:48.3837103Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-11-12T11:37:48.4350505Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-11-12T11:37:48.4635588Z Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+2026-11-12T11:37:48.6409815Z Installing collected packages: z3-solver, setuptools, rpds-py, packaging, attrs, wheel, referencing, jsonschema-specifications, jsonschema
+2026-11-12T11:37:50.7448439Z 
+2026-11-12T11:37:50.7461665Z Successfully installed attrs-26.1.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 packaging-26.3 referencing-0.37.0 rpds-py-2026.9.1 setuptools-78.1.1 wheel-0.46.3 z3-solver-4.15.4.0
+2026-11-12T11:37:50.8274571Z ##[group]Run python -B harness/inputs/run_cli_development.py --source source --inputs harness/inputs --output "$RUNNER_TEMP/hia-cli-v77"
+2026-11-12T11:37:50.8275474Z [36;1mpython -B harness/inputs/run_cli_development.py --source source --inputs harness/inputs --output "$RUNNER_TEMP/hia-cli-v77"[0m
+2026-11-12T11:37:50.8294050Z shell: /usr/bin/bash -e {0}
+2026-11-12T11:37:50.8294252Z env:
+2026-11-12T11:37:50.8294464Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:37:50.8294799Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T11:37:50.8295132Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:37:50.8295438Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:37:50.8295728Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:37:50.8296020Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T11:37:50.8296301Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T11:37:50.8296541Z ##[endgroup]
+2026-11-12T11:38:15.8734680Z {"base_head": "4b19af89a766593f7d5f1cc2db256e81aba7afcb", "base_tree": "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c", "candidate_tree": "46d841aa0f7416fe7781eacb0da9ad4bb0aeef16", "commands": [{"argv": ["/opt/hostedtoolcache/Python/3.14.4/x64/bin/python", "-B", "-m", "tools.generate_hia_cli_control"], "cleanup_seconds": 3, "cwd": "/home/runner/work/Hepta/Hepta/source", "limit_seconds": 239.804882346, "returncode": 0, "seconds": 1.166189369999998, "timed_out": false}, {"argv": ["/opt/hostedtoolcache/Python/3.14.4/x64/bin/python", "-B", "-m", "tools.build_hia_cli_native", "--development", "--compiler", "/home/runner/work/_temp/hia-cli-v77/retained-B3.image.bin", "--output", "/home/runner/work/_temp/hia-cli-v77/build"], "cleanup_seconds": 3, "cwd": "/home/runner/work/Hepta/Hepta/source", "limit_seconds": 238.251111665, "returncode": 0, "seconds": 1.0159251950000012, "timed_out": false}, {"argv": ["/opt/hostedtoolcache/Python/3.14.4/x64/bin/python", "-B", "/home/runner/work/Hepta/Hepta/harness/inputs/run_cli_suite.py"], "cleanup_seconds": 3, "cwd": "/home/runner/work/Hepta/Hepta/source", "limit_seconds": 236.847106564, "returncode": 0, "seconds": 20.756399029999997, "timed_out": false}], "current_source_cold_qualified": false, "default_changed": false, "expected_tests": 39, "legacy_deleted": false, "outer_seconds": 24.127358445999995, "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]", "schema": "hia.v77.cli-development-gate.v1", "scope": "EXACT_BASE_OVERLAY_RETAINED_COMPILER_DEVELOPMENT_ONLY", "source_and_compiler_unchanged": true, "status": "COMPLETE_CLI_DEVELOPMENT_PASS", "terminal": {"errors": 0, "expected": 39, "expected_failures": 0, "failures": 0, "passed": true, "skips": 0, "tests_run": 39, "unexpected_successes": 0}, "tracked_files": 3153, "whole_native_delivery_qualified": false}
+2026-11-12T11:38:15.8873204Z ##[group]Run actions/upload-artifact@v4
+2026-11-12T11:38:15.8873443Z with:
+2026-11-12T11:38:15.8873628Z   name: hia-cli-lifecycle-v77-43210729090-1
+2026-11-12T11:38:15.8874095Z   path: /home/runner/work/_temp/hia-cli-v77
+harness/inputs
+harness/README.md
+harness/.github/workflows/hia-cli-lifecycle-v77.yml
+2026-11-12T11:38:15.8874553Z   include-hidden-files: true
+2026-11-12T11:38:15.8874755Z   if-no-files-found: error
+2026-11-12T11:38:15.8874947Z   retention-days: 7
+2026-11-12T11:38:15.8875122Z   compression-level: 6
+2026-11-12T11:38:15.8875300Z   overwrite: false
+2026-11-12T11:38:15.8875464Z env:
+2026-11-12T11:38:15.8875676Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:38:15.8876009Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T11:38:15.8876339Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:38:15.8876637Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:38:15.8876945Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T11:38:15.8877239Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T11:38:15.8877496Z ##[endgroup]
+2026-11-12T11:38:16.0243209Z (node:2635) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T11:38:16.0244123Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T11:38:16.1999431Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-12T11:38:16.2001302Z The least common ancestor is /home/runner/work. This will be the root directory of the artifact
+2026-11-12T11:38:16.2001938Z With the provided path, there will be 1642 files uploaded
+2026-11-12T11:38:16.2006332Z Artifact name is valid!
+2026-11-12T11:38:16.2006649Z Root directory input is valid!
+2026-11-12T11:38:16.5789069Z Beginning upload of artifact content to blob storage
+2026-11-12T11:38:17.6931066Z (node:2635) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-12T11:38:18.6156242Z Uploaded bytes 8388608
+2026-11-12T11:38:18.9049289Z Uploaded bytes 16777216
+2026-11-12T11:38:19.0213199Z Uploaded bytes 19171147
+2026-11-12T11:38:19.0944218Z Finished uploading artifact content to blob storage!
+2026-11-12T11:38:19.0946422Z SHA256 digest of uploaded artifact zip is 705d9714d641f29b67d3a7612e5601090e86d0b5c73cd4efb136c38d3260cc18
+2026-11-12T11:38:19.0948052Z Finalizing artifact upload
+2026-11-12T11:38:19.5086585Z Artifact hia-cli-lifecycle-v77-43210729090-1.zip successfully finalized. Artifact ID 13941515857
+2026-11-12T11:38:19.5087561Z Artifact hia-cli-lifecycle-v77-43210729090-1 has been successfully uploaded! Final size is 19171147 bytes. Artifact ID is 13941515857
+2026-11-12T11:38:19.5094236Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43210729090/artifacts/13941515857
+2026-11-12T11:38:19.5357580Z Post job cleanup.
+2026-11-12T11:38:19.6322749Z (node:2654) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T11:38:19.6323658Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T11:38:19.6461709Z Post job cleanup.
+2026-11-12T11:38:19.7209079Z [command]/usr/bin/git version
+2026-11-12T11:38:19.7247106Z git version 2.56.0
+2026-11-12T11:38:19.7279916Z Temporarily overriding HOME='/home/runner/work/_temp/f8345c71-ba39-44ff-9351-42e3644f05ba' before making global git config changes
+2026-11-12T11:38:19.7280639Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T11:38:19.7284640Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/source
+2026-11-12T11:38:19.7320775Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:38:19.7352705Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:38:19.7583715Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:38:19.7616116Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:38:19.7856715Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:38:19.7894426Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:38:19.8251691Z Post job cleanup.
+2026-11-12T11:38:19.9079550Z [command]/usr/bin/git version
+2026-11-12T11:38:19.9115858Z git version 2.56.0
+2026-11-12T11:38:19.9150176Z Temporarily overriding HOME='/home/runner/work/_temp/2ae5a591-deda-4fe8-93ca-fdfea8a53551' before making global git config changes
+2026-11-12T11:38:19.9151548Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T11:38:19.9155238Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/harness
+2026-11-12T11:38:19.9192966Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:38:19.9224858Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:38:19.9470065Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:38:19.9504030Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:38:19.9755838Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:38:19.9823743Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:38:20.0176183Z Cleaning up orphan processes
+2026-11-12T11:38:20.0520788Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

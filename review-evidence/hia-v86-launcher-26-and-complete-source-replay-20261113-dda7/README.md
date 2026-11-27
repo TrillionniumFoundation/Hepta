@@ -1,0 +1,11 @@
+# Native selected-release entry and complete local Source replay
+
+The final standalone launcher development run 43397081929 / job 131790520359 actually passed all 26 declared controls on CPython 3.14.4. Root independently reread the original 47,138,986-byte ZIP, verified all 61 CRC members and all 3,716 inner members, reconstructed the exact 2,990-file source tree, checked the source bytes and modes before/after and inside the archive, and matched declared, loaded and executed IDs for the 21-control and 5-ptrace groups. No skipped or expected-failure results are accepted. The exact input is source packet a1ae809c255bd05ab163ba0574c8a950b74e9780, tree c22da5f1cba08c7dec45185f2185d6caf61618db.
+
+The first two CI failures and the original local failures remain preserved. The three complete CI logical archives contain 11,367 named members; a content-addressed pool avoids duplicate source bytes while retaining exact source-restoration dependencies. The original ZIP containers remain in Actions and as verified local originals; the archive manifest does not claim their literal ZIP container bytes are stored in Git.
+
+This is development execution evidence. Matching-source cold and a positive strict production-builder result remain pending. The new entry has not replaced the installed CLI, worker, external MCP adapter, or full stack. All old runtime and authoring boundaries remain explicit.
+
+Separately, the fixed 317-file source composition completed all 109 owner generators twice, 1,441 Python syntax checks, exact regeneration readback, and 55 declared development-only physical migrations on local CPython 3.12.14. Its final tree is 605f1aee77964e2d42690aff5f88be654e635394 with 2,989 files. This folder preserves all 1,913 raw evidence files (120,634,380 bytes), the outer controller log, and the archiver. No Source test bodies or Native qualification were run in that local replay.
+
+At the recorded observation time, the third full CPython 3.14.4 Source run 43396616508 was still in progress. This checkpoint grants no qualification from that pending run and does not permit removal of the legacy production stack. All 46 preceding audit directories remain unchanged in the parent history.

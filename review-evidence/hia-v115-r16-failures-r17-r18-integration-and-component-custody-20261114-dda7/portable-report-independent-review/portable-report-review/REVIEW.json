@@ -1,0 +1,291 @@
+{
+  "base": {
+    "files": 3127,
+    "path": "/workspace/scratch/dda74a4fae35/v99-cli-file-actions-r1/source",
+    "source_packet": "122c64ef6a4e9685cace0ee0451ceb59926af372",
+    "tree": "29e92aa236909e0861376a293dc054f61631b4d5"
+  },
+  "blocking_findings": [
+    {
+      "fact": "Packet appends verified_report.hepta to NATIVE_SOURCE_FILES (92 to 93); its new Source assertion requires that global membership and forbids ENTRY aliasing.",
+      "id": "DEFAULT_FIXED_PROFILE_RESOURCE_CONFLICT",
+      "impact": "This optional packet cannot be integrated as an expansion of the unchanged default fixed profile and simultaneously satisfy the original assertions. Prior R16 optional ENTRY expansion also fails its fixed tuple/allowlist.",
+      "original_constraints": [
+        "tests/test_hia_installed_fixture_resources.py:73 native count 92",
+        "tests/test_hia_installed_fixture_resources.py:118 resource count 210",
+        "tests/test_hia_linux_stdio_cold.py:74 exact original ENTRY tuple"
+      ],
+      "resolution_boundary": "Preserve original tests/default profile and introduce an explicit versioned optional inventory/source closure/installation selection; revise only the new component role assertion in an independently recorded successor. No test-name detection, arbitrary allowlist widening, inferred counts, or transferred qualification."
+    }
+  ],
+  "changes": [
+    {
+      "after": {
+        "bytes": 11968,
+        "git_blob": "87ad38c7eff048f8a30c5472b5ee4ae5861bb70f",
+        "sha256": "22dc3428325edb8511d5d7091714f42635905869b8be63f2deda2f9c803d70fa"
+      },
+      "before": {
+        "bytes": 11915,
+        "git_blob": "0b55e9e2f5173f9aaab0803f8848f6a136dea05b",
+        "sha256": "4433091ffb724b72ab66f5e2c5141d5e7b5f90114841831a2e93503098c4ea02"
+      },
+      "path": "MANIFEST.in"
+    },
+    {
+      "after": {
+        "bytes": 3418,
+        "git_blob": "7db6c73e8892f6702bbc28a1cdc70d536cea7cc3",
+        "sha256": "75f80afa7daa01e1cbac2d050fa2a43893938bb4152b0b7e5311766ad1d045c5"
+      },
+      "before": null,
+      "path": "docs/HIA_VERIFIED_REPORT_NATIVE.md"
+    },
+    {
+      "after": {
+        "bytes": 28796,
+        "git_blob": "c05e502222ca1073c938685ee5e84f10279bb1eb",
+        "sha256": "cc5730742f2f948150f42bfa09dfee3ad94f2fd69bff5888102d6ae239f9e858"
+      },
+      "before": {
+        "bytes": 28744,
+        "git_blob": "c7f63324186b6baf5ade369843b4c0364f942d98",
+        "sha256": "82fd453d2652d38e40874c6658363cd05eb0f5a94cee0e6017c747a17efce547"
+      },
+      "path": "hepta/hia_agent_contract.py"
+    },
+    {
+      "after": {
+        "bytes": 38373,
+        "git_blob": "dcd94b5182a2dc53dacd3e0a8783e22b16683541",
+        "sha256": "f49a8c1fe65d4e2ef6e26028c1e8c76666767c74d49c1a14ae26182d088df711"
+      },
+      "before": {
+        "bytes": 37922,
+        "git_blob": "4b95e056092be82531a03894f130493e89d38bd5",
+        "sha256": "4a3169abada58b750fd88bcaddaa4955de15d5f5fd7386ec67ac041eb2777511"
+      },
+      "path": "hepta/hia_cli_native.py"
+    },
+    {
+      "after": {
+        "bytes": 8978,
+        "git_blob": "80a2ec29c8bc80423998891bc6b808746f8b55b0",
+        "sha256": "63f36e7062a32c133e992710ab0c24b10220a06356e08c0fc4f5d845b8c0bb84"
+      },
+      "before": {
+        "bytes": 2102,
+        "git_blob": "fa36079a1e2bde5eb4e67ed42c6b7e1051c098a4",
+        "sha256": "c6fd52307e7c82ec979e31a5e626499ee8a198f1bbe4e93e45b656cdd9b02046"
+      },
+      "path": "hepta/hia_cli_verified_report_native.py"
+    },
+    {
+      "after": {
+        "bytes": 297109,
+        "git_blob": "49e3c7dd06a11d3e2bec623c4d4de378e815d412",
+        "sha256": "c30981ab88593527f9b28b02d12db8e393f630535de98b4e5c8b62d7ad6ba2ed"
+      },
+      "before": {
+        "bytes": 257046,
+        "git_blob": "64a739c5c9cf239da1ff232dd2eab622beeca5e6",
+        "sha256": "30b193cf0c548dbd6e6c60a13220a37b31f4167acabccbd7350011b44176e075"
+      },
+      "path": "tests/fixtures/hia_cli_routing_retained.json"
+    },
+    {
+      "after": {
+        "bytes": 38204,
+        "git_blob": "a9f9c264fc48b4893205058653030404b851a43f",
+        "sha256": "c17476b71b2bfc33156c8182c1ff69cbe31a37606a506898f6fa7988eacf395f"
+      },
+      "before": null,
+      "path": "tests/fixtures/hia_verified_report_retained.json"
+    },
+    {
+      "after": {
+        "bytes": 16421,
+        "git_blob": "453995a6618540360a95c3d5c8d4c13e559e9ebe",
+        "sha256": "c741e8ea5c86043ab4cd00211423cfe0445d81dddf6647decb88838dc42b1a63"
+      },
+      "before": null,
+      "path": "tests/test_hia_cli_verified_report_native.py"
+    },
+    {
+      "after": {
+        "bytes": 5817,
+        "git_blob": "6cbb685265939bdd25d3c71ca9959d55aaf8d91c",
+        "sha256": "c4d863c01045424449f39425dbe0a27d313ffd7a8873d3802d3916e337869643"
+      },
+      "before": null,
+      "path": "tools/build_hia_cli_verified_report_bundle.py"
+    },
+    {
+      "after": {
+        "bytes": 3405,
+        "git_blob": "781fccd11615e423de685f2ea26993c7a5d76d42",
+        "sha256": "82e49099c47dee28041707014f1e90f743563f29427560b4cbf98244ad40c759"
+      },
+      "before": null,
+      "path": "tools/hia_cli_verified_report_custody.py"
+    },
+    {
+      "after": {
+        "bytes": 204808,
+        "git_blob": "295cd5f07b922f524539ae0bace6f3a1d6870c1b",
+        "sha256": "cc1107289c80c85147425175d6ef672a78d6e99b7cf3bf62f3c9ff0c26b7e21a"
+      },
+      "before": {
+        "bytes": 204158,
+        "git_blob": "513610c35d530d466f676e11055b09a807cf127d",
+        "sha256": "aa039d9105a66743437f062b8e5e0e056f96d61b9bac199309677a0560d87200"
+      },
+      "path": "tools/hia_selfhost_contract.py"
+    },
+    {
+      "after": {
+        "bytes": 18487,
+        "git_blob": "90b28672a623eac4471dabf23c585237dd8e788f",
+        "sha256": "57e3f58154a24296633bbbde6e147ed8db8058aca213f70fb68c85c1fa04d260"
+      },
+      "before": null,
+      "path": "tools/hia_verified_report_controls.py"
+    },
+    {
+      "after": {
+        "bytes": 21257,
+        "git_blob": "29cbb6bbd018176e1c64758de6f13a78221b6609",
+        "sha256": "64d5a8e9a8bf83cebd6d31456c75ee0e6c98eb3ca04f5d257a787115070780d8"
+      },
+      "before": null,
+      "path": "tools/qualify_hia_cli_verified_report_bundle.py"
+    }
+  ],
+  "checks": {
+    "all_13_before_after_identities_match": true,
+    "all_existing_before_bytes_match_exact_packet_base": true,
+    "complete_verified_program_class_and_seven_method_AST_retained": true,
+    "only_cli_after_identity_and_exact_previous_after_history_added": true,
+    "original43_test_files_and_ordered_ids_unchanged": true,
+    "retained140_names_unique": true,
+    "retained_before_identities_and_other_projections_unchanged": true,
+    "source_inventory_is_exact_append_with_no_duplicates": true,
+    "two_schema_branches_removed_give_exact_entire_original_module_AST": true
+  },
+  "cold_positive_executed": false,
+  "cold_review": {
+    "not_established": [
+      "matching-current-source cold positive on integrated R18/R19",
+      "new versioned profile installation completeness",
+      "whole CLI or whole verify native delivery"
+    ],
+    "original43_provider": "Two actual six-image builds admitted against the same real cold authority plus one original invalid-cold refusal; original test bodies remain unchanged.",
+    "real_authority_chain": [
+      "original current-source cold outer+owner180/3 completion+cleanup",
+      "actual nested cold report and B1/B2/B3 byte hashes/lengths",
+      "complete current_sources equality plus all report owner files",
+      "five actual companion builds and one actual report compile",
+      "strict child request keys/limits and stdout-to-receipt equality",
+      "full 1MiB compile output prefix-to-image plus manifest/compiler/source binding",
+      "fixture/source/build input bindings rechecked before and after groups"
+    ],
+    "result": "NO_ADDITIONAL_CONCRETE_COLD_AUTHORITY_BYPASS_FOUND_IN_REVIEWED_SOURCE",
+    "success_conditions": "Exact loaded/started/stopped/run IDs and exact-int counts; no fail/error/skip/expected-failure/unexpected-success; original180+3 owners and cleanup; final current-source guard."
+  },
+  "dispatch_branches": [
+    {
+      "body": "if type(bundle) is dict and bundle.get('schema') == 'hepta.hia.cli-verified-report-bundle.v1':\n    from .hia_cli_verified_report_native import installed_bundle\n    return installed_bundle(path, raw, bundle)",
+      "function": "installed_cli",
+      "line": 681
+    },
+    {
+      "body": "if type(bundle) is dict and bundle.get('schema') == 'hepta.hia.cli-verified-report-bundle.v1':\n    from .hia_cli_verified_report_native import installed_bundle\n    return installed_bundle(path, raw, bundle, strict=True)",
+      "function": "installed_cli_strict",
+      "line": 738
+    }
+  ],
+  "limits": [
+    "Only frozen packet and listed inherited custody sources reviewed; no product/test/VM executed.",
+    "Current R17/r18 integration source was not modified; six original Source method IDs and complete source bytes must remain independently registered.",
+    "Warm admitted mapping behavior and strict disk readback remain intentionally distinct; no new proof is claimed by this review."
+  ],
+  "native_compiles": 0,
+  "original43_files": [
+    {
+      "bytes": 37203,
+      "git_blob": "7bc79024fb550575149c18a07c4268f8f7734d94",
+      "path": "tests/test_hia_cli_continuation_native.py",
+      "sha256": "40886aeb41388b6ac61e0eff653c2060aeeddc19c5bca0845d11c1b92e5b7bea",
+      "unchanged_packet_and_base": true
+    },
+    {
+      "bytes": 54092,
+      "git_blob": "ba7077c5f4005b5d800ae7b989de389b7b2d623d",
+      "path": "tests/test_hia_cli_native.py",
+      "sha256": "7fa75b027a5e67ecb1ff39cd9e73b4e7a7e178a32de30e6590fd6db488efc5d1",
+      "unchanged_packet_and_base": true
+    }
+  ],
+  "packet": {
+    "bytes": 1556321,
+    "git_blob": "53122e180fa210a85d383538fde2b17ba450691a",
+    "path": "/workspace/scratch/dda74a4fae35/v95-audit-mount-r1/v110-component-custody/portable-source/SOURCE-DECODED.json",
+    "sha256": "8ab1ee1096ad8d6fd44ff67793e890c50958855679f0bb8fe95c5bf79377b369"
+  },
+  "product_executions": 0,
+  "qualification_transfer": false,
+  "registration": {
+    "entry_after": 19,
+    "entry_before": 19,
+    "native_after": 93,
+    "native_before": 92,
+    "resource": "examples/hia_bootstrap/verified_report.hepta",
+    "source_additions": [
+      "tools/hia_verified_report_policy.py",
+      "tools/generate_hia_verified_report.py",
+      "examples/hia_bootstrap/verified_report.hepta",
+      "hepta/hia_verified_report_ports.py",
+      "hepta/hia_verified_report_native.py",
+      "hepta/hia_cli_verified_report_native.py",
+      "tools/hia_cli_verified_report_custody.py",
+      "tools/build_hia_cli_verified_report_bundle.py",
+      "tools/qualify_hia_cli_verified_report_bundle.py",
+      "tools/hia_verified_report_controls.py",
+      "tests/test_hia_cli_verified_report_native.py",
+      "tests/fixtures/hia_verified_report_retained.json",
+      "docs/HIA_VERIFIED_REPORT_NATIVE.md",
+      "hepta/hia_schema.py"
+    ]
+  },
+  "schema": "hepta.portable-report.independent-source-review.v1",
+  "scope": "READ_ONLY_PACKET_AST_AND_CUSTODY_SOURCE_REVIEW",
+  "source6_to_preserve": [
+    {
+      "bytes": 10247,
+      "git_blob": "457a8244530be8c765c1d57e4bfe8963c5744fe9",
+      "ids": [
+        "tests.test_hia_verified_report_source.VerifiedReportSourceTests.test_complete_seven_bodies_and_definition_time_class_are_retained",
+        "tests.test_hia_verified_report_source.VerifiedReportSourceTests.test_generated_hia_and_ports_reproduce_and_verify_independently",
+        "tests.test_hia_verified_report_source.VerifiedReportSourceTests.test_foreign_report_lookup_and_call_preserve_exact_single_dispatch"
+      ],
+      "integration_preservation_required": true,
+      "packet_has_no_delta": true,
+      "path": "tests/test_hia_verified_report_source.py",
+      "sha256": "b01d389e4e344e6e19aba9bb4aacd08a749fa57fa8cb7fdf123dfb2a5e9ceb18"
+    },
+    {
+      "bytes": 12805,
+      "git_blob": "32cb3cffaf9c64e9f32bbc6f2bd893634e6ea88e",
+      "ids": [
+        "tests.test_hia_linux_file_roundtrip_source.LinuxFileRoundtripSourceTests.test_four_assets_reproduce_twice_and_verify_independently",
+        "tests.test_hia_linux_file_roundtrip_source.LinuxFileRoundtripSourceTests.test_public_dispatch_preserves_all_twelve_original_reference_cases",
+        "tests.test_hia_linux_file_roundtrip_source.LinuxFileRoundtripSourceTests.test_complete_vm_roundtrip_retains_all_three_original_full_buffers"
+      ],
+      "integration_preservation_required": true,
+      "packet_has_no_delta": true,
+      "path": "tests/test_hia_linux_file_roundtrip_source.py",
+      "sha256": "f373e0ccd20b547a5f34d9157f59de449491e928e6c45a2918fdef80bd4edc77"
+    }
+  ],
+  "status": "REVIEW_COMPLETE_WITH_REGISTRATION_BLOCKER"
+}

@@ -1,0 +1,275 @@
+{
+  "ambient_native_owner": false,
+  "caller_commands": [
+    [
+      "python",
+      "-B",
+      "tools/qualify_hia_store_lifecycle.py",
+      "--caller-group",
+      "agent",
+      "--cold-report",
+      "<actual current-source cold outer report>",
+      "--evidence",
+      "<new-output-agent>"
+    ],
+    [
+      "python",
+      "-B",
+      "tools/qualify_hia_store_lifecycle.py",
+      "--caller-group",
+      "namespace",
+      "--cold-report",
+      "<actual current-source cold outer report>",
+      "--evidence",
+      "<new-output-namespace>"
+    ],
+    [
+      "python",
+      "-B",
+      "tools/qualify_hia_store_lifecycle.py",
+      "--caller-group",
+      "ledger",
+      "--cold-report",
+      "<actual current-source cold outer report>",
+      "--evidence",
+      "<new-output-ledger>"
+    ]
+  ],
+  "captured_registry_owner": false,
+  "checker_current_scope": {
+    "mechanism_role_files": 46,
+    "new_three_paths_explicitly_added_to_mechanism_role_tuple": false,
+    "new_three_runtime_files_freshly_hashed_in_physical_closure": true,
+    "physical_files": 170,
+    "semantic_core_files": 54
+  },
+  "close_route": [
+    "HIAAgentService.close",
+    "AgentStore.close",
+    "store_lifecycle_owner without ambient or business attributes",
+    "same held image prepare/finish or retained initial-absence route"
+  ],
+  "cold_builder": [
+    "python",
+    "-B",
+    "tools/build_hia_store_lifecycle.py",
+    "--output",
+    "<new-output>",
+    "--compiler",
+    "<actual matching B3>",
+    "--cold-report",
+    "<actual current cold outer report>"
+  ],
+  "generator_commands_in_order": [
+    [
+      "python",
+      "-B",
+      "-m",
+      "tools.generate_hia_store_lifecycle_foreign"
+    ],
+    [
+      "python",
+      "-B",
+      "-m",
+      "tools.generate_hia_store_lifecycle"
+    ]
+  ],
+  "helper_and_held_owner": [
+    "hia_store_lifecycle_native",
+    "NativeStoreLifecycleImage"
+  ],
+  "limits": {
+    "all_original_test_budgets_changed": false,
+    "cold_cleanup_seconds": 3,
+    "cold_seconds": 180,
+    "compiler_child_seconds": 20,
+    "compiler_output_bytes": 1048576,
+    "compiler_workspace_bytes": 1048576,
+    "component_cleanup_seconds": 5,
+    "component_group_seconds": 1800,
+    "original_caller_group_seconds": 1800
+  },
+  "manifest_exact_fields": [
+    "schema",
+    "source_sha256",
+    "image_path",
+    "image_sha256",
+    "compiler_sha256"
+  ],
+  "manifest_in_add": [
+    "include examples/hia_bootstrap/store_lifecycle.hepta",
+    "include docs/HIA_STORE_LIFECYCLE_NATIVE.md"
+  ],
+  "manifest_schema": "hepta.hia.store-lifecycle-native.v1",
+  "native_cold_environment": {
+    "HEPTA_HIA_STORE_LIFECYCLE_COLD_REPORT": "<actual current-source cold outer report>",
+    "HEPTA_HIA_STORE_LIFECYCLE_EVIDENCE": "<new exclusive evidence root>"
+  },
+  "native_count": 8,
+  "native_ordered_ids": [
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests.test_all_ninety_original_provider_observations",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests.test_held_capability_refuses_forgery_or_changed_mapping_metadata",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests.test_held_error_twenty_original_lifetimes",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests.test_initial_absence_and_selected_constructor_each_capture_close_route",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests.test_protocol_complete_native_buffers_equal_independent_vm",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests.test_public_service_request_and_close_use_actual_held_image",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests.test_subclass_hooks_and_inherited_attributes_do_not_choose_the_owner",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests.test_unknown_actual_ack_forbids_all_twelve_replays"
+  ],
+  "native_resource_add": [
+    "examples/hia_bootstrap/store_lifecycle.hepta"
+  ],
+  "native_resource_count_base": 88,
+  "native_resource_count_scope": 89,
+  "native_selector": "tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests",
+  "original_caller_groups": [
+    {
+      "name": "agent",
+      "nested_methods": 0,
+      "outer_methods": 48
+    },
+    {
+      "name": "namespace",
+      "nested_methods": 35,
+      "outer_methods": 1
+    },
+    {
+      "name": "ledger",
+      "nested_methods": 48,
+      "outer_methods": 1
+    }
+  ],
+  "proof_binding": "HIAAgentService._held_checker_owners includes actual Store capability",
+  "public_route": [
+    "HIAAgentService.__init__",
+    "AgentStore.__init__",
+    "capture_store_lifecycle",
+    "fresh source/manifest/image admission",
+    "bind_store_lifecycle by identity and weakref",
+    "NativeStoreLifecycleOwner.prepare",
+    "NativeStoreLifecycleOwner.finish"
+  ],
+  "reference_aliases": [
+    "_NATIVE_STORE_INITIALIZE_REFERENCE",
+    "_NATIVE_STORE_CLOSE_REFERENCE"
+  ],
+  "reference_bodies": [
+    "AgentStore._initialize_reference",
+    "AgentStore._close_reference"
+  ],
+  "remaining_foreign": [
+    "CPython object/exception and fixed opcode representation mechanisms",
+    "filesystem and operating-system effects",
+    "SQLite engine and transactions",
+    "four existing admitted child owners and other AgentStore methods"
+  ],
+  "required_cold_source_names": [
+    "MANIFEST.in",
+    "setup.py",
+    "examples/hia_bootstrap/store_lifecycle.hepta",
+    "hepta/hia_store_lifecycle_native.py",
+    "hepta/hia_store_lifecycle_selection.py",
+    "hepta/hia_store_lifecycle_foreign.py",
+    "tools/hia_store_lifecycle_policy.py",
+    "tools/hia_store_lifecycle_control.py",
+    "tools/hia_store_lifecycle_regions.py",
+    "tools/generate_hia_store_lifecycle.py",
+    "tools/generate_hia_store_lifecycle_foreign.py",
+    "tools/build_hia_store_lifecycle.py",
+    "tools/qualify_hia_store_lifecycle.py",
+    "tests/test_hia_store_lifecycle_native.py",
+    "tests/test_hia_store_lifecycle_builder.py",
+    "tests/test_hia_store_lifecycle_qualifier.py",
+    "tests/hia_store_lifecycle_fixtures.py",
+    "tests/hia_store_lifecycle_observations.py",
+    "tests/fixtures/hia_store_lifecycle_original_v86.json",
+    "docs/HIA_STORE_LIFECYCLE_NATIVE.md",
+    "hepta/hia_agent_service.py",
+    "hepta/hia_agent_store.py",
+    "hepta/hia_agent_contract.py",
+    "hepta/hia_checker_identity.py",
+    "hepta/hia_native_helpers.py",
+    "hepta/hia_exception_delivery.py",
+    "hepta/hia_front_continuation.py",
+    "hepta/hia_machine_transport.py",
+    "hepta/hia_json_preflight_native.py",
+    "hepta/hia_execution_budget.py",
+    "hepta/hia_request_journal_native.py",
+    "hepta/hia_artifact_namespace_native.py",
+    "hepta/hia_slot_ledger_continuation_native.py",
+    "tools/hia_exception_delivery.py",
+    "tools/hia_machine_plan_control.py",
+    "tools/generate_hia_machine_plan_control.py",
+    "tools/hia_core_lowering_table.py",
+    "tools/hia_core_lowering_control.py",
+    "tools/generate_hia_core_lowering_control.py",
+    "tools/hia_native_build_control.py",
+    "tools/generate_hia_native_build_foreign.py",
+    "tools/generate_hia_service_artifacts_foreign.py",
+    "tools/hia_retained_agent_callers.py",
+    "tools/qualify_hia_service_requests.py",
+    "tests/test_hia_agent_native_tools.py",
+    "tests/test_hia_agent_native_campaign.py",
+    "tests/test_hia_agent_buffer_lifecycle.py",
+    "tests/test_hia_agent_native_lease_snapshot.py",
+    "tests/test_hia_artifact_namespace_native.py",
+    "tests/test_hia_slot_ledger_continuation_native.py",
+    "tests/test_hia_slot_ledger_native.py",
+    "tests/fixtures/hia_original_agent_callers_v1/test_hia_agent_native_tools.py.txt",
+    "tests/fixtures/hia_original_agent_callers_v1/test_hia_artifact_namespace_native.py.txt",
+    "tests/fixtures/hia_original_agent_callers_v1/test_hia_slot_ledger_native.py.txt"
+  ],
+  "schema": "hepta.hia.store-lifecycle-registration.v1",
+  "selector": "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST",
+  "source_count": 15,
+  "source_files_add": [
+    "docs/HIA_STORE_LIFECYCLE_NATIVE.md",
+    "examples/hia_bootstrap/store_lifecycle.hepta",
+    "hepta/hia_store_lifecycle_foreign.py",
+    "hepta/hia_store_lifecycle_native.py",
+    "hepta/hia_store_lifecycle_selection.py",
+    "tests/fixtures/hia_store_lifecycle_original_v86.json",
+    "tests/hia_store_lifecycle_fixtures.py",
+    "tests/hia_store_lifecycle_observations.py",
+    "tests/test_hia_store_lifecycle_builder.py",
+    "tests/test_hia_store_lifecycle_native.py",
+    "tests/test_hia_store_lifecycle_qualifier.py",
+    "tools/build_hia_store_lifecycle.py",
+    "tools/generate_hia_store_lifecycle.py",
+    "tools/generate_hia_store_lifecycle_foreign.py",
+    "tools/hia_store_lifecycle_control.py",
+    "tools/hia_store_lifecycle_policy.py",
+    "tools/hia_store_lifecycle_regions.py",
+    "tools/qualify_hia_store_lifecycle.py"
+  ],
+  "source_ordered_ids": [
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests.test_default_import_and_absence_do_not_import_fixed_abi_ports",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests.test_hia_and_foreign_generated_inputs_are_exact",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests.test_nested_handler_extension_requires_its_exact_reviewed_input",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests.test_only_actual_store_held_capability_is_registered",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests.test_runtime_uses_fixed_effect_ports_without_original_policy_callbacks",
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests.test_two_exact_original_bodies_preserve_sql_and_reference_definitions",
+    "tests.test_hia_store_lifecycle_builder.StoreLifecycleAdapterTests.test_admission_and_receipts_are_fresh_after_compile",
+    "tests.test_hia_store_lifecycle_builder.StoreLifecycleAdapterTests.test_all_required_source_paths_and_full_current_map_precede_output",
+    "tests.test_hia_store_lifecycle_builder.StoreLifecycleAdapterTests.test_cold_limits_keep_exact_integer_180_and_3",
+    "tests.test_hia_store_lifecycle_builder.StoreLifecycleAdapterTests.test_invalid_actual_cold_receipt_refuses_before_output_or_compile",
+    "tests.test_hia_store_lifecycle_builder.StoreLifecycleAdapterTests.test_manifest_refuses_duplicate_unknown_or_mismatched_source_before_mapping",
+    "tests.test_hia_store_lifecycle_builder.StoreLifecycleAdapterTests.test_returned_and_disk_receipts_must_match_exact_invocation",
+    "tests.test_hia_store_lifecycle_qualifier.StoreLifecycleQualifierTests.test_original_result_requires_exact_execution_and_all_anomalies_empty",
+    "tests.test_hia_store_lifecycle_qualifier.StoreLifecycleQualifierTests.test_three_original_groups_keep_all_original_ids_and_budgets",
+    "tests.test_hia_store_lifecycle_qualifier.StoreLifecycleQualifierTests.test_two_actual_policy_modes_are_both_required_with_exact_integer_counts"
+  ],
+  "source_selectors": [
+    "tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests",
+    "tests.test_hia_store_lifecycle_builder.StoreLifecycleAdapterTests",
+    "tests.test_hia_store_lifecycle_qualifier.StoreLifecycleQualifierTests"
+  ],
+  "union_required": [
+    "merge registry literals without replacing other owners",
+    "regenerate full checker custody before and after generators",
+    "regenerate support/language metadata and actual-Git native inventory",
+    "add Source15 and complete Native8 plus three original caller groups without altering original IDs or limits",
+    "run installed-resource coverage with the full resource-group union",
+    "cold and original callers have not executed for this new source"
+  ]
+}

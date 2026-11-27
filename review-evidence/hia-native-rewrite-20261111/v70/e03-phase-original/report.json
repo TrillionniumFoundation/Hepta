@@ -1,0 +1,488 @@
+{
+  "capture_errors": [],
+  "cases": [
+    {
+      "aggregate_inclusive": {
+        "contract.file_digests": {
+          "calls": 164,
+          "inclusive_ns": 2503624144,
+          "raised": 0
+        },
+        "contract.support_contract": {
+          "calls": 164,
+          "inclusive_ns": 2515246785,
+          "raised": 0
+        },
+        "contract.validate_contract": {
+          "calls": 164,
+          "inclusive_ns": 2605956464,
+          "raised": 0
+        },
+        "fixture.build_pair": {
+          "calls": 1,
+          "inclusive_ns": 3456560545,
+          "raised": 0
+        },
+        "namespace._operate": {
+          "calls": 163,
+          "inclusive_ns": 4062218082,
+          "raised": 0
+        },
+        "namespace.state.call": {
+          "calls": 1889,
+          "inclusive_ns": 354858129,
+          "raised": 0
+        },
+        "publication._admitted_code": {
+          "calls": 164,
+          "inclusive_ns": 2717586633,
+          "raised": 0
+        },
+        "publication._execute_native": {
+          "calls": 438,
+          "inclusive_ns": 880565731,
+          "raised": 0
+        },
+        "publication_builder.current_sources": {
+          "calls": 164,
+          "inclusive_ns": 2625745605,
+          "raised": 0
+        },
+        "service._hia_context": {
+          "calls": 2,
+          "inclusive_ns": 336495188,
+          "raised": 0
+        },
+        "service._hia_emit": {
+          "calls": 2,
+          "inclusive_ns": 864071750,
+          "raised": 0
+        },
+        "service._hia_verify": {
+          "calls": 3,
+          "inclusive_ns": 982126720,
+          "raised": 0
+        },
+        "service.call": {
+          "calls": 20,
+          "inclusive_ns": 3630925632,
+          "raised": 0
+        }
+      },
+      "duration_ns": 5310150922,
+      "errors": [],
+      "event_count": 3338,
+      "events": {
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/run/namespace--test_expired_evaluation_is_rejected_before_any_reference_or_native_runner/events.json",
+        "sha256": "3460e94bdba3539a3fe344333d36aebcfec444e87810144ff3a239024074f9f5",
+        "size": 1220456
+      },
+      "expected_failures": [],
+      "failures": [],
+      "log": {
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/run/namespace--test_expired_evaluation_is_rejected_before_any_reference_or_native_runner/unittest.log",
+        "sha256": "3e891c4d8368219277503362a4c098cd7bbcf2fa5d2e14375211918b9f7daef4",
+        "size": 309
+      },
+      "route": "namespace",
+      "skips": [],
+      "successful": true,
+      "test": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "tests_run": 1,
+      "unexpected_successes": []
+    },
+    {
+      "aggregate_inclusive": {
+        "contract.file_digests": {
+          "calls": 221,
+          "inclusive_ns": 3359035157,
+          "raised": 0
+        },
+        "contract.support_contract": {
+          "calls": 221,
+          "inclusive_ns": 3374156038,
+          "raised": 0
+        },
+        "contract.validate_contract": {
+          "calls": 221,
+          "inclusive_ns": 3492690155,
+          "raised": 0
+        },
+        "fixture.build_pair": {
+          "calls": 1,
+          "inclusive_ns": 3397485660,
+          "raised": 0
+        },
+        "namespace._operate": {
+          "calls": 220,
+          "inclusive_ns": 5171772558,
+          "raised": 0
+        },
+        "namespace.state.call": {
+          "calls": 2369,
+          "inclusive_ns": 441433514,
+          "raised": 0
+        },
+        "publication._admitted_code": {
+          "calls": 221,
+          "inclusive_ns": 3644082473,
+          "raised": 0
+        },
+        "publication._execute_native": {
+          "calls": 549,
+          "inclusive_ns": 944512127,
+          "raised": 0
+        },
+        "publication_builder.current_sources": {
+          "calls": 221,
+          "inclusive_ns": 3519317054,
+          "raised": 0
+        },
+        "service._hia_context": {
+          "calls": 2,
+          "inclusive_ns": 285168050,
+          "raised": 0
+        },
+        "service._hia_emit": {
+          "calls": 2,
+          "inclusive_ns": 855175560,
+          "raised": 0
+        },
+        "service._hia_evaluate": {
+          "calls": 1,
+          "inclusive_ns": 1168656371,
+          "raised": 1
+        },
+        "service._hia_verify": {
+          "calls": 3,
+          "inclusive_ns": 977284593,
+          "raised": 0
+        },
+        "service._required_claims": {
+          "calls": 1,
+          "inclusive_ns": 760704669,
+          "raised": 0
+        },
+        "service.call": {
+          "calls": 20,
+          "inclusive_ns": 4742302475,
+          "raised": 1
+        }
+      },
+      "duration_ns": 5859260400,
+      "errors": [
+        {
+          "test": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)",
+          "traceback": "Traceback (most recent call last):\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_request_journal_native.py\", line 598, in run\n    response = encode_response(invoke())\n                               ~~~~~~^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 291, in <lambda>\n    response = ticket.run(lambda: getattr(self, '_' + tool)(arguments),\n                                  ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/driver.py\", line 70, in observed\n    result = original(*args, **kwargs)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 1161, in _hia_evaluate\n    objective = self._required_claims(context, args[\"candidate_artifact\"],\n                                     args[\"verification_receipts\"], baseline_program.sha256)\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1176, in __call__\n    return self._mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1180, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1247, in _execute_mock_call\n    result = effect(*args, **kwargs)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 617, in wait_inside_evaluation\n    self.assertGreater(remaining, 0, \"fixture preparation exhausted the original context budget\")\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: -0.8588105201721191 not greater than 0 : fixture preparation exhausted the original context budget\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 639, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n    evaluation = self.session.evaluate(baseline, build, receipts=receipts)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 275, in evaluate\n    return self.client.result(\"hia_evaluate\", self.arguments(\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        baseline_artifact=baseline[\"native_artifact\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        candidate_artifact=candidate[\"native_artifact\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        build_receipt=candidate[\"build_receipt\"], verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 142, in call\n    response = self._call(tool, deepcopy(request))\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/driver.py\", line 70, in observed\n    result = original(*args, **kwargs)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 241, in call\n    return self._call_native_journal(tool, arguments)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 291, in _call_native_journal\n    response = ticket.run(lambda: getattr(self, '_' + tool)(arguments),\n        encode_response, lambda error: self._error(request_id, error))\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_request_journal_native.py\", line 607, in run\n    raise RequestJournalUnknown('request callback result acknowledgement is unconfirmed') from error\nhepta.hia_request_journal_native.RequestJournalUnknown: request callback result acknowledgement is unconfirmed\n"
+        }
+      ],
+      "event_count": 4273,
+      "events": {
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/run/namespace--test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline/events.json",
+        "sha256": "ae2d5e8dd2bf7ee9fa1295cc871734e4c763a85f46d08eff8ffffade9e26bda7",
+        "size": 1549770
+      },
+      "expected_failures": [],
+      "failures": [],
+      "log": {
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/run/namespace--test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline/unittest.log",
+        "sha256": "658629a8bfad9098493cebed341d2a2aa5861963d3a107d6710a2e737442c1ce",
+        "size": 5147
+      },
+      "route": "namespace",
+      "skips": [],
+      "successful": false,
+      "test": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+      "tests_run": 1,
+      "unexpected_successes": []
+    },
+    {
+      "aggregate_inclusive": {
+        "contract.file_digests": {
+          "calls": 164,
+          "inclusive_ns": 2568080427,
+          "raised": 0
+        },
+        "contract.support_contract": {
+          "calls": 164,
+          "inclusive_ns": 2580445136,
+          "raised": 0
+        },
+        "contract.validate_contract": {
+          "calls": 164,
+          "inclusive_ns": 2669954463,
+          "raised": 0
+        },
+        "fixture.build_pair": {
+          "calls": 1,
+          "inclusive_ns": 3552923797,
+          "raised": 0
+        },
+        "namespace._operate": {
+          "calls": 163,
+          "inclusive_ns": 4130692967,
+          "raised": 0
+        },
+        "namespace.state.call": {
+          "calls": 1889,
+          "inclusive_ns": 351433882,
+          "raised": 0
+        },
+        "publication._admitted_code": {
+          "calls": 164,
+          "inclusive_ns": 2783925901,
+          "raised": 0
+        },
+        "publication._execute_native": {
+          "calls": 438,
+          "inclusive_ns": 881851526,
+          "raised": 0
+        },
+        "publication_builder.current_sources": {
+          "calls": 164,
+          "inclusive_ns": 2690154140,
+          "raised": 0
+        },
+        "service._hia_context": {
+          "calls": 2,
+          "inclusive_ns": 330838050,
+          "raised": 0
+        },
+        "service._hia_emit": {
+          "calls": 2,
+          "inclusive_ns": 886465985,
+          "raised": 0
+        },
+        "service._hia_verify": {
+          "calls": 3,
+          "inclusive_ns": 1012296393,
+          "raised": 0
+        },
+        "service.call": {
+          "calls": 20,
+          "inclusive_ns": 3737737314,
+          "raised": 0
+        }
+      },
+      "duration_ns": 5307369248,
+      "errors": [],
+      "event_count": 3338,
+      "events": {
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/run/ledger--test_expired_evaluation_is_rejected_before_any_reference_or_native_runner/events.json",
+        "sha256": "573710f9f94e8c822e3de8251b419b5289fd1b6e7a76597b2e53a764c2a28410",
+        "size": 1218252
+      },
+      "expected_failures": [],
+      "failures": [],
+      "log": {
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/run/ledger--test_expired_evaluation_is_rejected_before_any_reference_or_native_runner/unittest.log",
+        "sha256": "2c70592e7a6ae6ee6d59cda0a786f7838ccb105a02f170a98df6715e116658a6",
+        "size": 309
+      },
+      "route": "ledger",
+      "skips": [],
+      "successful": true,
+      "test": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "tests_run": 1,
+      "unexpected_successes": []
+    },
+    {
+      "aggregate_inclusive": {
+        "contract.file_digests": {
+          "calls": 221,
+          "inclusive_ns": 3287108241,
+          "raised": 0
+        },
+        "contract.support_contract": {
+          "calls": 221,
+          "inclusive_ns": 3307019408,
+          "raised": 0
+        },
+        "contract.validate_contract": {
+          "calls": 221,
+          "inclusive_ns": 3424045820,
+          "raised": 0
+        },
+        "fixture.build_pair": {
+          "calls": 1,
+          "inclusive_ns": 3625733617,
+          "raised": 0
+        },
+        "namespace._operate": {
+          "calls": 220,
+          "inclusive_ns": 5394473520,
+          "raised": 0
+        },
+        "namespace.state.call": {
+          "calls": 2369,
+          "inclusive_ns": 467042148,
+          "raised": 0
+        },
+        "publication._admitted_code": {
+          "calls": 221,
+          "inclusive_ns": 3567892837,
+          "raised": 0
+        },
+        "publication._execute_native": {
+          "calls": 549,
+          "inclusive_ns": 1206237184,
+          "raised": 0
+        },
+        "publication_builder.current_sources": {
+          "calls": 221,
+          "inclusive_ns": 3449416431,
+          "raised": 0
+        },
+        "service._hia_context": {
+          "calls": 2,
+          "inclusive_ns": 266737855,
+          "raised": 0
+        },
+        "service._hia_emit": {
+          "calls": 2,
+          "inclusive_ns": 886460562,
+          "raised": 0
+        },
+        "service._hia_evaluate": {
+          "calls": 1,
+          "inclusive_ns": 1178138544,
+          "raised": 1
+        },
+        "service._hia_verify": {
+          "calls": 3,
+          "inclusive_ns": 1236968810,
+          "raised": 0
+        },
+        "service._required_claims": {
+          "calls": 1,
+          "inclusive_ns": 757816327,
+          "raised": 0
+        },
+        "service.call": {
+          "calls": 20,
+          "inclusive_ns": 4973513335,
+          "raised": 1
+        }
+      },
+      "duration_ns": 6085812837,
+      "errors": [
+        {
+          "test": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)",
+          "traceback": "Traceback (most recent call last):\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_request_journal_native.py\", line 598, in run\n    response = encode_response(invoke())\n                               ~~~~~~^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 291, in <lambda>\n    response = ticket.run(lambda: getattr(self, '_' + tool)(arguments),\n                                  ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/driver.py\", line 70, in observed\n    result = original(*args, **kwargs)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 1161, in _hia_evaluate\n    objective = self._required_claims(context, args[\"candidate_artifact\"],\n                                     args[\"verification_receipts\"], baseline_program.sha256)\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1176, in __call__\n    return self._mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1180, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1247, in _execute_mock_call\n    result = effect(*args, **kwargs)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 617, in wait_inside_evaluation\n    self.assertGreater(remaining, 0, \"fixture preparation exhausted the original context budget\")\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: -1.1336761474609376 not greater than 0 : fixture preparation exhausted the original context budget\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 639, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n    evaluation = self.session.evaluate(baseline, build, receipts=receipts)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 275, in evaluate\n    return self.client.result(\"hia_evaluate\", self.arguments(\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        baseline_artifact=baseline[\"native_artifact\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        candidate_artifact=candidate[\"native_artifact\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        build_receipt=candidate[\"build_receipt\"], verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 142, in call\n    response = self._call(tool, deepcopy(request))\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/driver.py\", line 70, in observed\n    result = original(*args, **kwargs)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 241, in call\n    return self._call_native_journal(tool, arguments)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 291, in _call_native_journal\n    response = ticket.run(lambda: getattr(self, '_' + tool)(arguments),\n        encode_response, lambda error: self._error(request_id, error))\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_request_journal_native.py\", line 607, in run\n    raise RequestJournalUnknown('request callback result acknowledgement is unconfirmed') from error\nhepta.hia_request_journal_native.RequestJournalUnknown: request callback result acknowledgement is unconfirmed\n"
+        }
+      ],
+      "event_count": 4273,
+      "events": {
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/run/ledger--test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline/events.json",
+        "sha256": "087b6b408e6c36f9414f42b70fdcce108231e1e1c4eed6852c68e8e7b61806b0",
+        "size": 1548420
+      },
+      "expected_failures": [],
+      "failures": [],
+      "log": {
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/run/ledger--test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline/unittest.log",
+        "sha256": "399574f54e65f92d3c2ba79f644fccf7f5f2df1cd7bc69ebf232c4f9ddb4d384",
+        "size": 5147
+      },
+      "route": "ledger",
+      "skips": [],
+      "successful": false,
+      "test": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+      "tests_run": 1,
+      "unexpected_successes": []
+    }
+  ],
+  "default_native": false,
+  "discarded_selector_values": {},
+  "driver": {
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-deadline-phase-v70-r1/driver.py",
+    "sha256": "63a75a076ef33cda46bfabb458acd42834ab6019e0526ffcfec2e5d98aff1e3e",
+    "size": 17306
+  },
+  "duration_ns": 23358459659,
+  "harness_preserved": true,
+  "instrumentation": "Inclusive call durations; captures builtin clocks before original test monkeypatches. Adds observation overhead and is not qualification.",
+  "instrumented_functions": [
+    "contract.file_digests",
+    "contract.support_contract",
+    "contract.validate_contract",
+    "builder.current_sources",
+    "publication_builder.current_sources",
+    "publication._admitted_code",
+    "publication._execute_native",
+    "namespace._operate",
+    "namespace.state.call",
+    "service.call",
+    "service._hia_context",
+    "service._hia_verify",
+    "service._hia_emit",
+    "service._hia_evaluate",
+    "service._required_claims",
+    "fixture.build_pair"
+  ],
+  "legacy_deletion": false,
+  "observed_tests_run": 4,
+  "observed_tests_successful": false,
+  "original_results_replaced": false,
+  "original_test_deadline_ms": {
+    "max_native_wall_ms": 1000,
+    "max_total_wall_ms": 3000
+  },
+  "product_source_modified": false,
+  "python": {
+    "path": "/usr/bin/python3.14",
+    "sha256": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41",
+    "size": 7477160
+  },
+  "python_version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "qualification": false,
+  "retained_artifacts_before": {
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/cold.cold/qualification.evidence/B1.image.bin": "81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/cold.cold/qualification.evidence/B2.image.bin": "81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/cold.cold/qualification.evidence/B3.image.bin": "81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/cold.cold/qualification.json": "a5e33e9a2cb53cdef6322bd2cbf24d906658386295fd9036209f1ccd336a477a",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/cold.json": "b69e105b6308c87d77a08d33050b89290a25b38af518fc14c1020efdf0aad3f6",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/budget/execution-budget.image.bin": "f77b97fc27c9f5d6179e676f845b98f407fd70ec90b05abe98ce084f8eae9270",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/budget/manifest.json": "e021a1c39a7c098ad797acd6f7f6f0bdb764f0a63c292be000ccccaca01778db",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/joint-build.json": "9cfc0a5d57561f4d66f89df501551d174b1576faa3dff66a0cfaf1614e1833f4",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/namespace/artifact-namespace.image.bin": "beaf5d067e118e28c0201cacb4a7759f63d410593ca684d082dbb5ecf5456ba9",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/namespace/manifest.json": "66ce01cc4924b9b5a6ffc66811d6da72abdeae94666ed580ca627e4fdf861944",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/publication/build.json": "b3229b5f782f596035ff82dea1326311beb1e769aa6b337858680eebd0b2d14e",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/publication/hia-artifact": "10e048c633588b692ebfc0f2196b706b50d631b157f3d464be1b7a2065d0e489",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/request/manifest.json": "e10087d1093a3cc62dd1007a0c6ac0323264784b69e66033a2a34b9072c3200f",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-artifact-namespace/ArtifactNamespaceNativeTests/request/request-journal.image.bin": "3bf79d8e9a6353356f773bbdc8f2454e79f8952a48c96b27c6c7f45bf3e027e6",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/budget/execution-budget.image.bin": "f77b97fc27c9f5d6179e676f845b98f407fd70ec90b05abe98ce084f8eae9270",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/budget/manifest.json": "e021a1c39a7c098ad797acd6f7f6f0bdb764f0a63c292be000ccccaca01778db",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/ledger-joint-build.json": "5a97924703506cc28c5723b5e8eb622eb475ea0b5f52f6d7db48162272cb837b",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/namespace/artifact-namespace.image.bin": "beaf5d067e118e28c0201cacb4a7759f63d410593ca684d082dbb5ecf5456ba9",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/namespace/manifest.json": "66ce01cc4924b9b5a6ffc66811d6da72abdeae94666ed580ca627e4fdf861944",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/publication/build.json": "7cf0b400e26a9d36b2ef2d7bc2638c1607329d57c4539136aa4c19395399b2ac",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/publication/hia-artifact": "10e048c633588b692ebfc0f2196b706b50d631b157f3d464be1b7a2065d0e489",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/request/manifest.json": "e10087d1093a3cc62dd1007a0c6ac0323264784b69e66033a2a34b9072c3200f",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/request/request-journal.image.bin": "3bf79d8e9a6353356f773bbdc8f2454e79f8952a48c96b27c6c7f45bf3e027e6",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/slot-ledger/manifest.json": "9bbeaeb056059ff47ae2fbe7e2c8e878a367e3ac1faca22fcb36eafbc9663013",
+    "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression-slot-ledger/_DependencyBuild/slot-ledger/slot-ledger.image.bin": "8c8640793c15a44b80e8f19f3083f9f37a4645c4d8f11ef7df07dca9728b77f6"
+  },
+  "retained_artifacts_preserved": true,
+  "retained_inputs": {
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/retained-e03-inputs-v70-r2/report.json",
+    "sha256": "61fe5d7b8299b3424e4a6e634934c23d7a7c3415e658a60a7b59bea22dd3231a",
+    "size": 22134
+  },
+  "schema": "hepta.hia.e03-deadline-phase-diagnostic.v1",
+  "scope": "NEW_FOUR_CASE_DIAGNOSTIC_WITH_ORIGINAL_TEST_BODIES_AND_RETAINED_IMAGES",
+  "source": {
+    "complete_git_files": 2982,
+    "contract_files": 751,
+    "head": "e03c82d1b5b7026ead9a5942336d54273b1a6931",
+    "tree": "bac117a8b24c506b60a65562cf81587ee0ec0c31"
+  },
+  "source_preserved": true,
+  "status": "FOUR_ORIGINAL_CASES_OBSERVED",
+  "test_methods": [
+    "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+    "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline"
+  ],
+  "unknown_requests_replayed": false,
+  "whole_native": false
+}

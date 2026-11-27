@@ -1,0 +1,372 @@
+{
+  "schema": "hia.v78-audit-tree-publication-recovery.v1",
+  "original_large_nested_create_response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "ReadTimeout: "
+      }
+    ],
+    "structuredContent": {
+      "error": "ReadTimeout: ",
+      "error_code": "UNKNOWN"
+    },
+    "isError": true
+  },
+  "original_computed_tree_lookup": {
+    "content": [
+      {
+        "type": "text",
+        "text": "GitHub API error 422: {\"message\":\"Invalid object requested. SHA must identify a commit or a tree.\",\"documentation_url\":\"https://docs.github.com/rest/git/trees#get-a-tree\",\"status\":\"422\"}"
+      }
+    ],
+    "structuredContent": {
+      "error": "GitHub API error 422: {\"message\":\"Invalid object requested. SHA must identify a commit or a tree.\",\"documentation_url\":\"https://docs.github.com/rest/git/trees#get-a-tree\",\"status\":\"422\"}",
+      "error_code": "INVALID_ARGUMENT",
+      "error_data": {
+        "message": "Invalid object requested. SHA must identify a commit or a tree.",
+        "documentation_url": "https://docs.github.com/rest/git/trees#get-a-tree",
+        "status": "422"
+      }
+    },
+    "isError": true
+  },
+  "bottomup_88_blob_create_response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "GitHub API error 422: {\"message\":\"Sorry, your request timed out.  It's likely that your input was too large to process.  Consider building the tree incrementally, or building the commits you need in a local clone of the repository and then pushing them to GitHub.\",\"documentation_url\":\"https://docs.github.com/rest/git/trees#create-a-tree\",\"status\":\"422\"}"
+      }
+    ],
+    "structuredContent": {
+      "error": "GitHub API error 422: {\"message\":\"Sorry, your request timed out.  It's likely that your input was too large to process.  Consider building the tree incrementally, or building the commits you need in a local clone of the repository and then pushing them to GitHub.\",\"documentation_url\":\"https://docs.github.com/rest/git/trees#create-a-tree\",\"status\":\"422\"}",
+      "error_code": "INVALID_ARGUMENT",
+      "error_data": {
+        "message": "Sorry, your request timed out.  It's likely that your input was too large to process.  Consider building the tree incrementally, or building the commits you need in a local clone of the repository and then pushing them to GitHub.",
+        "documentation_url": "https://docs.github.com/rest/git/trees#create-a-tree",
+        "status": "422"
+      }
+    },
+    "isError": true
+  },
+  "bottomup_88_blob_expected_tree": "1f8a5e70ef9679925fca74e7a72473bf9336826a",
+  "correction": "Build immutable trees incrementally with at most 12 entries per create request, using the exact previous verified partial tree as base; verify every complete partial tree. No source or product ref modification.",
+  "child_trees_verified": [
+    {
+      "path": "source-ci/artifact13953846024.zip",
+      "sha": "8b4a076c83e348d2a01e1e9892d6f2515706d7bf",
+      "entries": 107
+    },
+    {
+      "path": "source-ci/artifact13955818843.zip",
+      "sha": "1f8a5e70ef9679925fca74e7a72473bf9336826a",
+      "entries": 88
+    },
+    {
+      "path": "source-ci",
+      "sha": "53c8de0ce3436086ed17995f7946b0cb45b98f40",
+      "entries": 5
+    },
+    {
+      "path": "peer-complete/core",
+      "sha": "9a75412ecc16f7dd832b5d42e882065e78e2f3d8",
+      "entries": 8
+    },
+    {
+      "path": "peer-complete/byte",
+      "sha": "336dbfbc670ca983926e46796f042c62fd5d943a",
+      "entries": 19
+    },
+    {
+      "path": "peer-complete/verification",
+      "sha": "1c21fb9eca8a2884cb36c56e73229d31bd7ace1b",
+      "entries": 39
+    },
+    {
+      "path": "peer-complete",
+      "sha": "e41172c7498cbd180ffc771287334378d043dc98",
+      "entries": 3
+    },
+    {
+      "path": "capsules",
+      "sha": "5cbaf7fd83d4602de8bf46b064dcd45d7ca72411",
+      "entries": 22
+    },
+    {
+      "path": "native-build-complete/parts",
+      "sha": "4fda86292395f9d237247559217e08b2f59eac1d",
+      "entries": 55
+    },
+    {
+      "path": "native-build-complete",
+      "sha": "1372e2d54b9a562cd24e5c6108b6825a5a38a94c",
+      "entries": 1
+    },
+    {
+      "path": "handoffs",
+      "sha": "43301eba75dc89a7ac011ad4733586143dd43bc5",
+      "entries": 5
+    },
+    {
+      "path": "late-originals",
+      "sha": "a0f2341d6a827ce3e51871cac4c6b412efb1eaa3",
+      "entries": 19
+    }
+  ],
+  "incremental_child_requests": [
+    {
+      "label": "source-ci/artifact13955818843.zip",
+      "start": 0,
+      "count": 12,
+      "base_tree": null,
+      "expected": "2b548b103b4ce15e7b28ffb7eb7cd73c10945555",
+      "create_sha": "2b548b103b4ce15e7b28ffb7eb7cd73c10945555",
+      "full_partial_readback": true
+    },
+    {
+      "label": "source-ci/artifact13955818843.zip",
+      "start": 12,
+      "count": 12,
+      "base_tree": "2b548b103b4ce15e7b28ffb7eb7cd73c10945555",
+      "expected": "d7535e6e846e079a221406156a278cd7fc272d3e",
+      "create_sha": "d7535e6e846e079a221406156a278cd7fc272d3e",
+      "full_partial_readback": true
+    },
+    {
+      "label": "source-ci/artifact13955818843.zip",
+      "start": 24,
+      "count": 12,
+      "base_tree": "d7535e6e846e079a221406156a278cd7fc272d3e",
+      "expected": "7549b86d65e83258c6b70564952e0a4c76b11052",
+      "create_sha": "7549b86d65e83258c6b70564952e0a4c76b11052",
+      "full_partial_readback": true
+    },
+    {
+      "label": "source-ci/artifact13955818843.zip",
+      "start": 36,
+      "count": 12,
+      "base_tree": "7549b86d65e83258c6b70564952e0a4c76b11052",
+      "expected": "ec893d7a785ee33f3ef9d233aed001d9544b7171",
+      "create_sha": "ec893d7a785ee33f3ef9d233aed001d9544b7171",
+      "full_partial_readback": true
+    },
+    {
+      "label": "source-ci/artifact13955818843.zip",
+      "start": 48,
+      "count": 12,
+      "base_tree": "ec893d7a785ee33f3ef9d233aed001d9544b7171",
+      "expected": "5218ccc675bb327eedd83cf0172c9a634d4424db",
+      "create_sha": "5218ccc675bb327eedd83cf0172c9a634d4424db",
+      "full_partial_readback": true
+    },
+    {
+      "label": "source-ci/artifact13955818843.zip",
+      "start": 60,
+      "count": 12,
+      "base_tree": "5218ccc675bb327eedd83cf0172c9a634d4424db",
+      "expected": "336fdc92a550459d6899a7669160b7e94715cea2",
+      "create_sha": "336fdc92a550459d6899a7669160b7e94715cea2",
+      "full_partial_readback": true
+    },
+    {
+      "label": "source-ci/artifact13955818843.zip",
+      "start": 72,
+      "count": 12,
+      "base_tree": "336fdc92a550459d6899a7669160b7e94715cea2",
+      "expected": "4b0e1eb2057f44cc19fc8035cfb73335e939c433",
+      "create_sha": "4b0e1eb2057f44cc19fc8035cfb73335e939c433",
+      "full_partial_readback": true
+    },
+    {
+      "label": "source-ci/artifact13955818843.zip",
+      "start": 84,
+      "count": 4,
+      "base_tree": "4b0e1eb2057f44cc19fc8035cfb73335e939c433",
+      "expected": "1f8a5e70ef9679925fca74e7a72473bf9336826a",
+      "create_sha": "1f8a5e70ef9679925fca74e7a72473bf9336826a",
+      "full_partial_readback": true
+    },
+    {
+      "label": "source-ci",
+      "start": 0,
+      "count": 5,
+      "base_tree": null,
+      "expected": "53c8de0ce3436086ed17995f7946b0cb45b98f40",
+      "create_sha": "53c8de0ce3436086ed17995f7946b0cb45b98f40",
+      "full_partial_readback": true
+    },
+    {
+      "label": "peer-complete/core",
+      "start": 0,
+      "count": 8,
+      "base_tree": null,
+      "expected": "9a75412ecc16f7dd832b5d42e882065e78e2f3d8",
+      "create_sha": "9a75412ecc16f7dd832b5d42e882065e78e2f3d8",
+      "full_partial_readback": true
+    },
+    {
+      "label": "peer-complete/byte",
+      "start": 0,
+      "count": 12,
+      "base_tree": null,
+      "expected": "4b1cbe62cffa3daa59142b57988a07cf6666aff1",
+      "create_sha": "4b1cbe62cffa3daa59142b57988a07cf6666aff1",
+      "full_partial_readback": true
+    },
+    {
+      "label": "peer-complete/byte",
+      "start": 12,
+      "count": 7,
+      "base_tree": "4b1cbe62cffa3daa59142b57988a07cf6666aff1",
+      "expected": "336dbfbc670ca983926e46796f042c62fd5d943a",
+      "create_sha": "336dbfbc670ca983926e46796f042c62fd5d943a",
+      "full_partial_readback": true
+    },
+    {
+      "label": "peer-complete/verification",
+      "start": 0,
+      "count": 12,
+      "base_tree": null,
+      "expected": "2dc71b3e44192750d67dd4fb5477b80d21f3c72f",
+      "create_sha": "2dc71b3e44192750d67dd4fb5477b80d21f3c72f",
+      "full_partial_readback": true
+    },
+    {
+      "label": "peer-complete/verification",
+      "start": 12,
+      "count": 12,
+      "base_tree": "2dc71b3e44192750d67dd4fb5477b80d21f3c72f",
+      "expected": "7439c7fcd52d892ed0c089aa3a4626a656d7d9d6",
+      "create_sha": "7439c7fcd52d892ed0c089aa3a4626a656d7d9d6",
+      "full_partial_readback": true
+    },
+    {
+      "label": "peer-complete/verification",
+      "start": 24,
+      "count": 12,
+      "base_tree": "7439c7fcd52d892ed0c089aa3a4626a656d7d9d6",
+      "expected": "92b7a247689e79b16d6ac9a00afcc0d71093f3f2",
+      "create_sha": "92b7a247689e79b16d6ac9a00afcc0d71093f3f2",
+      "full_partial_readback": true
+    },
+    {
+      "label": "peer-complete/verification",
+      "start": 36,
+      "count": 3,
+      "base_tree": "92b7a247689e79b16d6ac9a00afcc0d71093f3f2",
+      "expected": "1c21fb9eca8a2884cb36c56e73229d31bd7ace1b",
+      "create_sha": "1c21fb9eca8a2884cb36c56e73229d31bd7ace1b",
+      "full_partial_readback": true
+    },
+    {
+      "label": "peer-complete",
+      "start": 0,
+      "count": 3,
+      "base_tree": null,
+      "expected": "e41172c7498cbd180ffc771287334378d043dc98",
+      "create_sha": "e41172c7498cbd180ffc771287334378d043dc98",
+      "full_partial_readback": true
+    },
+    {
+      "label": "capsules",
+      "start": 0,
+      "count": 12,
+      "base_tree": null,
+      "expected": "012fb9166dff24258c0f10d5434e184e65453912",
+      "create_sha": "012fb9166dff24258c0f10d5434e184e65453912",
+      "full_partial_readback": true
+    },
+    {
+      "label": "capsules",
+      "start": 12,
+      "count": 10,
+      "base_tree": "012fb9166dff24258c0f10d5434e184e65453912",
+      "expected": "5cbaf7fd83d4602de8bf46b064dcd45d7ca72411",
+      "create_sha": "5cbaf7fd83d4602de8bf46b064dcd45d7ca72411",
+      "full_partial_readback": true
+    },
+    {
+      "label": "native-build-complete/parts",
+      "start": 0,
+      "count": 12,
+      "base_tree": null,
+      "expected": "b0b0ca8840ba3542138baa730342215a1ffddead",
+      "create_sha": "b0b0ca8840ba3542138baa730342215a1ffddead",
+      "full_partial_readback": true
+    },
+    {
+      "label": "native-build-complete/parts",
+      "start": 12,
+      "count": 12,
+      "base_tree": "b0b0ca8840ba3542138baa730342215a1ffddead",
+      "expected": "5755378c2de9941816e0f886bbd13e719be41a67",
+      "create_sha": "5755378c2de9941816e0f886bbd13e719be41a67",
+      "full_partial_readback": true
+    },
+    {
+      "label": "native-build-complete/parts",
+      "start": 24,
+      "count": 12,
+      "base_tree": "5755378c2de9941816e0f886bbd13e719be41a67",
+      "expected": "f140d417218224ccf95e8a251c4d55c22431f818",
+      "create_sha": "f140d417218224ccf95e8a251c4d55c22431f818",
+      "full_partial_readback": true
+    },
+    {
+      "label": "native-build-complete/parts",
+      "start": 36,
+      "count": 12,
+      "base_tree": "f140d417218224ccf95e8a251c4d55c22431f818",
+      "expected": "7154b8deedb40870e6198aa4164d3a66f1153f6d",
+      "create_sha": "7154b8deedb40870e6198aa4164d3a66f1153f6d",
+      "full_partial_readback": true
+    },
+    {
+      "label": "native-build-complete/parts",
+      "start": 48,
+      "count": 7,
+      "base_tree": "7154b8deedb40870e6198aa4164d3a66f1153f6d",
+      "expected": "4fda86292395f9d237247559217e08b2f59eac1d",
+      "create_sha": "4fda86292395f9d237247559217e08b2f59eac1d",
+      "full_partial_readback": true
+    },
+    {
+      "label": "native-build-complete",
+      "start": 0,
+      "count": 1,
+      "base_tree": null,
+      "expected": "1372e2d54b9a562cd24e5c6108b6825a5a38a94c",
+      "create_sha": "1372e2d54b9a562cd24e5c6108b6825a5a38a94c",
+      "full_partial_readback": true
+    },
+    {
+      "label": "handoffs",
+      "start": 0,
+      "count": 5,
+      "base_tree": null,
+      "expected": "43301eba75dc89a7ac011ad4733586143dd43bc5",
+      "create_sha": "43301eba75dc89a7ac011ad4733586143dd43bc5",
+      "full_partial_readback": true
+    },
+    {
+      "label": "late-originals",
+      "start": 0,
+      "count": 12,
+      "base_tree": null,
+      "expected": "f029d06baa26a1fa9fb122f40a024803f0770d82",
+      "create_sha": "f029d06baa26a1fa9fb122f40a024803f0770d82",
+      "full_partial_readback": true
+    },
+    {
+      "label": "late-originals",
+      "start": 12,
+      "count": 7,
+      "base_tree": "f029d06baa26a1fa9fb122f40a024803f0770d82",
+      "expected": "a0f2341d6a827ce3e51871cac4c6b412efb1eaa3",
+      "create_sha": "a0f2341d6a827ce3e51871cac4c6b412efb1eaa3",
+      "full_partial_readback": true
+    }
+  ],
+  "audit_ref_not_yet_changed": true,
+  "product_ref_changed": false
+}

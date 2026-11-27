@@ -1,0 +1,545 @@
+﻿2026-11-12T23:56:14.0981480Z Current runner version: '2.338.2'
+2026-11-12T23:56:14.1002644Z ##[group]Runner Image Provisioner
+2026-11-12T23:56:14.1003368Z Hosted Compute Agent
+2026-11-12T23:56:14.1003900Z Version: 20261028.624
+2026-11-12T23:56:14.1004517Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-12T23:56:14.1005165Z Build Date: 2026-10-28T21:51:42Z
+2026-11-12T23:56:14.1006161Z Worker ID: {9ebb1333-2496-4b87-a111-bfcdad3d7f2d}
+2026-11-12T23:56:14.1006812Z Region: eastus2
+2026-11-12T23:56:14.1007546Z Cloud: Azure
+2026-11-12T23:56:14.1008080Z ##[endgroup]
+2026-11-12T23:56:14.1009292Z ##[group]Operating System
+2026-11-12T23:56:14.1009868Z Ubuntu
+2026-11-12T23:56:14.1010342Z 24.04.5
+2026-11-12T23:56:14.1010821Z LTS
+2026-11-12T23:56:14.1011306Z ##[endgroup]
+2026-11-12T23:56:14.1011798Z ##[group]Runner Image
+2026-11-12T23:56:14.1012369Z Image: ubuntu-24.04
+2026-11-12T23:56:14.1012903Z Version: 20261101.360.1
+2026-11-12T23:56:14.1013988Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-12T23:56:14.1015294Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-12T23:56:14.1016188Z ##[endgroup]
+2026-11-12T23:56:14.1017363Z ##[group]GITHUB_TOKEN Permissions
+2026-11-12T23:56:14.1019388Z Contents: read
+2026-11-12T23:56:14.1019930Z Metadata: read
+2026-11-12T23:56:14.1020426Z ##[endgroup]
+2026-11-12T23:56:14.1022210Z Secret source: Actions
+2026-11-12T23:56:14.1023079Z Cache mode: write
+2026-11-12T23:56:14.1023874Z Prepare workflow directory
+2026-11-12T23:56:14.1346717Z Prepare all required actions
+2026-11-12T23:56:14.1387090Z Getting action download info
+2026-11-12T23:56:14.3414847Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-12T23:56:14.4368521Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-12T23:56:14.6976712Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-12T23:56:14.9704922Z Complete job name: Actual CPython 3.14.4 all 97 generators and 973 source tests
+2026-11-12T23:56:15.0405572Z ##[group]Run actions/checkout@v4
+2026-11-12T23:56:15.0406269Z with:
+2026-11-12T23:56:15.0406619Z   path: harness
+2026-11-12T23:56:15.0406997Z   persist-credentials: false
+2026-11-12T23:56:15.0407636Z   fetch-depth: 1
+2026-11-12T23:56:15.0408031Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T23:56:15.0411398Z   token: ***
+2026-11-12T23:56:15.0411763Z   ssh-strict: true
+2026-11-12T23:56:15.0412116Z   ssh-user: git
+2026-11-12T23:56:15.0412458Z   clean: true
+2026-11-12T23:56:15.0412818Z   sparse-checkout-cone-mode: true
+2026-11-12T23:56:15.0413243Z   fetch-tags: false
+2026-11-12T23:56:15.0413605Z   show-progress: true
+2026-11-12T23:56:15.0413979Z   lfs: false
+2026-11-12T23:56:15.0414336Z   submodules: false
+2026-11-12T23:56:15.0414696Z   set-safe-directory: true
+2026-11-12T23:56:15.0415103Z   allow-unsafe-pr-checkout: false
+2026-11-12T23:56:15.0415759Z env:
+2026-11-12T23:56:15.0416115Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T23:56:15.0416529Z   PYTHONUNBUFFERED: 1
+2026-11-12T23:56:15.0416945Z ##[endgroup]
+2026-11-12T23:56:15.3096201Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T23:56:15.3098315Z ##[group]Getting Git version info
+2026-11-12T23:56:15.3099206Z Working directory is '/home/runner/work/Hepta/Hepta/harness'
+2026-11-12T23:56:15.3100386Z [command]/usr/bin/git version
+2026-11-12T23:56:15.3163404Z git version 2.56.0
+2026-11-12T23:56:15.3179898Z ##[endgroup]
+2026-11-12T23:56:15.3192976Z Temporarily overriding HOME='/home/runner/work/_temp/c6b99477-688a-4acf-bcfe-1778cee97fa7' before making global git config changes
+2026-11-12T23:56:15.3194748Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T23:56:15.3198101Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/harness
+2026-11-12T23:56:15.3248075Z ##[group]Initializing the repository
+2026-11-12T23:56:15.3249321Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/harness
+2026-11-12T23:56:15.3331977Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T23:56:15.3333278Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T23:56:15.3334081Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T23:56:15.3334688Z hint: call:
+2026-11-12T23:56:15.3335039Z hint:
+2026-11-12T23:56:15.3335486Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T23:56:15.3335995Z hint:
+2026-11-12T23:56:15.3336463Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T23:56:15.3337397Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T23:56:15.3337997Z hint:
+2026-11-12T23:56:15.3338341Z hint: 	git branch -m <name>
+2026-11-12T23:56:15.3338731Z hint:
+2026-11-12T23:56:15.3339232Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T23:56:15.3348945Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/harness/.git/
+2026-11-12T23:56:15.3360800Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T23:56:15.3403466Z ##[endgroup]
+2026-11-12T23:56:15.3404520Z ##[group]Disabling automatic garbage collection
+2026-11-12T23:56:15.3408378Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T23:56:15.3441016Z ##[endgroup]
+2026-11-12T23:56:15.3441977Z ##[group]Setting up auth
+2026-11-12T23:56:15.3447643Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T23:56:15.3481983Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T23:56:15.3831442Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T23:56:15.3873314Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T23:56:15.4084056Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T23:56:15.4122118Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T23:56:15.4330356Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T23:56:15.4375149Z ##[endgroup]
+2026-11-12T23:56:15.4375852Z ##[group]Fetching the repository
+2026-11-12T23:56:15.4385495Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +dd5357a85e4f8812d1d16ad50c5d771da9d2d68a:refs/remotes/origin/codex/hia-evaluation-artifacts-v83-joint-r2-20261112-dda7
+2026-11-12T23:56:15.8324677Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T23:56:15.8327732Z  * [new ref]         dd5357a85e4f8812d1d16ad50c5d771da9d2d68a -> origin/codex/hia-evaluation-artifacts-v83-joint-r2-20261112-dda7
+2026-11-12T23:56:15.8332996Z ##[endgroup]
+2026-11-12T23:56:15.8334034Z ##[group]Determining the checkout info
+2026-11-12T23:56:15.8335047Z ##[endgroup]
+2026-11-12T23:56:15.8338141Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T23:56:15.8390800Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T23:56:15.8428411Z ##[group]Checking out the ref
+2026-11-12T23:56:15.8433166Z [command]/usr/bin/git checkout --progress --force -B codex/hia-evaluation-artifacts-v83-joint-r2-20261112-dda7 refs/remotes/origin/codex/hia-evaluation-artifacts-v83-joint-r2-20261112-dda7
+2026-11-12T23:56:15.8603538Z Switched to a new branch 'codex/hia-evaluation-artifacts-v83-joint-r2-20261112-dda7'
+2026-11-12T23:56:15.8607998Z branch 'codex/hia-evaluation-artifacts-v83-joint-r2-20261112-dda7' set up to track 'origin/codex/hia-evaluation-artifacts-v83-joint-r2-20261112-dda7'.
+2026-11-12T23:56:15.8613847Z ##[endgroup]
+2026-11-12T23:56:15.8659127Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T23:56:15.8689164Z dd5357a85e4f8812d1d16ad50c5d771da9d2d68a
+2026-11-12T23:56:15.8697499Z ##[group]Removing auth
+2026-11-12T23:56:15.8700741Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T23:56:15.8736914Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T23:56:15.8949324Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T23:56:15.8979221Z http.https://github.com/.extraheader
+2026-11-12T23:56:15.8985530Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T23:56:15.9023444Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T23:56:15.9226593Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T23:56:15.9261621Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T23:56:15.9470420Z ##[endgroup]
+2026-11-12T23:56:15.9883654Z ##[group]Run actions/checkout@v4
+2026-11-12T23:56:15.9884580Z with:
+2026-11-12T23:56:15.9885350Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T23:56:15.9886430Z   ref: 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
+2026-11-12T23:56:15.9887655Z   path: base
+2026-11-12T23:56:15.9888442Z   persist-credentials: false
+2026-11-12T23:56:15.9889324Z   fetch-depth: 1
+2026-11-12T23:56:15.9897392Z   token: ***
+2026-11-12T23:56:15.9898118Z   ssh-strict: true
+2026-11-12T23:56:15.9899000Z   ssh-user: git
+2026-11-12T23:56:15.9899744Z   clean: true
+2026-11-12T23:56:15.9900503Z   sparse-checkout-cone-mode: true
+2026-11-12T23:56:15.9901412Z   fetch-tags: false
+2026-11-12T23:56:15.9902177Z   show-progress: true
+2026-11-12T23:56:15.9902946Z   lfs: false
+2026-11-12T23:56:15.9903647Z   submodules: false
+2026-11-12T23:56:15.9904412Z   set-safe-directory: true
+2026-11-12T23:56:15.9905294Z   allow-unsafe-pr-checkout: false
+2026-11-12T23:56:15.9906205Z env:
+2026-11-12T23:56:15.9906979Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T23:56:15.9908003Z   PYTHONUNBUFFERED: 1
+2026-11-12T23:56:15.9908774Z ##[endgroup]
+2026-11-12T23:56:16.0642273Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T23:56:16.0648947Z ##[group]Getting Git version info
+2026-11-12T23:56:16.0657743Z Working directory is '/home/runner/work/Hepta/Hepta/base'
+2026-11-12T23:56:16.0685111Z [command]/usr/bin/git version
+2026-11-12T23:56:16.0723969Z git version 2.56.0
+2026-11-12T23:56:16.0742058Z ##[endgroup]
+2026-11-12T23:56:16.0754069Z Temporarily overriding HOME='/home/runner/work/_temp/dc593200-a881-4f49-aafd-dbe69a0aa1bf' before making global git config changes
+2026-11-12T23:56:16.0758720Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T23:56:16.0762021Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/base
+2026-11-12T23:56:16.0794737Z ##[group]Initializing the repository
+2026-11-12T23:56:16.0799299Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/base
+2026-11-12T23:56:16.0839680Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T23:56:16.0842706Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T23:56:16.0845348Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T23:56:16.0847520Z hint: call:
+2026-11-12T23:56:16.0848766Z hint:
+2026-11-12T23:56:16.0850281Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T23:56:16.0851938Z hint:
+2026-11-12T23:56:16.0853472Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T23:56:16.0855347Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T23:56:16.0857712Z hint:
+2026-11-12T23:56:16.0858851Z hint: 	git branch -m <name>
+2026-11-12T23:56:16.0860113Z hint:
+2026-11-12T23:56:16.0861800Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T23:56:16.0864397Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/base/.git/
+2026-11-12T23:56:16.0869204Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T23:56:16.0884720Z ##[endgroup]
+2026-11-12T23:56:16.0886624Z ##[group]Disabling automatic garbage collection
+2026-11-12T23:56:16.0888433Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T23:56:16.0921456Z ##[endgroup]
+2026-11-12T23:56:16.0923244Z ##[group]Setting up auth
+2026-11-12T23:56:16.0927087Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T23:56:16.0957659Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T23:56:16.1191607Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T23:56:16.1226691Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T23:56:16.1487513Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T23:56:16.1528244Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T23:56:16.1739317Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T23:56:16.1782203Z ##[endgroup]
+2026-11-12T23:56:16.1790028Z ##[group]Fetching the repository
+2026-11-12T23:56:16.1792272Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
+2026-11-12T23:56:19.0337006Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T23:56:19.0338206Z  * branch            65ceb711e47548f85ecf6b2ec2ae90f11dd50743 -> FETCH_HEAD
+2026-11-12T23:56:19.0340607Z ##[endgroup]
+2026-11-12T23:56:19.0341287Z ##[group]Determining the checkout info
+2026-11-12T23:56:19.0342405Z ##[endgroup]
+2026-11-12T23:56:19.0348998Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T23:56:19.0395329Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T23:56:19.0433474Z ##[group]Checking out the ref
+2026-11-12T23:56:19.0437629Z [command]/usr/bin/git checkout --progress --force 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
+2026-11-12T23:56:19.3834946Z Note: switching to '65ceb711e47548f85ecf6b2ec2ae90f11dd50743'.
+2026-11-12T23:56:19.3835361Z 
+2026-11-12T23:56:19.3835563Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-12T23:56:19.3835997Z changes and commit them, and you can discard any commits you make in this
+2026-11-12T23:56:19.3836454Z state without impacting any branches by switching back to a branch.
+2026-11-12T23:56:19.3836787Z 
+2026-11-12T23:56:19.3858149Z If you want to create a new branch to retain commits you create, you may
+2026-11-12T23:56:19.3868246Z do so (now or later) by using -c with the switch command. Example:
+2026-11-12T23:56:19.3868603Z 
+2026-11-12T23:56:19.3868799Z   git switch -c <new-branch-name>
+2026-11-12T23:56:19.3869050Z 
+2026-11-12T23:56:19.3869352Z Or undo this operation with:
+2026-11-12T23:56:19.3869566Z 
+2026-11-12T23:56:19.3869763Z   git switch -
+2026-11-12T23:56:19.3870291Z 
+2026-11-12T23:56:19.3870817Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-12T23:56:19.3871513Z 
+2026-11-12T23:56:19.3873002Z HEAD is now at 65ceb71 Preserve native global and import semantics across the owner closure
+2026-11-12T23:56:19.3874103Z ##[endgroup]
+2026-11-12T23:56:19.3915285Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T23:56:19.3945497Z 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
+2026-11-12T23:56:19.3953212Z ##[group]Removing auth
+2026-11-12T23:56:19.3956044Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T23:56:19.3990107Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T23:56:19.4199308Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T23:56:19.4227250Z http.https://github.com/.extraheader
+2026-11-12T23:56:19.4234789Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T23:56:19.4270888Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T23:56:19.4476377Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T23:56:19.4511045Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T23:56:19.4712464Z ##[endgroup]
+2026-11-12T23:56:19.4875827Z ##[group]Run actions/setup-python@v5
+2026-11-12T23:56:19.4876065Z with:
+2026-11-12T23:56:19.4876237Z   python-version: 3.14.4
+2026-11-12T23:56:19.4876434Z   check-latest: false
+2026-11-12T23:56:19.4878762Z   token: ***
+2026-11-12T23:56:19.4878950Z   update-environment: true
+2026-11-12T23:56:19.4879162Z   allow-prereleases: false
+2026-11-12T23:56:19.4879358Z   freethreaded: false
+2026-11-12T23:56:19.4879529Z env:
+2026-11-12T23:56:19.4879693Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T23:56:19.4879913Z   PYTHONUNBUFFERED: 1
+2026-11-12T23:56:19.4880091Z ##[endgroup]
+2026-11-12T23:56:19.5989500Z ##[group]Installed versions
+2026-11-12T23:56:19.6098294Z Version 3.14.4 was not found in the local cache
+2026-11-12T23:56:19.6214730Z (node:2402) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T23:56:19.6215647Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T23:56:20.2120979Z Version 3.14.4 is available for downloading
+2026-11-12T23:56:20.2121960Z Download from "https://github.com/actions/python-versions/releases/download/3.14.4-25113653268/python-3.14.4-linux-24.04-x64.tar.gz"
+2026-11-12T23:56:20.8345513Z Extract downloaded archive
+2026-11-12T23:56:20.8462821Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/de7b2665-ec03-44cd-9cf4-01f81d506360 -f /home/runner/work/_temp/d7c06526-a120-45ea-8ed3-88c90dfc6571
+2026-11-12T23:56:22.7246151Z Execute installation script
+2026-11-12T23:56:22.7351151Z Check if Python hostedtoolcache folder exist...
+2026-11-12T23:56:22.7352119Z Create Python 3.14.4 folder
+2026-11-12T23:56:22.7364172Z Copy Python binaries to hostedtoolcache folder
+2026-11-12T23:56:23.1240951Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-12T23:56:23.1277833Z Upgrading pip...
+2026-11-12T23:56:25.4525475Z Looking in links: /tmp/tmp418eczbu
+2026-11-12T23:56:25.4528947Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/site-packages (26.0.1)
+2026-11-12T23:56:26.9898764Z Collecting pip
+2026-11-12T23:56:27.1436263Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-12T23:56:27.1862170Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-12T23:56:27.3882554Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 15.8 MB/s  0:00:00
+2026-11-12T23:56:27.3882934Z 
+2026-11-12T23:56:27.4028128Z Installing collected packages: pip
+2026-11-12T23:56:27.4029118Z Attempting uninstall: pip
+2026-11-12T23:56:27.4048149Z Found existing installation: pip 26.0.1
+2026-11-12T23:56:27.4281419Z Uninstalling pip-26.0.1:
+2026-11-12T23:56:27.4325119Z Successfully uninstalled pip-26.0.1
+2026-11-12T23:56:28.4482965Z Successfully installed pip-26.3
+2026-11-12T23:56:28.5013758Z Create complete file
+2026-11-12T23:56:28.5047786Z Successfully set up CPython (3.14.4)
+2026-11-12T23:56:28.5048977Z ##[endgroup]
+2026-11-12T23:56:28.5218555Z ##[group]Run sudo apt-get update
+2026-11-12T23:56:28.5218853Z [36;1msudo apt-get update[0m
+2026-11-12T23:56:28.5219156Z [36;1msudo apt-get install -y binutils gcc strace clang-20[0m
+2026-11-12T23:56:28.5219613Z [36;1mpython -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0[0m
+2026-11-12T23:56:28.5243285Z shell: /usr/bin/bash -e {0}
+2026-11-12T23:56:28.5243494Z env:
+2026-11-12T23:56:28.5243671Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T23:56:28.5243885Z   PYTHONUNBUFFERED: 1
+2026-11-12T23:56:28.5244146Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T23:56:28.5244486Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T23:56:28.5244808Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T23:56:28.5245105Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T23:56:28.5245393Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T23:56:28.5245725Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T23:56:28.5245980Z ##[endgroup]
+2026-11-12T23:56:28.6414272Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-11-12T23:56:28.6704174Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-11-12T23:56:28.6713305Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-11-12T23:56:28.6750496Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-11-12T23:56:28.6799687Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-11-12T23:56:28.6844601Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-11-12T23:56:28.9108460Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1450 kB]
+2026-11-12T23:56:28.9224167Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [315 kB]
+2026-11-12T23:56:28.9248785Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1711 kB]
+2026-11-12T23:56:28.9311564Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [344 kB]
+2026-11-12T23:56:28.9388940Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1883 kB]
+2026-11-12T23:56:28.9478152Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [430 kB]
+2026-11-12T23:56:28.9578484Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [50.7 kB]
+2026-11-12T23:56:28.9579795Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [14.3 kB]
+2026-11-12T23:56:29.0119057Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1195 kB]
+2026-11-12T23:56:29.0208529Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [238 kB]
+2026-11-12T23:56:29.0569979Z Get:23 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [697 kB]
+2026-11-12T23:56:29.0635077Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1228 kB]
+2026-11-12T23:56:29.0685279Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [248 kB]
+2026-11-12T23:56:29.0700027Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1788 kB]
+2026-11-12T23:56:29.0719454Z Get:24 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [767 kB]
+2026-11-12T23:56:29.0767953Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [411 kB]
+2026-11-12T23:56:29.0792163Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [45.4 kB]
+2026-11-12T23:56:29.0806092Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [12.4 kB]
+2026-11-12T23:56:29.0841197Z Get:25 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.6 kB]
+2026-11-12T23:56:32.9101061Z Fetched 13.2 MB in 1s (10.6 MB/s)
+2026-11-12T23:56:33.8790476Z Reading package lists...
+2026-11-12T23:56:33.9129632Z Reading package lists...
+2026-11-12T23:56:34.1527881Z Building dependency tree...
+2026-11-12T23:56:34.1533771Z Reading state information...
+2026-11-12T23:56:34.2901830Z binutils is already the newest version (2.42-4ubuntu2.10).
+2026-11-12T23:56:34.2902406Z gcc is already the newest version (4:13.2.0-7ubuntu1).
+2026-11-12T23:56:34.2902856Z strace is already the newest version (6.8-0ubuntu2).
+2026-11-12T23:56:34.2903307Z strace set to manually installed.
+2026-11-12T23:56:34.2903695Z The following additional packages will be installed:
+2026-11-12T23:56:34.2904294Z   clang-tools-20 libclang-common-20-dev libclang-cpp20 libclang-rt-20-dev
+2026-11-12T23:56:34.2907525Z   libclang1-20 llvm-20 llvm-20-dev llvm-20-linker-tools llvm-20-runtime
+2026-11-12T23:56:34.2909520Z   llvm-20-tools
+2026-11-12T23:56:34.2914549Z Suggested packages:
+2026-11-12T23:56:34.2914886Z   clang-20-doc wasi-libc llvm-20-doc
+2026-11-12T23:56:34.3158758Z The following NEW packages will be installed:
+2026-11-12T23:56:34.3159358Z   clang-20 clang-tools-20 libclang-common-20-dev libclang-cpp20
+2026-11-12T23:56:34.3164259Z   libclang-rt-20-dev libclang1-20 llvm-20 llvm-20-dev llvm-20-linker-tools
+2026-11-12T23:56:34.3167768Z   llvm-20-runtime llvm-20-tools
+2026-11-12T23:56:34.3351240Z 0 upgraded, 11 newly installed, 0 to remove and 54 not upgraded.
+2026-11-12T23:56:34.3351861Z Need to get 110 MB of archives.
+2026-11-12T23:56:34.3352377Z After this operation, 700 MB of additional disk space will be used.
+2026-11-12T23:56:34.3353039Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-11-12T23:56:34.3694318Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libclang-cpp20 amd64 1:20.1.2-0ubuntu1~24.04.3 [14.2 MB]
+2026-11-12T23:56:34.4658313Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libclang-common-20-dev amd64 1:20.1.2-0ubuntu1~24.04.3 [782 kB]
+2026-11-12T23:56:34.4879199Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 llvm-20-linker-tools amd64 1:20.1.2-0ubuntu1~24.04.3 [1338 kB]
+2026-11-12T23:56:34.5128607Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libclang1-20 amd64 1:20.1.2-0ubuntu1~24.04.3 [8318 kB]
+2026-11-12T23:56:34.5765313Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 clang-20 amd64 1:20.1.2-0ubuntu1~24.04.3 [77.7 kB]
+2026-11-12T23:56:34.5948278Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 clang-tools-20 amd64 1:20.1.2-0ubuntu1~24.04.3 [9587 kB]
+2026-11-12T23:56:34.6700925Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libclang-rt-20-dev amd64 1:20.1.2-0ubuntu1~24.04.3 [4086 kB]
+2026-11-12T23:56:34.7131618Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 llvm-20-runtime amd64 1:20.1.2-0ubuntu1~24.04.3 [558 kB]
+2026-11-12T23:56:34.7382128Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 llvm-20 amd64 1:20.1.2-0ubuntu1~24.04.3 [19.8 MB]
+2026-11-12T23:56:34.9691025Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 llvm-20-tools amd64 1:20.1.2-0ubuntu1~24.04.3 [515 kB]
+2026-11-12T23:56:34.9903041Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 llvm-20-dev amd64 1:20.1.2-0ubuntu1~24.04.3 [50.7 MB]
+2026-11-12T23:56:35.7758710Z Fetched 110 MB in 1s (92.9 MB/s)
+2026-11-12T23:56:35.7966529Z Selecting previously unselected package libclang-cpp20.
+2026-11-12T23:56:35.8157446Z (Reading database ... 
+2026-11-12T23:56:35.8157948Z (Reading database ... 5%
+2026-11-12T23:56:35.8158469Z (Reading database ... 10%
+2026-11-12T23:56:35.8158717Z (Reading database ... 15%
+2026-11-12T23:56:35.8158925Z (Reading database ... 20%
+2026-11-12T23:56:35.8159117Z (Reading database ... 25%
+2026-11-12T23:56:35.8159302Z (Reading database ... 30%
+2026-11-12T23:56:35.8159501Z (Reading database ... 35%
+2026-11-12T23:56:35.8159682Z (Reading database ... 40%
+2026-11-12T23:56:35.8160102Z (Reading database ... 45%
+2026-11-12T23:56:35.8160299Z (Reading database ... 50%
+2026-11-12T23:56:35.8190209Z (Reading database ... 55%
+2026-11-12T23:56:35.9877370Z (Reading database ... 60%
+2026-11-12T23:56:36.1757482Z (Reading database ... 65%
+2026-11-12T23:56:36.3886192Z (Reading database ... 70%
+2026-11-12T23:56:36.5319380Z (Reading database ... 75%
+2026-11-12T23:56:36.6818177Z (Reading database ... 80%
+2026-11-12T23:56:36.8254171Z (Reading database ... 85%
+2026-11-12T23:56:36.9458818Z (Reading database ... 90%
+2026-11-12T23:56:37.1187388Z (Reading database ... 95%
+2026-11-12T23:56:37.1187668Z (Reading database ... 100%
+2026-11-12T23:56:37.1187969Z (Reading database ... 215960 files and directories currently installed.)
+2026-11-12T23:56:37.1232901Z Preparing to unpack .../00-libclang-cpp20_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:37.1342846Z Unpacking libclang-cpp20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:37.6442674Z Selecting previously unselected package libclang-common-20-dev:amd64.
+2026-11-12T23:56:37.6566973Z Preparing to unpack .../01-libclang-common-20-dev_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:37.6574665Z Unpacking libclang-common-20-dev:amd64 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:37.7937728Z Selecting previously unselected package llvm-20-linker-tools.
+2026-11-12T23:56:37.8062045Z Preparing to unpack .../02-llvm-20-linker-tools_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:37.8068531Z Unpacking llvm-20-linker-tools (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:37.8594316Z Selecting previously unselected package libclang1-20.
+2026-11-12T23:56:37.8719166Z Preparing to unpack .../03-libclang1-20_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:37.8726454Z Unpacking libclang1-20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:38.1444911Z Selecting previously unselected package clang-20.
+2026-11-12T23:56:38.1569315Z Preparing to unpack .../04-clang-20_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:38.1577026Z Unpacking clang-20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:38.1830555Z Selecting previously unselected package clang-tools-20.
+2026-11-12T23:56:38.1952559Z Preparing to unpack .../05-clang-tools-20_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:38.1959477Z Unpacking clang-tools-20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:38.5165071Z Selecting previously unselected package libclang-rt-20-dev:amd64.
+2026-11-12T23:56:38.5290310Z Preparing to unpack .../06-libclang-rt-20-dev_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:38.5296779Z Unpacking libclang-rt-20-dev:amd64 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:38.8128206Z Selecting previously unselected package llvm-20-runtime.
+2026-11-12T23:56:38.8253029Z Preparing to unpack .../07-llvm-20-runtime_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:38.8260661Z Unpacking llvm-20-runtime (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:38.8592120Z Selecting previously unselected package llvm-20.
+2026-11-12T23:56:38.8715303Z Preparing to unpack .../08-llvm-20_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:38.8722488Z Unpacking llvm-20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:39.5090848Z Selecting previously unselected package llvm-20-tools.
+2026-11-12T23:56:39.5215544Z Preparing to unpack .../09-llvm-20-tools_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:39.5221836Z Unpacking llvm-20-tools (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:39.6341776Z Selecting previously unselected package llvm-20-dev.
+2026-11-12T23:56:39.6470261Z Preparing to unpack .../10-llvm-20-dev_1%3a20.1.2-0ubuntu1~24.04.3_amd64.deb ...
+2026-11-12T23:56:39.6477864Z Unpacking llvm-20-dev (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9522555Z Setting up libclang-common-20-dev:amd64 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9542741Z Setting up llvm-20-runtime (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9574538Z Setting up llvm-20-linker-tools (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9593145Z Setting up libclang-rt-20-dev:amd64 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9611126Z Setting up llvm-20-tools (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9628319Z Setting up libclang-cpp20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9645168Z Setting up llvm-20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9661740Z Setting up llvm-20-dev (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9680762Z Setting up libclang1-20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9698966Z Setting up clang-20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9716027Z Setting up clang-tools-20 (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T23:56:41.9737063Z Processing triggers for systemd (255.4-1ubuntu8.18) ...
+2026-11-12T23:56:41.9985667Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-11-12T23:56:42.0004229Z Not building database; man-db/auto-update is not 'true'.
+2026-11-12T23:56:42.0013738Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-11-12T23:56:42.7087653Z 
+2026-11-12T23:56:42.7088193Z Running kernel seems to be up-to-date.
+2026-11-12T23:56:42.7088497Z 
+2026-11-12T23:56:42.7088625Z No services need to be restarted.
+2026-11-12T23:56:42.7088818Z 
+2026-11-12T23:56:42.7088931Z No containers need to be restarted.
+2026-11-12T23:56:42.7089128Z 
+2026-11-12T23:56:42.7089275Z No user sessions are running outdated binaries.
+2026-11-12T23:56:42.7089529Z 
+2026-11-12T23:56:42.7089746Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-11-12T23:56:44.7888887Z Collecting setuptools==78.1.1
+2026-11-12T23:56:44.9274874Z   Downloading setuptools-78.1.1-py3-none-any.whl.metadata (6.5 kB)
+2026-11-12T23:56:44.9843864Z Collecting wheel==0.46.3
+2026-11-12T23:56:45.0250076Z   Downloading wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+2026-11-12T23:56:45.0826920Z Collecting z3-solver==4.15.4.0
+2026-11-12T23:56:45.1209474Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-12T23:56:45.1772551Z Collecting jsonschema==4.26.0
+2026-11-12T23:56:45.2153812Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+2026-11-12T23:56:45.2667286Z Collecting packaging>=24.0 (from wheel==0.46.3)
+2026-11-12T23:56:45.3037606Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+2026-11-12T23:56:45.3489938Z Collecting attrs>=22.2.0 (from jsonschema==4.26.0)
+2026-11-12T23:56:45.3860992Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-11-12T23:56:45.4335589Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema==4.26.0)
+2026-11-12T23:56:45.4713928Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-11-12T23:56:45.5214943Z Collecting referencing>=0.28.4 (from jsonschema==4.26.0)
+2026-11-12T23:56:45.5596011Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-11-12T23:56:45.8146382Z Collecting rpds-py>=0.25.0 (from jsonschema==4.26.0)
+2026-11-12T23:56:45.8523842Z   Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-11-12T23:56:45.8954205Z Downloading setuptools-78.1.1-py3-none-any.whl (1.3 MB)
+2026-11-12T23:56:46.0711616Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 12.4 MB/s  0:00:00
+2026-11-12T23:56:46.1098764Z Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+2026-11-12T23:56:46.1596565Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-12T23:56:46.5488110Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 75.3 MB/s  0:00:00
+2026-11-12T23:56:46.5867864Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+2026-11-12T23:56:46.6266576Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-12T23:56:46.6659603Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-11-12T23:56:46.7062712Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-11-12T23:56:46.7456197Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-11-12T23:56:46.7843991Z Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+2026-11-12T23:56:46.8797703Z Installing collected packages: z3-solver, setuptools, rpds-py, packaging, attrs, wheel, referencing, jsonschema-specifications, jsonschema
+2026-11-12T23:56:48.3364801Z 
+2026-11-12T23:56:48.3378755Z Successfully installed attrs-26.1.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 packaging-26.3 referencing-0.37.0 rpds-py-2026.9.1 setuptools-78.1.1 wheel-0.46.3 z3-solver-4.15.4.0
+2026-11-12T23:56:48.4352578Z ##[group]Run python -B harness/inputs/run_joint_development.py --source "$GITHUB_WORKSPACE/base" --inputs "$GITHUB_WORKSPACE/harness/inputs" --workspace "$RUNNER_TEMP/artifacts-source314" --profile source314
+2026-11-12T23:56:48.4353665Z [36;1mpython -B harness/inputs/run_joint_development.py --source "$GITHUB_WORKSPACE/base" --inputs "$GITHUB_WORKSPACE/harness/inputs" --workspace "$RUNNER_TEMP/artifacts-source314" --profile source314[0m
+2026-11-12T23:56:48.4372983Z shell: /usr/bin/bash -e {0}
+2026-11-12T23:56:48.4373192Z env:
+2026-11-12T23:56:48.4373375Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T23:56:48.4373581Z   PYTHONUNBUFFERED: 1
+2026-11-12T23:56:48.4373811Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T23:56:48.4374141Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T23:56:48.4374460Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T23:56:48.4374829Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T23:56:48.4375134Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T23:56:48.4375421Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T23:56:48.4375676Z ##[endgroup]
+2026-11-13T00:16:44.7839268Z {"actual_commands": 101, "current_source_cold": false, "evidence_bytes": 27861599, "profile": "source314", "status": "FAIL", "whole_native": false}
+2026-11-13T00:16:44.8043771Z ##[error]Process completed with exit code 1.
+2026-11-13T00:16:44.8115316Z ##[group]Run actions/upload-artifact@v4
+2026-11-13T00:16:44.8115558Z with:
+2026-11-13T00:16:44.8115757Z   name: artifacts-source314-original-evidence
+2026-11-13T00:16:44.8116111Z   path: /home/runner/work/_temp/artifacts-source314
+harness/inputs
+harness/README.md
+
+2026-11-13T00:16:44.8116452Z   include-hidden-files: true
+2026-11-13T00:16:44.8116658Z   if-no-files-found: error
+2026-11-13T00:16:44.8116846Z   retention-days: 90
+2026-11-13T00:16:44.8117024Z   compression-level: 6
+2026-11-13T00:16:44.8117471Z   overwrite: false
+2026-11-13T00:16:44.8117637Z env:
+2026-11-13T00:16:44.8117808Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-13T00:16:44.8118014Z   PYTHONUNBUFFERED: 1
+2026-11-13T00:16:44.8118249Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T00:16:44.8118582Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-13T00:16:44.8118905Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T00:16:44.8119237Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T00:16:44.8119524Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T00:16:44.8119820Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-13T00:16:44.8120080Z ##[endgroup]
+2026-11-13T00:16:44.9597899Z (node:4793) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-13T00:16:44.9598817Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-13T00:16:45.3394358Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-13T00:16:45.3396167Z The least common ancestor is /home/runner/work. This will be the root directory of the artifact
+2026-11-13T00:16:45.3396717Z With the provided path, there will be 3858 files uploaded
+2026-11-13T00:16:45.3401315Z Artifact name is valid!
+2026-11-13T00:16:45.3401903Z Root directory input is valid!
+2026-11-13T00:16:45.5882079Z Beginning upload of artifact content to blob storage
+2026-11-13T00:16:45.8511588Z (node:4793) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-13T00:16:46.0808935Z Uploaded bytes 8388608
+2026-11-13T00:16:46.3304097Z Uploaded bytes 16777216
+2026-11-13T00:16:46.4421312Z Uploaded bytes 25165824
+2026-11-13T00:16:46.9900811Z Uploaded bytes 33554432
+2026-11-13T00:16:47.4325062Z Uploaded bytes 41943040
+2026-11-13T00:16:47.9260937Z Uploaded bytes 50331648
+2026-11-13T00:16:48.8071341Z Uploaded bytes 58720256
+2026-11-13T00:16:49.6591804Z Uploaded bytes 67108864
+2026-11-13T00:16:49.8259978Z Uploaded bytes 75497472
+2026-11-13T00:16:50.0490102Z Uploaded bytes 83886080
+2026-11-13T00:16:50.2473611Z Uploaded bytes 92274688
+2026-11-13T00:16:50.5008475Z Uploaded bytes 100663296
+2026-11-13T00:16:50.6589202Z Uploaded bytes 109051904
+2026-11-13T00:16:50.9180228Z Uploaded bytes 117440512
+2026-11-13T00:16:51.7640536Z Uploaded bytes 124725650
+2026-11-13T00:16:51.7844656Z Finished uploading artifact content to blob storage!
+2026-11-13T00:16:51.7847377Z SHA256 digest of uploaded artifact zip is a12a10001750973b5787e5cd5400c75c3997aa1df9234985d96f637d3437a00f
+2026-11-13T00:16:51.7849449Z Finalizing artifact upload
+2026-11-13T00:16:52.3549186Z Artifact artifacts-source314-original-evidence.zip successfully finalized. Artifact ID 13996593454
+2026-11-13T00:16:52.3550434Z Artifact artifacts-source314-original-evidence has been successfully uploaded! Final size is 124725650 bytes. Artifact ID is 13996593454
+2026-11-13T00:16:52.3557048Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43332961445/artifacts/13996593454
+2026-11-13T00:16:52.3929838Z Post job cleanup.
+2026-11-13T00:16:52.4729287Z [command]/usr/bin/git version
+2026-11-13T00:16:52.4771561Z git version 2.56.0
+2026-11-13T00:16:52.4803335Z Temporarily overriding HOME='/home/runner/work/_temp/0ed3a60f-889d-4779-a2af-4d965847dc6f' before making global git config changes
+2026-11-13T00:16:52.4804522Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-13T00:16:52.4808031Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/base
+2026-11-13T00:16:52.4845937Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-13T00:16:52.4884175Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-13T00:16:52.5242967Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-13T00:16:52.5288565Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-13T00:16:52.5526558Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-13T00:16:52.5573427Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-13T00:16:52.5938292Z Post job cleanup.
+2026-11-13T00:16:52.6708683Z [command]/usr/bin/git version
+2026-11-13T00:16:52.6749795Z git version 2.56.0
+2026-11-13T00:16:52.6783123Z Temporarily overriding HOME='/home/runner/work/_temp/9d3e0662-fa41-45e9-a5c5-c49888d30bfd' before making global git config changes
+2026-11-13T00:16:52.6784676Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-13T00:16:52.6787912Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/harness
+2026-11-13T00:16:52.6825346Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-13T00:16:52.6864921Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-13T00:16:52.7119015Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-13T00:16:52.7149867Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-13T00:16:52.7384088Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-13T00:16:52.7422625Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-13T00:16:52.7772675Z Cleaning up orphan processes
+2026-11-13T00:16:52.8073960Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

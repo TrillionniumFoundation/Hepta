@@ -1,0 +1,126 @@
+{
+  "schema": "hepta.hia.combined-generation-runner-readonly-review.v1",
+  "status": "SOURCE_REVIEW_ONLY_NOT_EXECUTED",
+  "reviewed": {
+    "runner": {
+      "blob": "9235a3c3177b585fa9283764d9e87bbbdbffb6e0",
+      "bytes": 38354,
+      "sha256": "eae39701dea745c6a1ce88929707dfe2222d6252b069a18832654c00d02e7192"
+    },
+    "source_gate": {
+      "blob": "ef6d84f1f57ec02f3db339d79822d9ee21b0f089",
+      "bytes": 3914,
+      "sha256": "8c0f8e1f544169c4aa3b69397a5f2674deffb882f010a6ea5caa912d84513596"
+    }
+  },
+  "execution": {
+    "product": 0,
+    "tests": 0,
+    "generators": 0,
+    "other_owner_writes": 0
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "kind": "coverage_fail_open",
+      "path": "run_source_gate.py",
+      "lines": "28-37, 44-49",
+      "finding": "Both head projections are loaded from the same final source. Removing an original-head method from final source removes it from both the selected suite and the claimed head projection; current Counter checks then pass if another test remains. These are final-source selector projections, not independently fixed original-head method coverage.",
+      "narrow_patch": "Require pinned original main/a733 declared or actual loader IDs from those exact heads, project explicit selector/module renames by longest matching prefix, and compare the projected counters with the selected IDs. Preserve full original and projected arrays. If only selectors are available, label the current check accurately instead of claiming original method coverage.",
+      "patch_precondition": "Original fixed ID inputs must come from actual original head source/retained loader evidence; do not invent IDs or counts."
+    },
+    {
+      "id": "R2",
+      "kind": "executed_ids_fail_open",
+      "path": "run_source_gate.py",
+      "lines": "40-49",
+      "finding": "Only testsRun == countTestCases is checked. ordered_ids is pre-execution discovery; actual start/stop IDs are not observed. A same-count substitution or custom suite execution is not rejected.",
+      "narrow_patch": "Use a TextTestResult subclass recording startTest and stopTest. Require started == stopped == selected_ids and testsRun == len(selected_ids), as well as the existing anomaly checks. Persist both actual arrays.",
+      "exact_replacement_before": "result = unittest.TextTestRunner(verbosity=2).run(suite)\n    complete = result.testsRun == expected and expected > 0",
+      "exact_replacement_after": "started_ids, stopped_ids = [], []\n    class ObservedResult(unittest.TextTestResult):\n        def startTest(self, test):\n            started_ids.append(test.id())\n            super().startTest(test)\n        def stopTest(self, test):\n            stopped_ids.append(test.id())\n            super().stopTest(test)\n    result = unittest.TextTestRunner(verbosity=2, resultclass=ObservedResult).run(suite)\n    complete = (expected > 0 and result.testsRun == expected == len(selected_ids)\n                and started_ids == stopped_ids == selected_ids)",
+      "additional_report_fields": [
+        "started_ids",
+        "stopped_ids"
+      ]
+    },
+    {
+      "id": "R3",
+      "kind": "tested_tree_publication_mismatch",
+      "path": "runner",
+      "lines": "537-549, 552-565, 687",
+      "finding": "The first generated index tree is frozen and later published, but reproduction and Source freshness use plain git diff against the current index. If a generator/test stages changed bytes, diff is empty although the actually tested tree differs from the saved tree_sha. Index changes are not compared against that saved identity.",
+      "narrow_patch": "Pass saved tree_sha into source_gate. After reproduction and after Source, require git write-tree == saved tree_sha, compare worktree against that explicit tree (git diff --exit-code TREE --), and check new untracked paths. For the stated full byte/mode guarantee, read each tracked path and independently compare its raw Git blob and lstat mode against that tree rather than only trusting index stat/cache flags.",
+      "minimum_commands": [
+        [
+          "git",
+          "write-tree"
+        ],
+        [
+          "git",
+          "diff",
+          "--exit-code",
+          "EXPECTED_TREE",
+          "--"
+        ],
+        [
+          "git",
+          "ls-files",
+          "--others",
+          "--exclude-standard",
+          "-z"
+        ]
+      ]
+    },
+    {
+      "id": "R4",
+      "kind": "failed_generated_outputs_not_preserved",
+      "path": "runner",
+      "lines": "514-550, 623-638, 689-694",
+      "finding": "A generator/post-command failure exits before upload_candidate_tree. The archive contains only capture.raw, while actual newly generated/partial outputs remain only in capture.repo. Their byte contents and final filesystem modes are not captured on that failure path; preimages and Git object-name inventories are not the actual new bytes.",
+      "narrow_patch": "Before archive persistence, always snapshot the exact actual worktree state and partial generated outputs, with missing/deleted/untracked entries and modes. Content-address unchanged fixed inputs to their exact source Git objects; physically retain every new/changed byte sequence in capture.raw. Keep a separate SOURCE-AFTER record even when generation failed. Do not turn a snapshot failure into a successful source result.",
+      "limitation": "If the workflow separately uploads the entire repository, those bytes may be retained there, but this runner's stated capsule currently does not contain them."
+    },
+    {
+      "id": "R5",
+      "kind": "incorrect_physical_retirement_condition",
+      "path": "runner",
+      "lines": "463-469, 522-533",
+      "finding": "deduplicate-identical-legacy-path shares the branch that only checks target.is_file(). It never verifies the target equals the old raw bytes before deleting the legacy path later. The name promises an equality precondition that is not enforced.",
+      "narrow_patch": "Separate this action from owner-regeneration-before-legacy-path-retirement. For deduplication require a non-symlink target and full target.read_bytes() == raw at admission; record that equality. For all actions require source and target paths differ. Preserve the distinct owner-regeneration case and its actual producer/output proof.",
+      "exact_replacement_before": "elif pin[\"action\"] in (\"deduplicate-identical-legacy-path\", \"owner-regeneration-before-legacy-path-retirement\"):\n            check(target.is_file(), \"regenerated canonical target missing\")",
+      "exact_replacement_after": "elif pin[\"action\"] == \"deduplicate-identical-legacy-path\":\n            check(target.is_file() and not target.is_symlink(), \"canonical deduplication target missing\")\n            check(target.read_bytes() == raw, \"canonical deduplication target differs\")\n        elif pin[\"action\"] == \"owner-regeneration-before-legacy-path-retirement\":\n            check(target.is_file() and not target.is_symlink(), \"regenerated canonical target missing\")"
+    },
+    {
+      "id": "R6",
+      "kind": "wrong_executed_count_on_source_drift",
+      "path": "runner",
+      "lines": "564, 662, 685-691",
+      "finding": "If Source tests completed but the subsequent git diff raises, source_gate never returns and main never stores result['source_tests']; final RESULT still says product_tests_executed=0 although real tests ran. Original SOURCE-TESTS.json survives, but the summary is contradictory.",
+      "narrow_patch": "Store the actual Source report/count in result before integrity validation, then record a separate source integrity failure. Set execution count to unknown while the child is in progress rather than retaining a false zero if a terminal report is unavailable."
+    },
+    {
+      "id": "R7",
+      "kind": "unknown_api_and_partial_ack_custody",
+      "path": "runner",
+      "lines": "210-243, 567-618, 623-650",
+      "finding": "Successful blob API responses retain only hashes, not exact response bytes; tree_api loses HTTPError status/body. Per-blob upload acknowledgements and archive chunk mapping remain in memory until their whole phase ends. A later error leaves an incomplete association between exact intended bytes and acknowledged objects.",
+      "narrow_patch": "Save each API raw response with a unique sequence and strict parsed shape; save HTTP error status/body too. Before each POST write expected OID/bytes/SHA and phase/index intent. After exact ACK plus GET write its receipt immediately. Preserve the constructed gzip bytes on disk before uploading chunks so a failed suffix remains exactly reproducible. Do not retry a timed-out POST without querying its expected object.",
+      "extra_tree_note": "upload_candidate_tree currently sends the entire delta in one POST. The repository's previously observed large-tree rejection should be considered; if batching is used, tree-api/create.json must also become a unique per-batch name or Capture.put will reject the second differing response."
+    }
+  ],
+  "source_path_note": {
+    "severity": "isolation_hardening_no_existing_import_failure_observed",
+    "observation": "The gate prepends the candidate root but leaves the harness/tools script directory in sys.path. No concrete current test import collision was found during this read.",
+    "narrow_patch": "Because this helper is invoked by its absolute script path, replace its initial script-directory entry with the candidate root (or explicitly remove that exact helper directory) rather than retaining it as a bare-import fallback."
+  },
+  "already_announced_parent_change": {
+    "change": "Separate pre_generation, post_generation, reproduction command lists; explicitly expand one @EVIDENCE@ argument segment without shell evaluation.",
+    "disposition": "Compatible with the findings; avoids overwriting the first checker report. Not present in the reviewed fixed blob and therefore not claimed reviewed as executed."
+  },
+  "confirmed_non_findings": [
+    "No API helper in this fixed runner creates a commit or updates a ref.",
+    "The actual two fixed heads and both merge bases are checked; the reviewed code does not replace Git ort with a simulated merge.",
+    "Native/cold qualification is not asserted from Source status.",
+    "The Source helper inserts the candidate repository before importing test modules; no definite missing-candidate-import error was found."
+  ]
+}

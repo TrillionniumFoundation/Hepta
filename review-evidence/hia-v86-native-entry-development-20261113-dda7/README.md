@@ -1,0 +1,7 @@
+# HIA selected-release native entry: local development evidence
+
+The six-source development packet builds a HIA native selected-release entry. It binds the package and entry hashes, uses a sealed memfd, rechecks selection and lock state, and executes the exact admitted image without a path reopen. Package fd 3 is separate from business stdin. Local real-kernel controls include return status, same-PID stdin/stdout, signals, sealed descriptors, cleanup, selection races, and the actual six-command HIA Agent chain.
+
+This folder preserves the original local 21-method result, all original failed controls, compiler images, complete regular-file bytes, and the directory/symlink topology addendum. It does not claim the five ptrace requirements passed locally: the original EPERM failure is retained. The subsequent independent CPython 3.14.4 attempts remain separately named and failed at the time of this checkpoint. Their full evidence is being preserved independently; a future corrected run must earn its own complete 26-method result.
+
+The mounted local evidence reconstructs its exact fixed source tree. Its original source dependency is the fixed combined development tree e295431ac7bfb71058de8b940c8e7457c8100750, with six new source paths. It does not change installed defaults or the frozen Source R4 candidate and does not confer the original 110-step Native qualification or whole-native completion.

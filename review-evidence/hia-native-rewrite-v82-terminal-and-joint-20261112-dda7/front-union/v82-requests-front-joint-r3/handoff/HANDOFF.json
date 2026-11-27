@@ -1,0 +1,510 @@
+{
+  "actual311": {
+    "actual_native_entries": 0,
+    "business_effects": 0,
+    "cache_current_size_before_and_after": 0,
+    "failed_admission_cache_misses_after": 1,
+    "foreign_imports": 0,
+    "initializer_calls": 1,
+    "job_id": 131542400387,
+    "native_selected_refusal": "ExceptionDeliveryUnavailable before native entry",
+    "original_artifact_tests": 8,
+    "original_default_tests": 64,
+    "status": "PASS",
+    "strict_default_import_and_static_example": "PASS"
+  },
+  "actual314_native": {
+    "all_19_commands": [
+      {
+        "label": "generate-0",
+        "passed": true
+      },
+      {
+        "label": "generate-1",
+        "passed": true
+      },
+      {
+        "label": "generate-2",
+        "passed": true
+      },
+      {
+        "label": "generate-3",
+        "passed": true
+      },
+      {
+        "label": "generate-4",
+        "passed": true
+      },
+      {
+        "label": "generate-5",
+        "passed": true
+      },
+      {
+        "label": "source-controls",
+        "passed": true
+      },
+      {
+        "label": "changed-compatibility-source-controls",
+        "passed": true
+      },
+      {
+        "label": "actual-build",
+        "passed": true
+      },
+      {
+        "label": "native-controls",
+        "passed": true
+      },
+      {
+        "label": "original-agent",
+        "passed": true
+      },
+      {
+        "label": "original-namespace",
+        "passed": false
+      },
+      {
+        "label": "original-ledger",
+        "passed": false
+      },
+      {
+        "label": "front-pure-source-projection",
+        "passed": true
+      },
+      {
+        "label": "front-two-new-compilations",
+        "passed": true
+      },
+      {
+        "label": "front-original-controls",
+        "passed": true
+      },
+      {
+        "label": "front-global-anchor-controls",
+        "passed": true
+      },
+      {
+        "label": "four-foreign-bindings-before",
+        "passed": true
+      },
+      {
+        "label": "four-foreign-bindings-after",
+        "passed": true
+      }
+    ],
+    "all_source_and_inputs_unchanged": true,
+    "binding64": {
+      "actual_native_entries": 0,
+      "after_sha256": "c3dfe776f0798ef8b702c9fe264ce336dcbc91fbaad78c05fc6808b488cfa80d",
+      "before_sha256": "474904dff2ccd6a29cfc2e9765b0c5ab0d852964cf5a8c259c8e26175c5aae2e",
+      "observations": 64,
+      "scope": "actual interpreter; controlled foreign-port/global lookup only",
+      "status": "PASS"
+    },
+    "budget_failures": {
+      "ledger": {
+        "actual_machine_mode_returns": {
+          "1": 4324,
+          "2": 15916,
+          "3": 8936,
+          "4": 25896,
+          "5": 33828,
+          "6": 68544,
+          "7": 816,
+          "8": 21180,
+          "9": 114670
+        },
+        "actual_machine_returns": 294110,
+        "inner_original_summary": "context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n\n----------------------------------------------------------------------\nRan 48 tests in 545.818s\n\nFAILED (failures=3)\n",
+        "native_mode_calls": {
+          "1": 46,
+          "2": 46,
+          "3": 46,
+          "4": 52,
+          "5": 236,
+          "6": 175,
+          "7": 4,
+          "8": 65,
+          "9": 46
+        },
+        "original_failure_blocks": [
+          "FAIL: test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 656, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 68, in build_pair\n    build = session.emit(revised, receipts=[check[\"verification_receipt\"]])\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-c202978c52e6a197fd47389dc89d4b5ff7c46c73f59ae1cd9507f413db533b26\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n\n",
+          "FAIL: test_native_timeout_is_incomplete_terminated_and_not_adoptable (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 571, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n    self.assertLess(time.monotonic() - started, 5)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 5.07476976199996 not less than 5\n\n",
+          "FAIL: test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 590, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        document=looping, candidate=looping, workload=workload,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 68, in build_pair\n    build = session.emit(revised, receipts=[check[\"verification_receipt\"]])\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-492d3ff440bb35bfa907c14a188b2d3c9e7663fa8e12da34ae806babc1939e18\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n\n----------------------------------------------------------------------\nRan 48 tests in 545.818s\n\nFAILED (failures=3)\n"
+        ],
+        "outer_errors": [],
+        "outer_failure_count": 1,
+        "outer_tests_run": 1,
+        "source_and_inputs_unchanged": true
+      },
+      "namespace": {
+        "actual_machine_mode_returns": {
+          "1": 3102,
+          "2": 11418,
+          "3": 7976,
+          "4": 19422,
+          "5": 23172,
+          "6": 62668,
+          "7": 816,
+          "8": 13212,
+          "9": 82248
+        },
+        "actual_machine_returns": 224034,
+        "inner_original_summary": "context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n\n----------------------------------------------------------------------\nRan 35 tests in 339.192s\n\nFAILED (failures=3)\n",
+        "native_mode_calls": {
+          "1": 33,
+          "2": 33,
+          "3": 41,
+          "4": 39,
+          "5": 162,
+          "6": 155,
+          "7": 4,
+          "8": 41,
+          "9": 33
+        },
+        "original_failure_blocks": [
+          "FAIL: test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 656, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 68, in build_pair\n    build = session.emit(revised, receipts=[check[\"verification_receipt\"]])\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-c8034558acc88d7c00cd24e23d4402b4feaf936b112810bd2bbcffd086366a1e\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n\n",
+          "FAIL: test_native_timeout_is_incomplete_terminated_and_not_adoptable (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 571, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n    self.assertLess(time.monotonic() - started, 5)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 5.095967535999989 not less than 5\n\n",
+          "FAIL: test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 590, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        document=looping, candidate=looping, workload=workload,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tests/test_hia_agent_native_tools.py\", line 68, in build_pair\n    build = session.emit(revised, receipts=[check[\"verification_receipt\"]])\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/joint-native314/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-048b8e6f21790201d311b281a1d344ed8bda8793786ec7a7c765be089442a1ca\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n\n----------------------------------------------------------------------\nRan 35 tests in 339.192s\n\nFAILED (failures=3)\n"
+        ],
+        "outer_errors": [],
+        "outer_failure_count": 1,
+        "outer_tests_run": 1,
+        "source_and_inputs_unchanged": true
+      }
+    },
+    "front_group_reports": [
+      {
+        "actual_status": "PASS",
+        "bytes": 27703,
+        "expected_tests": 40,
+        "path": "source-control-observations/REPORT.json",
+        "sha256": "0606a7c5d50a61036497996358a409a4d469f9eb5b0e6fe3070838e16081e02b",
+        "status": "PASS",
+        "tests_run": 40
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 17587,
+        "expected_tests": 27,
+        "path": "changed-compatibility-source-observations/REPORT.json",
+        "sha256": "17bd96fc33f3181aba2c4d58007b3b970ec22a9a23b422e2275a25c9d19418ed",
+        "status": "PASS",
+        "tests_run": 27
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 7486,
+        "expected_tests": 11,
+        "path": "native-control-observations/REPORT.json",
+        "sha256": "2c4f9d455c39ca83c69ec0fcd751d9007ece8e011b69b10187fea17d2bc1025a",
+        "status": "PASS",
+        "tests_run": 11
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 2059,
+        "expected_tests": null,
+        "path": "pure-source-projection/REPORT.json",
+        "sha256": "86cfaae637c583e738c9f7f47e492423dd7ccee90a4a0b1ef77251fa7aa51b09",
+        "status": "PASS",
+        "tests_run": null
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 10220,
+        "expected_tests": null,
+        "path": "controls-r3/RESULT.json",
+        "sha256": "557e63a85001e5a41b8dcdd299acf6c615850d10027a1f7c276cb4bbc715d40d",
+        "status": "PASS",
+        "tests_run": null
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 1157216,
+        "expected_tests": 46,
+        "path": "caller-matrix-r1/core-program-composite/REPORT.json",
+        "sha256": "ef3f07b2ac6cd4fb3ebe64589072e9a6e6debe66bf5f3c20969a71a429d383c5",
+        "status": "PASS",
+        "tests_run": 46
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 1147569,
+        "expected_tests": 18,
+        "path": "caller-matrix-r1/core-assembly/REPORT.json",
+        "sha256": "176acee368e8f02420532b87bfa47399b53e5f64fbafe4507c9c1a7326c26197",
+        "status": "PASS",
+        "tests_run": 18
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 1147800,
+        "expected_tests": 18,
+        "path": "caller-matrix-r1/assembly-assembly/REPORT.json",
+        "sha256": "474cd192298f6ab86aa6232a4b0e25d150110a9349c49e71cb0daae0c20d287f",
+        "status": "PASS",
+        "tests_run": 18
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 1164325,
+        "expected_tests": 64,
+        "path": "caller-matrix-r1/both-all/REPORT.json",
+        "sha256": "6d0a34044888aea431bf7f159332bf4f1933bb78d8475df93d6e8eeca2deb720",
+        "status": "PASS",
+        "tests_run": 64
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 1163491,
+        "expected_tests": 64,
+        "path": "caller-matrix-r1/default-all/REPORT.json",
+        "sha256": "12a3d405966f3fad56b6b5896446715763c01c109e7df10836c87eda5e8e746f",
+        "status": "PASS",
+        "tests_run": 64
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 1154752,
+        "expected_tests": 9,
+        "path": "capture-controls-r2/REPORT.json",
+        "sha256": "c805f5c3525a66464bb5643aa3ea2386bbf13a63d037a17b109ca6a451200dbe",
+        "status": "PASS",
+        "tests_run": 9
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 959302,
+        "expected_tests": 10,
+        "path": "transport-controls-r3/REPORT.json",
+        "sha256": "cb8adea91b111eb05a18192ee52974a07b94bfb2597250a05ec0db9621e3b320",
+        "status": "PASS",
+        "tests_run": 10
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 1147146,
+        "expected_tests": 4,
+        "path": "admission-controls-r2/REPORT.json",
+        "sha256": "081935098792df77698f438994989b397108c01e38fc39211c93f7ff3e073d04",
+        "status": "PASS",
+        "tests_run": 4
+      },
+      {
+        "actual_status": "PASS",
+        "bytes": 31241,
+        "expected_tests": 3,
+        "path": "global-controls-r3/REPORT.json",
+        "sha256": "b21cdea9ec8026ff248ecdc58eefc771e1efd90aed6475f564dd55a8ef23ed62",
+        "status": "PASS",
+        "tests_run": 3
+      }
+    ],
+    "job_id": 131542400546,
+    "original_agent": 48,
+    "original_agent_actual_machine_returns": 294210,
+    "original_agent_actual_mode_returns": {
+      "1": 4324,
+      "2": 15916,
+      "3": 8744,
+      "4": 25896,
+      "5": 33828,
+      "6": 68836,
+      "7": 816,
+      "8": 21180,
+      "9": 114670
+    },
+    "original_agent_modes": {
+      "1": 46,
+      "2": 46,
+      "3": 45,
+      "4": 52,
+      "5": 236,
+      "6": 176,
+      "7": 4,
+      "8": 65,
+      "9": 46
+    },
+    "original_agent_status": "PASS",
+    "original_compatibility_source": 27,
+    "original_requests_native": 11,
+    "original_requests_source": 40,
+    "status": "FAIL"
+  },
+  "actual314_source": {
+    "all_anomalies_empty": true,
+    "executed": 901,
+    "generators": 93,
+    "job_id": 131542400618,
+    "loaded": 901,
+    "new_registration_methods": 8,
+    "original_893_order_preserved": true,
+    "status": "PASS"
+  },
+  "artifact_custody": {
+    "actual-default311-r1": {
+      "complete_nested_original_raw_zip_in_git": true,
+      "index": {
+        "blob": "395b345db2c5cf6edebe9afc4c066917f024ae9c",
+        "bytes": 7925,
+        "full_fetch": true,
+        "key": "actual-default311-r1",
+        "sha256": "a5ee11cd0be858f9c72d738bdd7913b58d535f9ebe3e2a4817bac4dbabf9baa3"
+      },
+      "normal_core_scope": null,
+      "original_artifact": {
+        "artifact_id": 13991435284,
+        "bytes": 79752971,
+        "download_auth": "connector-provided signed URL; no Authorization header",
+        "file_id": "file_000000004a8c81f5925f462962043b98",
+        "head": "2e97dce1aaa0c79036f6ad1dfca0989c60a16ebd",
+        "job_id": 131542400387,
+        "run_id": 43321319848,
+        "sha256": "15ab503893b9d9b57433ff8138519d10ef6981b18f0e5c9fb5a855bc1f1c168c"
+      },
+      "outer_member_count": 3379,
+      "whole_outer_crc_sha_verified": true,
+      "whole_outer_zip_in_git": false,
+      "whole_outer_zip_local_and_actions_retained": true
+    },
+    "actual-native314-r1": {
+      "complete_nested_original_raw_zip_in_git": true,
+      "index": {
+        "blob": "d286cffe70039355ad314144dbab3db00f73288c",
+        "bytes": 15395,
+        "full_fetch": true,
+        "key": "actual-native314-r1",
+        "sha256": "90974b4faabc40c8dc2b376b15a960c292a6a3bcdc5fe185999b18daa5cae775"
+      },
+      "normal_core_scope": null,
+      "original_artifact": {
+        "artifact_id": 13991303955,
+        "authorization_header_sent": false,
+        "bytes": 138742664,
+        "download_seconds": 3.940304477000609,
+        "file_id": "file_000000001c2c81fb99892d2fa16cbf50",
+        "job_id": 131542400546,
+        "run_id": 43321319848,
+        "scope": "original artifact read only; no business execution",
+        "sha256": "7449eee05dc5e8f49fb6c53e1098aa046575f2425c90dc659047f63cc7b90072"
+      },
+      "outer_member_count": 4053,
+      "whole_outer_crc_sha_verified": true,
+      "whole_outer_zip_in_git": false,
+      "whole_outer_zip_local_and_actions_retained": true
+    },
+    "actual-source314-r1": {
+      "complete_nested_original_raw_zip_in_git": true,
+      "index": {
+        "blob": "43b3b706e77fe6e52ca655ad9948f23af7074984",
+        "bytes": 15625,
+        "full_fetch": true,
+        "key": "actual-source314-r1",
+        "sha256": "9c4263dea89cc4d85630c9e14aa959aec2731af039c44ba92e5d22b2fff978e5"
+      },
+      "normal_core_scope": null,
+      "original_artifact": {
+        "artifact_id": 13991433860,
+        "authorization_header_sent": false,
+        "bytes": 174877885,
+        "download_seconds": 10.484439867002948,
+        "file_id": "file_000000006abc81fba559d22e9c303baf",
+        "job_id": 131542400618,
+        "run_id": 43321319848,
+        "sha256": "e2bbb6d608962cfd189c23856a94d2fffdbaf012a79db9b8fa298b84dccc5563"
+      },
+      "outer_member_count": 3926,
+      "whole_outer_crc_sha_verified": true,
+      "whole_outer_zip_in_git": false,
+      "whole_outer_zip_local_and_actions_retained": true
+    },
+    "normal-core-original-r1": {
+      "complete_nested_original_raw_zip_in_git": false,
+      "index": {
+        "blob": "ce82f73eb1f1c96ef33c6da744ee298ba3fe9fdc",
+        "bytes": 71705,
+        "full_fetch": true,
+        "key": "normal-core-original-r1",
+        "sha256": "b812b083cdf5f145bb98f8dc6fb42c9222851c892bb9f7803e170d1ddbce25d8"
+      },
+      "normal_core_scope": "196 original selected control/phase/custody files; complete outer member inventory. Complete cold binary payload remains in original local/Actions ZIP.",
+      "original_artifact": {
+        "artifact_id": 13990573819,
+        "authorization_header_sent": false,
+        "bytes": 61985707,
+        "download_seconds": 2.4692559549948783,
+        "file_id": "file_00000000afb481fb9ec1a62e30e46795",
+        "job_id": 131546887153,
+        "run_id": 43322607810,
+        "sha256": "e3a42fc8828063ce07f9e205ebfa570d2c38e7bc1f959e7452f34f4009a6bd80"
+      },
+      "outer_member_count": 6730,
+      "whole_outer_crc_sha_verified": true,
+      "whole_outer_zip_in_git": false,
+      "whole_outer_zip_local_and_actions_retained": true
+    }
+  },
+  "harness": {
+    "branch": "codex/hia-requests-front-joint-v82-r3-20261112-dda7",
+    "bytes": 3502966,
+    "files": 51,
+    "head": "2e97dce1aaa0c79036f6ad1dfca0989c60a16ebd",
+    "run_id": 43321319848,
+    "scope": "New explicit development selection. Original compile20/group1800 budgets and test definitions preserved.",
+    "sole_parent": "8195d810dabb6f1ebdc993ae7372aa387d0d3853",
+    "tree": "972624d77ca638de3291581aba86966857f7e9f1"
+  },
+  "next_union": "Root3306 Artifact and Evaluation/Contract7 remain independent. Use this exact3291 source and explicit per-owner deltas; no qualification transfer.",
+  "normal_core": {
+    "cause": "Original cold qualification180 seconds timed out; no nested qualification report",
+    "checks_passed": 6,
+    "checks_total": 11,
+    "cleanup_complete": true,
+    "head": "3e4747901fdc59adc2572d0b56ee0281eab232e7",
+    "native_job_id": 131546887153,
+    "native_status": "FAIL",
+    "no_rerun": true,
+    "returncode": -9,
+    "run_id": 43322607810,
+    "source_job_id": 131546887512,
+    "source_status_at_this_checkpoint": "in_progress",
+    "wall_elapsed_ns": 180209844358
+  },
+  "schema": "hia.requests-front.joint-actual-handoff.v82.r3",
+  "scope": {
+    "active_c_and_python_stack_closed": false,
+    "current_source_cold": false,
+    "default_native_activated": false,
+    "default_python_routes_preserved": true,
+    "legacy_deleted": false,
+    "root_active_source_modified": false,
+    "whole_json_provider_migrated": false,
+    "whole_native": false,
+    "whole_normalization": false
+  },
+  "source": {
+    "base_files": 3257,
+    "branch": "codex/hia-requests-front-union-v82-r3-source-20261112-dda7",
+    "changed": 57,
+    "deleted": 0,
+    "delta_from_requests_r2": 32,
+    "files": 3291,
+    "head": "3e4747901fdc59adc2572d0b56ee0281eab232e7",
+    "new": 34,
+    "new_from_requests_r2": 19,
+    "publication_receipt": {
+      "blob": "35737239f3c366ac8fbbc918c2f882a3b42d4536",
+      "bytes": 1815446,
+      "sha256": "bc5723b621008fcb46aaa885b0d0ea60e103856be2ee90feef713d525dda55fd"
+    },
+    "requests_r2_base_tree": "98eff57e40af422cd69c39f2aa9588fdbf86a2ad",
+    "sole_parent": "65ceb711e47548f85ecf6b2ec2ae90f11dd50743",
+    "source_packet": {
+      "blob": "5b00590136a08a866f3bd1edf81c6966485f1a6e",
+      "bytes": 852920,
+      "sha256": "08f1a4236739688e4cc0673933b970681c2f969a73e6428def0be2077f951b42"
+    },
+    "tree": "ea19b301b495ca02f6301a237111d97835fdc476"
+  }
+}

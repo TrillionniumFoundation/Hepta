@@ -1,0 +1,77 @@
+name: HIA v71 isolated source generation
+
+"on":
+  push:
+    branches:
+      - codex/hia-source-harness-v71-20261112-dda7
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-generation:
+    runs-on: ubuntu-24.04
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      CANDIDATE_SHA: 8b9fbcbeb943447bdbd4e534f081f92e5f1ad8b2
+      CANDIDATE_TREE: 1766691461d2ba7fef644e2b4e436566016f2226
+    steps:
+      - name: Check out isolated harness
+        id: harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Check out exact unqualified source candidate
+        id: candidate
+        uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 8b9fbcbeb943447bdbd4e534f081f92e5f1ad8b2
+          path: source
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Set up original pinned Python
+        id: python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.4"
+      - name: Generate exact source records and run development source controls
+        id: driver
+        shell: bash
+        run: |
+          set -eu
+          python -B harness/tools/hia_source_integration_v71.py \
+            --source "$GITHUB_WORKSPACE/source" \
+            --expected-commit "$CANDIDATE_SHA" \
+            --expected-tree "$CANDIDATE_TREE" \
+            --output "$GITHUB_WORKSPACE/hia-source-v71-evidence" \
+            --install-dependencies
+      - name: Export lossless numbered report chunks even after failure
+        if: always()
+        shell: bash
+        env:
+          HIA_HARNESS_CHECKOUT_OUTCOME: ${{ steps.harness.outcome }}
+          HIA_SOURCE_CHECKOUT_OUTCOME: ${{ steps.candidate.outcome }}
+          HIA_PYTHON_SETUP_OUTCOME: ${{ steps.python.outcome }}
+          HIA_DRIVER_OUTCOME: ${{ steps.driver.outcome }}
+        run: |
+          set -eu
+          python -B harness/tools/hia_source_integration_v71.py \
+            --source "$GITHUB_WORKSPACE/source" \
+            --expected-commit "$CANDIDATE_SHA" \
+            --expected-tree "$CANDIDATE_TREE" \
+            --output "$GITHUB_WORKSPACE/hia-source-v71-evidence" \
+            --export-only
+      - name: Preserve complete source-generation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-source-v71-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            hia-source-v71-evidence/REPORT.json
+            hia-source-v71-evidence/candidate-source.tar.gz
+
+          if-no-files-found: error

@@ -1,0 +1,337 @@
+{
+  "schema": "hia.live-main-toolchain-and-packaging-static-audit.v1",
+  "observed_at": "2026-11-13 03:04:42 UTC",
+  "source_commit": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+  "source_tree": "578a72d9bd6dadf0375bed33e3d1aa5341c8f452",
+  "method": {
+    "complete_git_tree_non_truncated": true,
+    "all_tree_blob_entries": 2579,
+    "selected_files_read_in_full": 11,
+    "each_selected_full_blob_and_utf8_size_matched": true,
+    "new_execution": false,
+    "scope": "Complete syntactic inventory and bounded static review of exact source call paths. Not a claim of exhaustive dynamic verification or line-by-line review of all repository source."
+  },
+  "syntactic_inventory": {
+    "extensions": {
+      "hepta": {
+        "files": 178,
+        "bytes": 20903544
+      },
+      "hiaasm": {
+        "files": 0,
+        "bytes": 0
+      },
+      "hia": {
+        "files": 0,
+        "bytes": 0
+      },
+      "py": {
+        "files": 1149,
+        "bytes": 15422360
+      },
+      "rs": {
+        "files": 48,
+        "bytes": 535771
+      },
+      "S": {
+        "files": 10,
+        "bytes": 47546
+      }
+    },
+    "python_by_top_level": {
+      "benchmarks": {
+        "files": 11,
+        "bytes": 136167
+      },
+      "examples": {
+        "files": 1,
+        "bytes": 978
+      },
+      "experiments": {
+        "files": 91,
+        "bytes": 1187189
+      },
+      "formal": {
+        "files": 1,
+        "bytes": 5300
+      },
+      "hepta": {
+        "files": 186,
+        "bytes": 2832387
+      },
+      "review-evidence": {
+        "files": 5,
+        "bytes": 52956
+      },
+      "setup.py": {
+        "files": 1,
+        "bytes": 2719
+      },
+      "tests": {
+        "files": 488,
+        "bytes": 6234560
+      },
+      "tools": {
+        "files": 365,
+        "bytes": 4970104
+      }
+    },
+    "python_hia_generator_scripts": 74
+  },
+  "verified_files": [
+    {
+      "path": "tools/generate_hia_selfhost.py",
+      "git_blob": "67b47101b20646887e4d336059a6ee533b79faf2",
+      "bytes": 83794
+    },
+    {
+      "path": "tools/generate_hia_bootstrap_components.py",
+      "git_blob": "e6c0032dcd867ed4cf109fb07aad0c615e13f401",
+      "bytes": 26072
+    },
+    {
+      "path": "hepta/hia_program_selfhost.py",
+      "git_blob": "36e3f0df9bf840b61aa5fd79f36f6fd80467d3d3",
+      "bytes": 22489
+    },
+    {
+      "path": "tools/replay_hia_selfhost_cold.py",
+      "git_blob": "0d53ccbd2e56240280938ab829fe9c9798f02075",
+      "bytes": 7322
+    },
+    {
+      "path": "tools/hia_selfhost_contract.py",
+      "git_blob": "414bdd690b2941de008e4971a29ac8e792087358",
+      "bytes": 107638
+    },
+    {
+      "path": "tools/hia_native_process_observer.py",
+      "git_blob": "a8d79dacab5107ae81704bb2fd266abbe6cfd772",
+      "bytes": 20732
+    },
+    {
+      "path": "hepta/artifact_publication.py",
+      "git_blob": "67b4a06babb2098f71f130a72aff362790117a78",
+      "bytes": 6374
+    },
+    {
+      "path": "setup.py",
+      "git_blob": "cf9278924b2004577bb0a7ff0af9156ceb11d9d7",
+      "bytes": 2719
+    },
+    {
+      "path": "pyproject.toml",
+      "git_blob": "ca913dcef0c60ef1b3d27447e25f732e4dcd517f",
+      "bytes": 426
+    },
+    {
+      "path": "examples/hia_bootstrap/agent_identity.hepta",
+      "git_blob": "b6e3ebdd8ecd9efab0a4d0f0e554d55b39b53d34",
+      "bytes": 9204
+    },
+    {
+      "path": "hepta/cli.py",
+      "git_blob": "eed6f65a13fb67876db498a083041f2bc5529686",
+      "bytes": 12316
+    }
+  ],
+  "findings": [
+    {
+      "area": "Authored/generated HIA source",
+      "evidence": [
+        "examples/hia_bootstrap/agent_identity.hepta",
+        "tools/generate_hia_selfhost.py",
+        "tools/generate_hia_bootstrap_components.py"
+      ],
+      "observation": "The inspected .hepta program is real hia-asm.v1/hepta.hia.program.v8 text. The selfhost and component source production still runs Python AST/document/verify/render orchestration and writes .hepta outputs. All74 tracked tools/(gen_|generate_)hia_*.py paths remain. Absence of .hiaasm extension does not mean the generators have been rewritten in HIA."
+    },
+    {
+      "area": "Native compiler versus process/host ownership",
+      "evidence": [
+        "hepta/hia_program_selfhost.py"
+      ],
+      "observation": "build_program_selfhost uses an explicit bounded native compiler for its admitted object profile. Python still validates target/kind, owns subprocess.Popen on /proc/self/fd, bounds streams/deadlines, checks selection and publishes the exact output. This is an existing native compiler component plus a Python orchestration boundary, not elimination of Python."
+    },
+    {
+      "area": "Cold qualifier ownership",
+      "evidence": [
+        "tools/replay_hia_selfhost_cold.py",
+        "tools/hia_selfhost_contract.py"
+      ],
+      "observation": "The cold replay exports/checks source and invokes sys.executable -I -S -B tools/qualify_hia_selfhost.py under the original180-second qualification plus3-second cleanup owner. Contract source references include Python generators. These source/driver duties remain Python."
+    },
+    {
+      "area": "Native subprocess and publication mechanism",
+      "evidence": [
+        "tools/hia_native_process_observer.py",
+        "hepta/artifact_publication.py"
+      ],
+      "observation": "Native-process lifetime/streams/resource observation and exact file/inode publication remain Python mechanisms. The reference publication path performs lstat/open/read/identity checks and no-replace os.link plus exact-byte rechecks. Merely deleting these modules would remove required ownership/publication behavior."
+    },
+    {
+      "area": "Installed package and default public entry",
+      "evidence": [
+        "pyproject.toml",
+        "setup.py",
+        "hepta/cli.py"
+      ],
+      "observation": "Installed project uses setuptools.build_meta, requires-python >=3.11 and console script hia=hepta.cli:hia_main. The build hook packages resource files through Python AST and build_py. Default hia_main returns _reference_hia_main when HEPTA_HIA_CLI_MANIFEST is absent; selected native CLI is an explicit separate branch."
+    }
+  ],
+  "evidence_excerpts": [
+    {
+      "path": "tools/generate_hia_selfhost.py",
+      "findings": [
+        {
+          "line": 2174,
+          "excerpt": "    \"\"\"\n    return _source_function_names(ast.parse(source_program()).body)\n\n\ndef document(*, compact=True):\n    nodes=ast.parse(source_program()).body"
+        },
+        {
+          "line": 2178,
+          "excerpt": "def document(*, compact=True):\n    nodes=ast.parse(source_program()).body\n    # Source order deliberately contains backward direct calls. The HIA\n    # compiler's call-graph checker, not author-time topological numbering,\n    # admits its non-self DAG and checked direct tail self calls. General\n    # recursive cycles remain outside the native fixed profile."
+        },
+        {
+          "line": 2196,
+          "excerpt": "\ndef main():\n    doc,names=document()\n    output=ROOT/'examples/hia_bootstrap/selfhost.hepta'\n    output.write_text(render_assembly(doc))\n    print(json.dumps({'bytes':output.stat().st_size,'functions':names,'operations':sum(len(b['ops']) for f in doc['functions'] for b in f['blocks']),'blocks':sum(len(f['blocks']) for f in doc['functions'])},sort_keys=True))"
+        },
+        {
+          "line": 2199,
+          "excerpt": "    output=ROOT/'examples/hia_bootstrap/selfhost.hepta'\n    output.write_text(render_assembly(doc))\n    print(json.dumps({'bytes':output.stat().st_size,'functions':names,'operations':sum(len(b['ops']) for f in doc['functions'] for b in f['blocks']),'blocks':sum(len(f['blocks']) for f in doc['functions'])},sort_keys=True))\n\nif __name__=='__main__': main()\n"
+        }
+      ]
+    },
+    {
+      "path": "tools/generate_hia_bootstrap_components.py",
+      "findings": [
+        {
+          "line": 397,
+          "excerpt": "\ndef main():\n    program = verify_program(component_document())\n    source = render_assembly(program)\n    output = Path(__file__).resolve().parents[1] / \"examples\" / \"hia_bootstrap\" / \"components.hepta\"\n    output.parent.mkdir(parents=True, exist_ok=True)"
+        },
+        {
+          "line": 398,
+          "excerpt": "def main():\n    program = verify_program(component_document())\n    source = render_assembly(program)\n    output = Path(__file__).resolve().parents[1] / \"examples\" / \"hia_bootstrap\" / \"components.hepta\"\n    output.parent.mkdir(parents=True, exist_ok=True)\n    output.write_text(source, encoding=\"utf-8\")"
+        },
+        {
+          "line": 399,
+          "excerpt": "    program = verify_program(component_document())\n    source = render_assembly(program)\n    output = Path(__file__).resolve().parents[1] / \"examples\" / \"hia_bootstrap\" / \"components.hepta\"\n    output.parent.mkdir(parents=True, exist_ok=True)\n    output.write_text(source, encoding=\"utf-8\")\n    print(f\"{len(source.encode())} source bytes; {len(program.as_dict()['functions'])} HIA functions\")"
+        }
+      ]
+    },
+    {
+      "path": "hepta/hia_program_selfhost.py",
+      "findings": [
+        {
+          "line": 276,
+          "excerpt": "\ndef _run(fd, wire, timeout_seconds, cwd):\n    \"\"\"Bound all streams and retain leader ownership through group cleanup.\n\n    The admitted compiler has no fork/clone operation. This is lifetime control\n    of that trusted compiler, not a sandbox for arbitrary operator-selected code."
+        },
+        {
+          "line": 285,
+          "excerpt": "    deadline = started + timeout_seconds\n    proc = subprocess.Popen([\"/proc/self/fd/\" + str(fd)], pass_fds=(fd,),\n                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,\n                            env={\"PATH\": \"\"}, cwd=cwd, start_new_session=True, close_fds=True)\n    captured = {\"stdout\": bytearray(), \"stderr\": bytearray()}\n    written, eof = 0, set()"
+        },
+        {
+          "line": 374,
+          "excerpt": "\ndef build_program_selfhost(document, output, *, manifest, manifest_sha256,\n                           timeout_seconds=30, target=TARGET, kind=\"object\",\n                           machine_plan=None, foreign_buffer_exports=()):\n    \"\"\"Compile an explicit bounded v8 scalar object without the Python emitter.\"\"\"\n    if (target != TARGET or kind != \"object\" or machine_plan is not None"
+        },
+        {
+          "line": 427,
+          "excerpt": "                    os.fsync(stream.fileno())\n                publication = publish_verified(stage, captured_destination, data)\n                try:\n                    selection.check()\n                    directory.check()\n                    verify_published(stage, destination, data)"
+        }
+      ]
+    },
+    {
+      "path": "tools/replay_hia_selfhost_cold.py",
+      "findings": [
+        {
+          "line": 56,
+          "excerpt": "    nested_output = directory / \"qualification.json\"\n    command = [sys.executable, \"-I\", \"-S\", \"-B\",\n               str(source_root / \"tools/qualify_hia_selfhost.py\"),\n               \"--output\", str(nested_output)]\n    environment = {\"PATH\": \"/usr/bin:/bin\", \"HOME\": str(home), \"TMPDIR\": str(temp),\n                   \"LANG\": \"C.UTF-8\", \"LC_ALL\": \"C.UTF-8\", \"TZ\": \"UTC\"}"
+        },
+        {
+          "line": 67,
+          "excerpt": "    started = time.monotonic_ns()\n    owner = run_owned(command, cwd=home, env=environment,\n                      stdout_path=directory / \"stdout.log\", stderr_path=directory / \"stderr.log\",\n                      receipt_path=directory / \"process-owner.json\",\n                      qualification_seconds=180, cleanup_seconds=3)\n    returncode = owner.get(\"returncode\")"
+        }
+      ]
+    },
+    {
+      "path": "hepta/artifact_publication.py",
+      "findings": [
+        {
+          "line": 19,
+          "excerpt": "\ndef _identity(info):\n    return (info.st_dev, info.st_ino, info.st_mode, info.st_size,\n            info.st_mtime_ns, info.st_ctime_ns)\n\n"
+        },
+        {
+          "line": 24,
+          "excerpt": "\ndef _read_exact(path: Path, expected: bytes, *, identity=None):\n    try:\n        original = path.lstat()\n        if not stat.S_ISREG(original.st_mode) or (identity is not None and\n                _identity(original) != identity):"
+        },
+        {
+          "line": 37,
+          "excerpt": "                 | getattr(os, \"O_CLOEXEC\", 0))\n        with os.fdopen(os.open(path, flags), \"rb\") as stream:\n            if _identity(os.fstat(stream.fileno())) != before:\n                raise PublicationRejected(\"E_PUBLISH_RACE: file changed before read\")\n            data = stream.read(len(expected) + 1)\n            if data != expected or _identity(os.fstat(stream.fileno())) != before:"
+        },
+        {
+          "line": 50,
+          "excerpt": "\ndef publish_verified(stage: str | Path, destination: str | Path, expected: bytes) -> dict:\n    \"\"\"No-replace link and exact-byte receipt, removing only our link on failure.\n\n    The caller owns the staging file and must provide the bytes it previously\n    checked. This module never accepts a digest in place of those bytes."
+        },
+        {
+          "line": 67,
+          "excerpt": "    try:\n        os.link(stage, destination)\n    except OSError as exc:\n        raise PublicationRejected(\"E_PUBLISH_LINK: no-replace link failed\") from exc\n    try:\n        # Hard-link creation legitimately updates the staged inode's ctime."
+        },
+        {
+          "line": 90,
+          "excerpt": "\ndef verify_published(stage: str | Path, destination: str | Path, expected: bytes) -> dict:\n    \"\"\"Independently re-read both exact inodes after a source-level gate.\n\n    The stage and destination must still be the *same* ordinary inode with\n    the byte-for-byte payload validated before publication. A matching hash"
+        },
+        {
+          "line": 110,
+          "excerpt": "\ndef withdraw_own_link(stage: str | Path, destination: str | Path) -> bool:\n    \"\"\"Withdraw only the hardlink that still refers to our own staging inode.\n\n    A concurrent writer's *replacement path* must never be removed. A shared\n    inode may have changed in place; deleting only our destination pathname"
+        }
+      ]
+    },
+    {
+      "path": "hepta/cli.py",
+      "findings": [
+        {
+          "line": 210,
+          "excerpt": "def hia_main(argv=None):\n    selected = os.environ.get(\"HEPTA_HIA_CLI_MANIFEST\")\n    if selected is not None:\n        from .hia_cli_native import installed_cli\n        return installed_cli(selected).run(argv, sys.modules[__name__])\n    return _reference_hia_main(argv)\n\nmain = hia_main"
+        }
+      ]
+    },
+    {
+      "path": "pyproject.toml",
+      "findings": [
+        {
+          "line": 1,
+          "excerpt": "[build-system]\nrequires = [\"setuptools>=68\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"hia-core\"\nversion = \"0.3.0\"\ndescription = \"Typed HIA Core and AI Agent tooling\"\nrequires-python = \">=3.11\"\ndependencies = []\n\n[project.optional-dependencies]\nverification = [\"z3-solver==4.15.4.0\"]\noptimization = [\"z3-solver==4.15.4.0\"]\n\n[project.scripts]\nhia = \"hepta.cli:hia_main\"\n\n[tool.setuptools]\npackages = [\"hepta\"]\n"
+        }
+      ]
+    },
+    {
+      "path": "setup.py",
+      "findings": [
+        {
+          "line": 1,
+          "excerpt": "\"\"\"Package the pinned Agent discovery and native-app source resources.\n\nThis is a development Python wheel build hook, not native build orchestration.\nIt copies only explicit source-owned resources; it imports no product modules.\n\"\"\"\nfrom pathlib import Path\nimport ast\nimport shutil\nfrom setuptools import setup\nfrom setuptools.command.build_py import build_py\n\nROOT=Path(__file__).resolve().parent\n\ndef agent_resources():\n    tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())\n    values={}\n    for symbol in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES'):\n        declarations=[node for node in tree.body if isinstance(node,ast.Assign)"
+        }
+      ]
+    }
+  ],
+  "comparison_to_a733": {
+    "source_commit": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9",
+    "source_tree": "1c5ba7e1217f46f2b95512640d08f19e2cc8b1fd",
+    "counts": {
+      "identical": 1597,
+      "changed_same_path": 419,
+      "main_only": 563,
+      "a733_only": 1308
+    },
+    "qualification_transfer": false
+  },
+  "conclusion": {
+    "whole_native": false,
+    "default_native": false,
+    "toolchain_self_rewrite_closed": false,
+    "production_retirement_allowed": false,
+    "unverified_new_experiments_promoted": false
+  },
+  "authoring_revision": {
+    "supersedes_unmounted_blob": "f3c1130481bf35e80c79bd3cc8d92b8d883bd184",
+    "correction": "Use the exact selector name HEPTA_HIA_CLI_MANIFEST from the already included source excerpt, not a generic context name. No source or execution changed."
+  }
+}

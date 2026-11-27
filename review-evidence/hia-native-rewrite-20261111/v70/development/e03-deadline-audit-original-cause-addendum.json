@@ -1,0 +1,95 @@
+{
+  "schema": "hia.independent.e03-namespace-ledger-stage-audit.addendum.v1",
+  "original_report_blob": "b31340112e55300645251a10b0a1c697d38718f1",
+  "original_report_sha256": "2d70ce38f90b972c5dfb8c119b9bab3db5264072d0066f68a652b985e1e5e3a1",
+  "original_report_unchanged": true,
+  "source_commit": "e03c82d1b5b7026ead9a5942336d54273b1a6931",
+  "evidence": {
+    "blob": "b3da5d034fbbf90ed65216477b8fc9e4ea251c2f",
+    "bytes": 36308,
+    "sha256": "391f270c3bdca4465455c54c3e4912f41521323aa14b9a9ca028eb38693fe2e5",
+    "independently_fetched_and_hashed": true
+  },
+  "finding": "Both original full-run reference_loop errors were triggered by the original fixture assertion after _required_claims returned, not a native ACK rejection. NativeRequestTicket.run wrapped the AssertionError as RequestJournalUnknown because no confirmed terminal callback result existed. Preserve the unknown classification; do not turn it into ordinary budget rejection or replay.",
+  "observed_remaining_seconds": [
+    -0.7292891502380371,
+    -0.7449177265167236
+  ],
+  "controls_executed": 0,
+  "source_edits": 0,
+  "selected_original_blocks": [
+    {
+      "block_sha256": "5906c282dae9cf33bdc162124480ed6088af48862955510c4a095e6c536aaee5",
+      "block_size": 4450,
+      "exception_excerpt": [
+        "AssertionError: -0.7292891502380371 not greater than 0 : fixture preparation exhausted the original context budget",
+        "hepta.hia_request_journal_native.RequestJournalUnknown: request callback result acknowledgement is unconfirmed"
+      ],
+      "kind": "ERROR",
+      "origin": {
+        "mode": "0o600",
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression.stderr.log",
+        "sha256": "88c37227a41678b80aa4e4a201940fe4047b5a4e47dfd77af56149cc212e4d88",
+        "size": 937616
+      },
+      "test": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)",
+      "traceback_before_assertion": "ERROR: test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_request_journal_native.py\", line 598, in run\n    response = encode_response(invoke())\n                               ~~~~~~^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 291, in <lambda>\n    response = ticket.run(lambda: getattr(self, '_' + tool)(arguments),\n                                  ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 1161, in _hia_evaluate\n    objective = self._required_claims(context, args[\"candidate_artifact\"],\n                                     args[\"verification_receipts\"], baseline_program.sha256)\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1176, in __call__\n    return self._mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1180, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1247, in _execute_mock_call\n    result = effect(*args, **kwargs)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 617, in wait_inside_evaluation\n    self.assertGreater(remaining, 0, \"fixture preparation exhausted the original context budget\")\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
+    },
+    {
+      "block_sha256": "ee712bc6b5417c1d041818beb0055d77af8277fabc30fd68ff96b3dde132af6d",
+      "block_size": 3116,
+      "exception_excerpt": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_verify: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-c620322676d980327d1e6dc79ced6625e64832b70a687f3bb0f87f4e5a41e5a3\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "kind": "FAIL",
+      "origin": {
+        "mode": "0o600",
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression.stderr.log",
+        "sha256": "88c37227a41678b80aa4e4a201940fe4047b5a4e47dfd77af56149cc212e4d88",
+        "size": 937616
+      },
+      "test": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)",
+      "traceback_before_assertion": "FAIL: test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 656, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 69, in build_pair\n    encoding = session.encoding(revised, build)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 270, in encoding\n    return self.verify(candidate, subject={\"kind\": \"native_artifact\",\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        \"backend_profile\": self.backend, \"native_artifact\": build[\"native_artifact\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        \"build_receipt\": build[\"build_receipt\"]}, claims=[\"encoding_check\"])\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 258, in verify\n    return self.client.result(\"hia_verify\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        base_program=base, validation_profile=self.profiles[\"validation\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        subject=subject, claims=claims))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", l"
+    },
+    {
+      "block_sha256": "8e2b216e609c0710699ac80246e951a8eb2df4dd80913e8c02558aeeaf94494e",
+      "block_size": 4450,
+      "exception_excerpt": [
+        "AssertionError: -0.7449177265167236 not greater than 0 : fixture preparation exhausted the original context budget",
+        "hepta.hia_request_journal_native.RequestJournalUnknown: request callback result acknowledgement is unconfirmed"
+      ],
+      "kind": "ERROR",
+      "origin": {
+        "mode": "0o600",
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression.stderr.log",
+        "sha256": "88c37227a41678b80aa4e4a201940fe4047b5a4e47dfd77af56149cc212e4d88",
+        "size": 937616
+      },
+      "test": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)",
+      "traceback_before_assertion": "ERROR: test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_request_journal_native.py\", line 598, in run\n    response = encode_response(invoke())\n                               ~~~~~~^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 291, in <lambda>\n    response = ticket.run(lambda: getattr(self, '_' + tool)(arguments),\n                                  ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/hepta/hia_agent_service.py\", line 1161, in _hia_evaluate\n    objective = self._required_claims(context, args[\"candidate_artifact\"],\n                                     args[\"verification_receipts\"], baseline_program.sha256)\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1176, in __call__\n    return self._mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1180, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 1247, in _execute_mock_call\n    result = effect(*args, **kwargs)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 617, in wait_inside_evaluation\n    self.assertGreater(remaining, 0, \"fixture preparation exhausted the original context budget\")\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
+    },
+    {
+      "block_sha256": "7f22b33c01b1e7e54a339be26a6565baa4e754d2dcc7c714b61f722ae7931ac8",
+      "block_size": 3126,
+      "exception_excerpt": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_verify: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-4c55a968d4eb8cd1666222cebf0d91e6ef84169c90bcb6f284214e497d9e2b84\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "kind": "FAIL",
+      "origin": {
+        "mode": "0o600",
+        "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/qualification-published-v68-e03c82d1-r1/qualification/full-retained-regression.stderr.log",
+        "sha256": "88c37227a41678b80aa4e4a201940fe4047b5a4e47dfd77af56149cc212e4d88",
+        "size": 937616
+      },
+      "test": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)",
+      "traceback_before_assertion": "FAIL: test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 656, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tests/test_hia_agent_native_tools.py\", line 69, in build_pair\n    encoding = session.encoding(revised, build)\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 270, in encoding\n    return self.verify(candidate, subject={\"kind\": \"native_artifact\",\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        \"backend_profile\": self.backend, \"native_artifact\": build[\"native_artifact\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        \"build_receipt\": build[\"build_receipt\"]}, claims=[\"encoding_check\"])\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", line 258, in verify\n    return self.client.result(\"hia_verify\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        base_program=base, validation_profile=self.profiles[\"validation\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        subject=subject, claims=claims))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/published-v68-e03c82d1-r1/source/tools/hia_agent_native_qualification.py\", l"
+    }
+  ],
+  "parent_reported_source_size_arithmetic": {
+    "provenance": "Parent reported independently checked complete e03 Git tree against exact 751-path support contract; this agent has independently read the 751-path contract but has not refetched that complete tree.",
+    "source_bytes_one_sweep": 20198062,
+    "static_98_calls_bytes": 1979410076,
+    "static_158_calls_bytes": 3191293796,
+    "execution_telemetry": false
+  }
+}

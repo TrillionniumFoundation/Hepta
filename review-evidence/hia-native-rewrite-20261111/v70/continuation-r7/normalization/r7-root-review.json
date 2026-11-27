@@ -1,0 +1,20 @@
+{
+  "source_blob": "4bfd4af0bab135db4240827b1c9b69c2ddde026a",
+  "files": 10,
+  "all_individual_file_hashes_verified": true,
+  "changed_paths_vs_r6": [
+    "hepta/hia_program_normalization_native.py",
+    "tools/hia_program_normalization_notes.c",
+    "hepta/hia_program_normalization_notes.py",
+    "docs/HIA_PROGRAM_NORMALIZATION_NOTES_DEVELOPMENT.md"
+  ],
+  "hia_source_change": false,
+  "findings": [
+    "The fixed native delivery uses only the admitted existing exception and four pinned API pointers; no Python repair of the exception context chain.",
+    "The note/delivery bridge releases only its own local borrows in finally; native parent scopes and key pins retain their prior ownership rules.",
+    "Kind 4 rejects nonnull container/key and nonzero index before touching PyErr, and returns NULL with one owned reference in the raised slot."
+  ],
+  "observed_selected_coordinator_controls": 78,
+  "whole_owner_qualified": false,
+  "physical_recursion_qualified": false
+}

@@ -1,0 +1,39 @@
+{
+  "after": {
+    "examples/hia_bootstrap/heap_payload.hiaasm": "16841f817faa333c7f562e40b3e20ec1ec9215c9ae9c16bce508798446904fda",
+    "hepta/hia_heap_bound.py": "c51ad178d08612852c0a5c58edb73d15297c48eb8bfdfd796dbe8214969978b8",
+    "hepta/hia_heap_bound_native.py": "f9f6ac932b4c4e70466d157b0b409e9f271a9d0b29865c6c2ff44db127ad42b0",
+    "tools/generate_hia_heap_bound.py": "cf3e5b9db5c74d01b42d72e316ff049c8d6fca14af1954a3ba8da9e94108c236",
+    "tools/hia_heap_payload.py": "7c5e4cf09738b01f02bd45ce108007ebe8cc5d014cf203587c75bed3bc4b6941"
+  },
+  "before": {
+    "examples/hia_bootstrap/heap_payload.hiaasm": "16841f817faa333c7f562e40b3e20ec1ec9215c9ae9c16bce508798446904fda",
+    "hepta/hia_heap_bound.py": "c51ad178d08612852c0a5c58edb73d15297c48eb8bfdfd796dbe8214969978b8",
+    "hepta/hia_heap_bound_native.py": "f9f6ac932b4c4e70466d157b0b409e9f271a9d0b29865c6c2ff44db127ad42b0",
+    "tools/generate_hia_heap_bound.py": "cf3e5b9db5c74d01b42d72e316ff049c8d6fca14af1954a3ba8da9e94108c236",
+    "tools/hia_heap_payload.py": "7c5e4cf09738b01f02bd45ce108007ebe8cc5d014cf203587c75bed3bc4b6941"
+  },
+  "cgroup": "0::/user.slice/user-1000.slice/user@1000.service/app.slice/hepta-runtime-job-1a1cc720c7c-2564-f2b.service\n",
+  "finished": 1794431389.8871007,
+  "phases": {
+    "payload_alias": {
+      "exception": "'NoneType' object has no attribute '__dict__'",
+      "exception_type": "AttributeError",
+      "status": "FAIL_BEFORE_COMPLETE_COMPARISON",
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 34, in <module>\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/heap-native-v70-r1/public-heap-r5-preflight-and-payload-alias-r1/original_hia_heap_bound.py\", line 181, in <module>\n    @dataclass(frozen=True)\n     ~~~~~~~~~^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/dataclasses.py\", line 1432, in wrap\n    return _process_class(cls, init, repr, eq, order, unsafe_hash,\n                          frozen, match_args, kw_only, slots,\n                          weakref_slot)\n  File \"/usr/lib/python3.14/dataclasses.py\", line 1055, in _process_class\n    and _is_type(type, cls, dataclasses, dataclasses.KW_ONLY,\n        ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 _is_kw_only))):\n                 ^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/dataclasses.py\", line 814, in _is_type\n    ns = sys.modules.get(cls.__module__).__dict__\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute '__dict__'. Did you mean: '__dir__'?\n"
+    },
+    "r5_preflight": {
+      "exception": "('tools/generate_hia_heap_bound.py', 'cf3e5b9db5c74d01b42d72e316ff049c8d6fca14af1954a3ba8da9e94108c236')",
+      "exception_type": "AssertionError",
+      "status": "FAIL",
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 20, in <module>\n  File \"/home/qq/hia-native-self-rewrite-20261111-dda7/heap-native-v70-r1/public-heap-r5-preflight-and-payload-alias-r1/r5-planning-only.py\", line 13, in <module>\n    assert digest(S/path)==h,(path,digest(S/path))\n           ^^^^^^^^^^^^^^^^^\nAssertionError: ('tools/generate_hia_heap_bound.py', 'cf3e5b9db5c74d01b42d72e316ff049c8d6fca14af1954a3ba8da9e94108c236')\n"
+    }
+  },
+  "pid": 581208,
+  "scope": "READ_ONLY_R5_PLANNING_AND_EXACT_R3_PAYLOAD_ALIAS_WITNESS",
+  "source_mutated": false,
+  "source_unchanged": true,
+  "started": 1794431389.8581028,
+  "status": "OBSERVED_DIFFERENCE_OR_FAILURE",
+  "whole_or_cold_qualification": false
+}

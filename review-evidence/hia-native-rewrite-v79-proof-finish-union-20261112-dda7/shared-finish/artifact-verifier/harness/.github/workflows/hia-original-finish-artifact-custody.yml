@@ -1,0 +1,39 @@
+name: HIA shared finish R5 original artifact custody
+on:
+  push:
+    branches:
+      - codex/hia-shared-finish-r5-artifact-custody-v79-20261112-dda7
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original-finish-artifacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [coreplan, byte]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Verify exact original ZIP bytes and every outer CRC
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_EXPECTED: expected-${{ matrix.scope }}.json
+        run: python -B verify_original_artifact.py
+      - name: Retain complete verification report and original API metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-original-finish-r5-${{ matrix.scope }}-artifact-custody
+          path: |
+            ${{ runner.temp }}/hia-original-artifact-custody/*.json
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 9

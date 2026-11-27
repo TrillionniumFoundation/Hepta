@@ -1,0 +1,11 @@
+# Completed-original custody only
+
+This independent harness reads the five pinned, already-completed artifacts in inputs/ORIGINALS.json. It does not import the product, compile any HIA, execute any original test, change a deadline, post comments/statuses, or move product/audit refs. The only repository write API used by the job is immutable Git blob creation. Actions read permission fetches the original artifact metadata and bytes; contents write permission creates those blobs.
+
+Every artifact ID/run/head/size/SHA256/retention record is checked. All outer and inner members are fully read for CRC32/SHA256/Git-blob identity and their original ZIP modes are recorded. The a733 source bytes must reconstruct the actual 3324-file Git tree and match all original before/generated/after records that exist in the original profile schema. The earlier 4925 diagnostic is checked against its own original Git tree, sharing only byte identities of the same immutable Git blobs; its distinct three source files are read and verified separately. Original harness trees and all files are independently read from their pinned Git objects; original retained harness-unchanged fields remain explicit.
+
+Each original inner ZIP is preserved in original byte order, split into 512 KiB binary chunks carried in UTF-8 JSON/base64 wrappers. Each immutable blob creation is followed by a complete GET and byte comparison. Ambiguous POST failures stop without replay. A complete or partial index and exact mount recipe are retained and printed. The custodian's own success means completed custody only. Original FAIL/HOLD results remain original FAIL/HOLD, and no cold/full/whole-native qualification is conferred.
+
+Original outer ZIPs are not reconstructed from the inners. Their original Actions artifact identity and 90-day expiry remain separately recorded; previously downloaded local original ZIPs are not modified by this job.
+
+Source authoring occurred while the local executor was unavailable. Static source review preceded publication; the first actual parser and custody execution will be this independent Actions job. One V8 authoring call failed at template-string parsing before any statements or mutations ran; the final literal workflow string was then authored independently. This was not a product execution or original test outcome.

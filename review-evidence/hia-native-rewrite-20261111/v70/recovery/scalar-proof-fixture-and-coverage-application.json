@@ -1,0 +1,206 @@
+{
+  "after_files": {
+    "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": {
+      "mode": "0o600",
+      "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/recovery-v70-published-8ca-r1/docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
+      "sha256": "1da737da6e955e75b5d20bf18230827467b27a3e78e2d0f81bf5ce986d3ac049",
+      "size": 176645
+    },
+    "tests/test_hia_scalar_proof_identity.py": {
+      "mode": "0o600",
+      "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/recovery-v70-published-8ca-r1/tests/test_hia_scalar_proof_identity.py",
+      "sha256": "03cbde73f488afc7b44dbc0fd25b785a35ffa4acd8cda19feabc72c10558be0e",
+      "size": 6620
+    }
+  },
+  "after_head": "8ca2197693c98e48d0d16ab3c077efc7cd535653",
+  "author_configuration": {
+    "argv": [
+      "git",
+      "config",
+      "--show-origin",
+      "--get-regexp",
+      "^user\\.(name|email)$"
+    ],
+    "returncode": 1,
+    "stderr": "",
+    "stdout": ""
+  },
+  "before_head": "8ca2197693c98e48d0d16ab3c077efc7cd535653",
+  "before_tree": "d9a0a779301d25ffbfdc1601ed86ce0d76a9236b",
+  "candidate": {
+    "mode": "0o600",
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-scalar-proof-fixture-repair-r1/test_hia_scalar_proof_identity_candidate.py",
+    "sha256": "03cbde73f488afc7b44dbc0fd25b785a35ffa4acd8cda19feabc72c10558be0e",
+    "size": 6620
+  },
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "8ca2197693c98e48d0d16ab3c077efc7cd535653\n"
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD^{tree}"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "d9a0a779301d25ffbfdc1601ed86ce0d76a9236b\n"
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "git",
+        "config",
+        "--show-origin",
+        "--get-regexp",
+        "^user\\.(name|email)$"
+      ],
+      "returncode": 1,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--name-only"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\ntests/test_hia_scalar_proof_identity.py\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--",
+        "tests/test_hia_scalar_proof_identity.py",
+        "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "diff --git a/docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json b/docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\nindex e9f200b..e093401 100644\n--- a/docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\n+++ b/docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\n@@ -5208,7 +5208,7 @@\n       \"path\": \"examples/hia_bootstrap/selfhost.hiaasm\",\n       \"sha256\": \"87b28eccd42540b5d2e82c0eb0c6a469805f2cbd2e725a30cc569dfc91ec7058\"\n     },\n-    \"semantic_support_sha256\": \"22f0d66f0e254587f2aaddef8608a56c4e1f6ede76f443fc2aa31242128e0202\",\n+    \"semantic_support_sha256\": \"0b68ae9d50fd27a4b3704e4f7b958bc0d41e87604e2a67dd3d14a8d2532e3939\",\n     \"support_projection_omits\": [\n       \"source_identity\"\n     ]\ndiff --git a/tests/test_hia_scalar_proof_identity.py b/tests/test_hia_scalar_proof_identity.py\nindex 26196e1..2faf659 100644\n--- a/tests/test_hia_scalar_proof_identity.py\n+++ b/tests/test_hia_scalar_proof_identity.py\n@@ -2,11 +2,13 @@\n from __future__ import annotations\n \n from pathlib import Path\n+from hashlib import sha256\n import shutil\n import tempfile\n import unittest\n from unittest.mock import patch\n \n+from hepta import hia_checker_identity as checker_identity\n from hepta import hia_scalar_call_validation as calls\n from hepta import hia_scalar_totality as totality\n from hepta import hia_translation_validation as scalar\n@@ -15,6 +17,9 @@ from tests.test_hia_scalar_totality import guarded_call_division\n from tools import qualify_hia_sequential_core as proof\n \n \n+SCALAR_PROOF_DRIFT_OBSERVATIONS = []\n+\n+\n class ScalarProofIdentityTests(unittest.TestCase):\n     def implementation_copy(self, directory):\n         original = Path(totality.__file__).parent\n@@ -31,6 +36,30 @@ class ScalarProofIdentityTests(unittest.TestCase):\n         # Live checker/encoder bindings continue to execute the genuine code.\n         path.write_bytes(path.read_bytes() + b\"\\n# identity drift control\\n\")\n \n+    def drift_in_actual_lock(self, path, identity, profile):\n+        locked_path = Path(checker_identity.__file__).with_name(\"hia_capability_flow.py\")\n+        self.assertEqual(locked_path, path)\n+        before_bytes = path.read_bytes()\n+        before_hash = sha256(before_bytes).hexdigest()\n+        before = identity()\n+        self.assertEqual(before[\"hia_capability_flow.py\"], before_hash)\n+        self.drift(path)\n+        after_bytes = path.read_bytes()\n+        after_hash = sha256(after_bytes).hexdigest()\n+        after = identity()\n+        self.assertNotEqual(before_bytes, after_bytes)\n+        self.assertNotEqual(before_hash, after_hash)\n+        self.assertEqual(after[\"hia_capability_flow.py\"], after_hash)\n+        self.assertNotEqual(before[\"hia_capability_flow.py\"],\n+                            after[\"hia_capability_flow.py\"])\n+        SCALAR_PROOF_DRIFT_OBSERVATIONS.append({\n+            \"profile\": profile, \"checker_module_file\": checker_identity.__file__,\n+            \"lock_path\": str(locked_path),\n+            \"before_sha256\": before_hash, \"after_sha256\": after_hash,\n+            \"lock_before_sha256\": before[\"hia_capability_flow.py\"],\n+            \"lock_after_sha256\": after[\"hia_capability_flow.py\"],\n+        })\n+\n     def test_primitive_totality_refuses_changed_extracted_capability_source(self):\n         original = scalar._Encoder.function\n         with tempfile.TemporaryDirectory() as temporary:\n@@ -39,10 +68,13 @@ class ScalarProofIdentityTests(unittest.TestCase):\n \n             def encode(encoder, *args, **kwargs):\n                 result = original(encoder, *args, **kwargs)\n-                self.drift(directory / \"hia_capability_flow.py\")\n+                self.drift_in_actual_lock(directory / \"hia_capability_flow.py\",\n+                                          totality._primitive_implementation_identity, \"primitive\")\n                 return result\n \n             with (patch.object(totality, \"__file__\", str(location)),\n+                  patch.object(checker_identity, \"__file__\",\n+                               str(directory / \"hia_checker_identity.py\")),\n                   patch.object(scalar._Encoder, \"function\", encode)):\n                 result = totality.validate_scalar_totality(arithmetic(\"int.add.wrap\", \"u32\"))\n         self.assertEqual(result[\"status\"], \"unknown\", result)\n@@ -61,11 +93,14 @@ class ScalarProofIdentityTests(unittest.TestCase):\n                 nonlocal changed\n                 result = original(encoder, *args, **kwargs)\n                 if not changed:\n-                    self.drift(directory / \"hia_capability_flow.py\")\n+                    self.drift_in_actual_lock(directory / \"hia_capability_flow.py\",\n+                                              totality._call_implementation_identity, \"call\")\n                     changed = True\n                 return result\n \n             with (patch.object(totality, \"__file__\", str(location)),\n+                  patch.object(checker_identity, \"__file__\",\n+                               str(directory / \"hia_checker_identity.py\")),\n                   patch.object(calls._Calls, \"function\", encode)):\n                 result = totality.validate_scalar_call_totality(\n                     guarded_call_division(), function=\"calculate\")\n"
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": " M docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\n M tests/test_hia_scalar_proof_identity.py\n"
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "8ca2197693c98e48d0d16ab3c077efc7cd535653\n"
+    }
+  ],
+  "commit_decision": "No configured author; leave exactly two reviewed working-tree changes, no identity invented.",
+  "committed": false,
+  "coverage_change": {
+    "after": {
+      "mode": "0o600",
+      "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/recovery-v70-published-8ca-r1/docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
+      "sha256": "1da737da6e955e75b5d20bf18230827467b27a3e78e2d0f81bf5ce986d3ac049",
+      "size": 176645
+    },
+    "before": {
+      "mode": "0o600",
+      "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/recovery-v70-published-8ca-r1/docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
+      "sha256": "5caa3e7e73375f6c98061f3b40c5910978e2fa01bcde88c860f6edc43f837762",
+      "size": 176645
+    }
+  },
+  "coverage_changed_json_paths": [
+    "/source/semantic_support_sha256"
+  ],
+  "diff": {
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-scalar-proof-fixture-repair-r1/v70-fixture-and-coverage.patch",
+    "sha256": "bd80e821f4c865e9b19cf680b0c6d0de047869a21e433bb78c36c43e89fb2720",
+    "size": 5128
+  },
+  "final_status": " M docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\n M tests/test_hia_scalar_proof_identity.py\n",
+  "generated_unwritten": {
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-scalar-proof-fixture-repair-r1/v70-generated-HIA_SELFHOST_LANGUAGE_COVERAGE.json",
+    "sha256": "1da737da6e955e75b5d20bf18230827467b27a3e78e2d0f81bf5ce986d3ac049",
+    "size": 176645
+  },
+  "generator": {
+    "mode": "0o600",
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/recovery-v70-published-8ca-r1/tests/test_hia_selfhost_language_coverage.py",
+    "sha256": "c80501bb7ca159306028bdfd0f49a950b6f4c98beab87387b928013db16479d0",
+    "size": 97835
+  },
+  "generator_helpers": {
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/e03-scalar-proof-fixture-repair-r1/v70-coverage-original-helpers.py",
+    "sha256": "b98130b51e943bc9bb2b812f902eb73c73a7dadd454fdefce1d86c60edc717df",
+    "size": 620
+  },
+  "original_e03_source_modified": false,
+  "passed": true,
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "removed_hepta_environment": {
+    "HEPTA_RUNTIME_JOB_ID": "1a1cbfe345f-2564-d93"
+  },
+  "scope": "TWO_FILE_FIXTURE_AND_DERIVED_COVERAGE_REPAIR_ONLY_NO_COLD_FULL_OR_PUBLICATION",
+  "seconds": 1.9954154430888593,
+  "semantic_support_after": "0b68ae9d50fd27a4b3704e4f7b958bc0d41e87604e2a67dd3d14a8d2532e3939",
+  "semantic_support_before": "22f0d66f0e254587f2aaddef8608a56c4e1f6ede76f443fc2aa31242128e0202",
+  "source_root": "/home/qq/hia-native-self-rewrite-20261111-dda7/recovery-v70-published-8ca-r1",
+  "test_change": {
+    "after": {
+      "mode": "0o600",
+      "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/recovery-v70-published-8ca-r1/tests/test_hia_scalar_proof_identity.py",
+      "sha256": "03cbde73f488afc7b44dbc0fd25b785a35ffa4acd8cda19feabc72c10558be0e",
+      "size": 6620
+    },
+    "before": {
+      "mode": "0o600",
+      "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/recovery-v70-published-8ca-r1/tests/test_hia_scalar_proof_identity.py",
+      "sha256": "b568399c37ddc0f560f0f195b6325604500784f0f789feeca0dafe3a6d10aa8c",
+      "size": 4770
+    }
+  },
+  "validate_inventory": {
+    "called_original_function": true,
+    "exception": null,
+    "returned_type": "dict"
+  }
+}

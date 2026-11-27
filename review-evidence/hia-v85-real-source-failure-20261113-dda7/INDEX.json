@@ -1,0 +1,535 @@
+{
+  "schema": "hepta.combined-source-development-checkpoint.v1",
+  "status": "REAL_SOURCE_GENERATION_FAILED_BEFORE_OWNER_GENERATORS_OR_TESTS",
+  "previous_audit_commit": "147ec49abaabb3b544cbce08b8a33f2dacae81a6",
+  "fixed_sources": {
+    "ours": {
+      "commit": "f33d8da316de8fdf27b504371f1a5310997ff548",
+      "tree": "378bc0dc613befc7006f1514bd2229357ae0d07c",
+      "files": 2580
+    },
+    "theirs": {
+      "commit": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9",
+      "tree": "1c5ba7e1217f46f2b95512640d08f19e2cc8b1fd",
+      "files": 3324
+    },
+    "best_merge_bases": [
+      "5831f52fada45e076f8f68f198a15c0585e6104f",
+      "93d66bcc3acb88212c9b153d7852ba22eeab24c8"
+    ]
+  },
+  "executed_harness_commit": "97b869129993f450f17bc632ab6da21c9a504a75",
+  "run": 43379129114,
+  "job": 131732539209,
+  "result": {
+    "HIA_COMBINED_SOURCE_RESULT": {
+      "cold_qualifications": 0,
+      "composition": {
+        "authored_files": 285,
+        "conflicts_resolved": 122,
+        "exact_retained": 36,
+        "regeneration_seeds": 185
+      },
+      "default_changed": false,
+      "failures": [
+        {
+          "error": "unexpected Git return code: pre-generation-0",
+          "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 772, in main\n    result[\"generation\"] = regenerate(capture,inputs)\n                           ~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 532, in regenerate\n    python_command(capture, command, \"pre-generation-\" + str(index), limit=300)\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 527, in python_command\n    return capture.run([sys.executable, \"-B\", *arguments], cwd=capture.repo, label=label,\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                       auth=False, limit=limit, enforce=enforce)\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 164, in run\n    check(process.returncode in allowed, \"unexpected Git return code: \" + label)\n    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unexpected Git return code: pre-generation-0\n",
+          "type": "RuntimeError"
+        }
+      ],
+      "finished_at": "2026-11-13T06:30:53.962647+00:00",
+      "legacy_host_implementation_deleted": false,
+      "native_execution_count": null,
+      "native_qualification_jobs_executed": 0,
+      "product_ref_changed": false,
+      "product_tests_executed": 0,
+      "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+      "schema": "hepta.combined-source-build-result.v1",
+      "scope": "COMBINED_SOURCE_REGENERATION_AND_SOURCE_TESTS",
+      "started_at": "2026-11-13T06:30:26.085002+00:00",
+      "status": "FAIL",
+      "syntax": {
+        "checked": 1439,
+        "failures": 0
+      },
+      "terminal_source_snapshot": {
+        "all_partial_generated_bytes_captured": true,
+        "files": 3039,
+        "fixed_original_git_dependencies_retained": true,
+        "new_or_changed_byte_records": 235
+      },
+      "whole_native": false
+    },
+    "evidence": {
+      "blob": "0803f01c321ec9ffec06a650e97a305630287c97",
+      "bytes": 327646,
+      "full_readback_equal": true,
+      "sha256": "aa96b34a550ad31b6d63596bb8e4e245fb41f51f421f8a2b64e5e7b650ec9824"
+    }
+  },
+  "actual_failure": {
+    "command": "tools/generate_hia_checker_inventory.py --report .../checker-before-generators.json",
+    "exception": "ValueError: unreviewed dynamic import mechanism: hia_proof_contract.py:_safe_core_method_reference",
+    "stderr_blob": "0cdf6dec10905b43e86bb20ed78ef29fadc16f4f",
+    "command_record_blob": "f20fa84e2d5a4f56cb375ad46a88be8a25f51b71"
+  },
+  "artifact_readback": {
+    "artifact_id": 14015512106,
+    "zip_bytes": 78366629,
+    "zip_sha256": "e09710a316997174899e56ab1b2272d16d6eb7ff7c83da1c6114dfb380762d25",
+    "outer_members_crc_and_sha_checked": 1433,
+    "inner_tar_members_exactly_checked": 1178,
+    "ordered_gzip_chunks_checked": 49,
+    "report_blob": "2b38ec28c81c641a3f193d85eb99748b20fadb20"
+  },
+  "after_failure_drafts": {
+    "materializer_diagnostics": {
+      "blob": "d14e1808af9c12c313cc6681b3bd26f32bf5ac08",
+      "status": "PYTHON_3_12_AST_COMPILE_PASS_ONLY"
+    },
+    "rust_input_custody": {
+      "packet": "0ecd3e17b84684c0c4837445af8a3d752aefe25b",
+      "normalized_packet": "7724f77a0402a91d5a443211d5cd267c73641db8",
+      "source_blob": "6b39027ed821a4108f4f982b17e68d7ce49d8355",
+      "status": "AUTHORED_NOT_EXECUTED",
+      "delta_bytes": 61
+    }
+  },
+  "constraints": {
+    "whole_native": false,
+    "default_changed": false,
+    "product_refs_changed": false,
+    "legacy_production_removed": false,
+    "original_budgets_unchanged": true,
+    "no_prior_qualification_transferred": true
+  },
+  "files": [
+    {
+      "path": "first-real-source-run/EVIDENCE-MANIFEST.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0803f01c321ec9ffec06a650e97a305630287c97"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0000.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "855d226aca87c9d95e92ecf2d2cbca5e77757cce"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0001.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7f6a3da5a0b97885f202340eca200c276917d11b"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0002.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "04425652999ced45bef15154a75b84b4a85fe74c"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0003.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "989a80b84fc2e97649a3c7a31d31ad1a59780e75"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0004.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c8627e2f43cfd164c1415224f22d8bc2ce8c0e86"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0005.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "24a330d8f0a2d5baadc3f1ddff6d1b4edc11ee69"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0006.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1fe8beaeab491a73b6d23026ba7ff4846b3d91ee"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0007.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e79ba16665a9ef1cc12d3b49644ec434cf7c1ba4"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0008.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "762303607ff20136a596860b57e1bf190ffda4d8"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0009.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c11d85ce0fc19506ce918a9da922933acb0db659"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0010.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1b2b257ab586d49aa7323beb40e16ef3a10617fc"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0011.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8279ec340943ade358fae363aa424f30cfdb30bb"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0012.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fd576d16fe9e94226d41c7e3e0d763ddd8858853"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0013.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6bb9c5065cc37b8e59368806d3e0500d1b9f9cde"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0014.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4bc026f85f0f37f855eb049b8cf5ad6b5c420e03"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0015.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5296f37f000f1b52decd731d243d58e41637a2df"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0016.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5d1ad378dc17142d3674164d9bb8eb11fa638471"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0017.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ad29d290c49eaeb1cfd8f47c300ce93c07132295"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0018.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "236635bfa73520913f38e3c20de6425aff482673"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0019.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c59f7bc3033d38ed8b6cf77f6b7a4bbe71950973"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0020.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "122f9882b51e73a9e162e680b5e2dc4a2313db07"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0021.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1db3a84ae1108962fc13697bdd14cc86130052dd"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0022.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "73dcc7ca8fbb695902a922c84ad52e192c305190"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0023.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bee8e0121bdb49492b9ee69948670a2e11c7d3f4"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0024.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ecdd33d6f7482230bc1be46e6e8639c982565227"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0025.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f897bf023986f407dddf44e644a25784994f8064"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0026.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0f240dba934e6a2e46cdb73385e9c6fbfdf53417"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0027.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d42bf75be420b8bb3e752acd2763e65cf1a0398b"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0028.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa8667f84bd92104c8bfb3fbe8a4728fabac57f7"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0029.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4c42ccb10491c506d3e419c82b569d670540983c"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0030.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b579da8a63f4fd7d1c7fd182b4a385654f62dcc4"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0031.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a90b839d4aa81125a3c35c5702c485eef1819110"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0032.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c01c82701c128d4ee65f718ced74a0c334a14597"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0033.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dd643aeb63735d187cd653724fe4c6131713fb8c"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0034.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "07ad8803a5e8b559206210e04e54cbdd10b8c57d"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0035.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fd1634284298ad18e114d7e15153384faede1a30"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0036.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6db8d62781ba70b167c6b566abedf2b5eb16b7fa"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0037.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7b1770e6b576a9c5ca2f1a6d0a2bdc75726e7587"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0038.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ba6986d30fa6c7156842a170436e11e3e04dd817"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0039.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c75b20ae0cdb221eb37593b4bf29c58cbbbd0b33"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0040.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "759a2d72cc821576f9e3432c85946ded4aecebe0"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0041.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "68c276ee6bfc1eb40d99d6bf37b8e59c1522cf54"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0042.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b231d2bd57bebd6a998a252edcfee1d2ee3f8635"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0043.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7f5b6e35223d7cd562caf4db0ef1fb68bcd34a51"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0044.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "50a9d2fc8e0ff5c5e08ee712026b7b5fabdf946d"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0045.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "88d04f626e1db53606d056baaa51d91ba4004931"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0046.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "764fad3737642da5de47ef3683530960f12fd543"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0047.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ed2a03bbaefcfe61561380f6510097a9016be3f4"
+    },
+    {
+      "path": "first-real-source-run/gzip-parts/0048.part",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ffe701e651f32ade377e9b52fb34f560f38b4fcd"
+    },
+    {
+      "path": "first-real-source-run/complete-job.log",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2904742e96074fbd087972ef318a3c203a54d84e"
+    },
+    {
+      "path": "first-real-source-run/RESULT.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6e26b23d0085bc3e9025bc5e065c7051f7ada395"
+    },
+    {
+      "path": "first-real-source-run/COMPLETE-ARTIFACT-READBACK.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2b38ec28c81c641a3f193d85eb99748b20fadb20"
+    },
+    {
+      "path": "first-real-source-run/0038-pre-generation-0.stderr",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0cdf6dec10905b43e86bb20ed78ef29fadc16f4f"
+    },
+    {
+      "path": "first-real-source-run/0038-pre-generation-0.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f20fa84e2d5a4f56cb375ad46a88be8a25f51b71"
+    },
+    {
+      "path": "executed-harness-r1/.github/workflows/hia-combined-source.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6eabcd4365bbc47af93ea78a99bb5344a6e68868"
+    },
+    {
+      "path": "executed-harness-r1/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2046f6b80f36a7926f151047ebe105bf0e079700"
+    },
+    {
+      "path": "executed-harness-r1/inputs/MATERIALIZATION.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "177fc666b8695dbba574e15c82455f9de02d9fbe"
+    },
+    {
+      "path": "executed-harness-r1/inputs/ORIGINAL-SOURCE-IDS.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ca3fe97c2baaafc519d2fe3705062c1e8c13a577"
+    },
+    {
+      "path": "executed-harness-r1/tools/materialize_candidate.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3b650a10a7c41e938fb147fa4bfa2d9fef6e936c"
+    },
+    {
+      "path": "executed-harness-r1/tools/run_source_gate.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "40b230288e6db39817aeee26b616d5a613af4f2c"
+    },
+    {
+      "path": "authoring/checker-r1.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5cdcdb03aed5d2cc567e88853585c6379c8aaee8"
+    },
+    {
+      "path": "authoring/surface-final.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a0534216741dac4c10298a4e5046079df0d5d416"
+    },
+    {
+      "path": "authoring/source-contract-r3.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "387bc4e5a430cc1cbbfc9de192ad24742b00fe49"
+    },
+    {
+      "path": "authoring/f33d-increment-stale-test-not-applied.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "98c2add13d29ef5e8fe67afcc94fa531c8022486"
+    },
+    {
+      "path": "authoring/f33d-increment-corrected-applied.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c43534f5d2f057326f88a4c2d5f4704e3620d5c8"
+    },
+    {
+      "path": "authoring/workflow-rust-artifact-path-fix.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ecd3e17b84684c0c4837445af8a3d752aefe25b"
+    },
+    {
+      "path": "authoring/workflow-rust-artifact-normalized.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7724f77a0402a91d5a443211d5cd267c73641db8"
+    },
+    {
+      "path": "authored-not-executed/materialize_candidate_r6.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d14e1808af9c12c313cc6681b3bd26f32bf5ac08"
+    },
+    {
+      "path": "reviews/native-37-conflicts.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "232120a7d33d9da5432e61be3dca121cf0d9063b"
+    },
+    {
+      "path": "reviews/old-driver-seven-specific-gaps.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b9d19c24784567327bab66632f42e39a5846edec"
+    }
+  ]
+}

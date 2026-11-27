@@ -1,0 +1,165 @@
+{
+  "Core_only_admission": {
+    "examples/hia_bootstrap/linux_cli_entry_packer.hepta": "ordinary Core pure HIA ELF packer",
+    "examples/hia_bootstrap/native_cli_process.hepta": "explicit hepta.hia.linux-cli-process.v1 only; do not add opcodes/effects to ordinary Core",
+    "examples/hia_bootstrap/selfhost_linux_cli_process.hepta": "ordinary Core source implementing an opt-in compiler profile"
+  },
+  "ENTRY_BUILD_FILES_additions": [
+    "examples/hia_bootstrap/selfhost_linux_cli_process.hepta",
+    "examples/hia_bootstrap/linux_cli_entry_packer.hepta",
+    "examples/hia_bootstrap/native_cli_process.hepta"
+  ],
+  "MANIFEST_in_includes": [
+    "examples/hia_bootstrap/selfhost_linux_cli_process.hepta",
+    "examples/hia_bootstrap/linux_cli_entry_packer.hepta",
+    "examples/hia_bootstrap/native_cli_process.hepta"
+  ],
+  "NATIVE_SOURCE_FILES_additions": [],
+  "SOURCE_FILES_additions_or_dynamic_members": [
+    "examples/hia_bootstrap/linux_cli_entry_packer.hepta",
+    "examples/hia_bootstrap/native_cli_process.hepta",
+    "examples/hia_bootstrap/selfhost_linux_cli_process.hepta",
+    "hepta/hia_agent_assembly.py",
+    "hepta/hia_linux_cli_process.py",
+    "hepta/hia_program.py",
+    "hepta/hia_program_runtime.py",
+    "tests/test_hia_linux_cli_process.py",
+    "tools/build_hia_linux_cli_process_program.py",
+    "tools/generate_hia_linux_cli_entry.py",
+    "tools/generate_hia_native_cli_process.py",
+    "tools/generate_hia_selfhost_linux_cli_process.py"
+  ],
+  "Source_count": 12,
+  "Source_exact_IDs": [
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_actual_loan_checker_rejects_aliases_and_suspended_parent",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_actual_type_effect_and_attribute_checker_refuses_unsafe_call",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_all_extent_guards_precede_resident_or_physical_effect",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_builder_rejects_bad_inputs_before_child_or_output_directory",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_component_argument_cannot_leak_through_default_or_legacy_entry",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_component_sources_are_exact_immutable_ordered_inputs",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_default_native_llvm_and_old_profile_consumers_reject",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_forged_verified_object_does_not_grant_authority",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_inventory_is_fixed_and_does_not_extend_global_core",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_missing_components_or_invalid_limits_fail_before_io",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_public_roundtrip_has_distinct_rechecked_authority",
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests.test_source_generators_and_three_frozen_residents_are_exact"
+  ],
+  "Source_selectors": [
+    "tests.test_hia_linux_cli_process.LinuxCliProcessSourceTests"
+  ],
+  "already_present_dependency_rule": "accept only exact bytes/mode; do not overwrite a later generation",
+  "checker_mechanism_additions": [
+    "hepta/hia_linux_cli_process.py"
+  ],
+  "checker_new_explicit_import_edges": {
+    "hepta/hia_agent_assembly.py": [
+      "hia_linux_cli_process"
+    ],
+    "hepta/hia_program.py": [
+      "hia_linux_cli_process"
+    ],
+    "hepta/hia_program_runtime.py": [
+      "hia_linux_cli_process"
+    ]
+  },
+  "checker_rule": "regenerate complete physical custody closure and explicitly classify every actual import; preserve existing semantic roles",
+  "complete_new_module_imports": {
+    "hepta/hia_linux_cli_process.py": [
+      ".hia_agent_assembly",
+      ".hia_json_preflight_native",
+      ".hia_linux_process",
+      ".hia_opcodes",
+      ".hia_program",
+      ".hia_program_runtime",
+      ".hia_schema",
+      "__future__",
+      "dataclasses",
+      "hashlib",
+      "types"
+    ],
+    "tools/build_hia_linux_cli_process_program.py": [
+      "__future__",
+      "argparse",
+      "hashlib",
+      "hepta.hia_agent_assembly",
+      "hepta.hia_linux_cli_process",
+      "json",
+      "os",
+      "pathlib",
+      "struct",
+      "sys",
+      "tools.build_hia_linux_process_program",
+      "tools.qualify_hia_selfhost"
+    ]
+  },
+  "default_entrypoint_changes": [],
+  "dependency_packet": "58c0bf89e0b99459dfd01fa830fdd8a864c02eaf",
+  "development_native_gate": {
+    "actual_kernel_matrix": 223,
+    "fixed_input_components": [
+      "cli_control.hepta",
+      "cli_format.hepta",
+      "cli_discovery_json.hepta"
+    ],
+    "four_image_packer_pairs": 14,
+    "independent_full_VM": 6,
+    "kernel_IO_and_capability_controls": 9,
+    "ordinary_B3_refusal": 1,
+    "packer_preentry_refusal": 1,
+    "public_build_stages": 6,
+    "public_builder": "tools.build_hia_linux_cli_process_program.build_linux_cli_process_program"
+  },
+  "exact_existing_dependency_paths": [
+    "examples/hia_bootstrap/cli_discovery_json.hepta",
+    "tests/fixtures/hia_cli_discovery_r5_cases.json",
+    "tools/generate_hia_cli_discovery_json.py"
+  ],
+  "generator_check_arguments": [
+    "--check"
+  ],
+  "generators": [
+    "tools/generate_hia_selfhost_linux_cli_process.py",
+    "tools/generate_hia_linux_cli_entry.py",
+    "tools/generate_hia_native_cli_process.py"
+  ],
+  "limits": {
+    "ELF_bytes": 1048576,
+    "VM_steps": 10000000,
+    "blocks": 1536,
+    "cleanup_seconds": 3,
+    "compile_seconds": 20,
+    "functions": 128,
+    "group_seconds": 180,
+    "operations": 8192,
+    "source_or_buffer_bytes": 1048576
+  },
+  "native_qualification_inherited": false,
+  "old_stdio_v1_or_process_v1_changes": [],
+  "owned_paths": [
+    "examples/hia_bootstrap/linux_cli_entry_packer.hepta",
+    "examples/hia_bootstrap/native_cli_process.hepta",
+    "examples/hia_bootstrap/selfhost_linux_cli_process.hepta",
+    "hepta/hia_agent_assembly.py",
+    "hepta/hia_linux_cli_process.py",
+    "hepta/hia_program.py",
+    "hepta/hia_program_runtime.py",
+    "tests/test_hia_linux_cli_process.py",
+    "tools/build_hia_linux_cli_process_program.py",
+    "tools/generate_hia_linux_cli_entry.py",
+    "tools/generate_hia_native_cli_process.py",
+    "tools/generate_hia_selfhost_linux_cli_process.py"
+  ],
+  "production_Native_selector": null,
+  "production_cold_qualifier": "NOT_IMPLEMENTED; do not relabel this caller-pinned development compiler",
+  "resource_consumers": [
+    "setup.py already reads all 12 tuples",
+    "hia_agent_contract.installation_manifest must include the exact union",
+    "hia_native_helpers.native_source_files entry_paths whitelist adds exactly these 3 names",
+    "all installed wheel/copy fixtures retain all 12 resource roles"
+  ],
+  "resource_role": "twelfth ENTRY_BUILD_FILES; standalone compiler/packer/entry policy, not a Python runtime bridge",
+  "schema": "hia.native-cli-process-integration-spec.v1",
+  "source_packet_base": "0e11b2228ea61e9e0bacae7c841a8dccf95a9987",
+  "source_tree": "f3101f9eddfe7cde699f5b9bf1b56e4ddf0e5bf1",
+  "status": "DEVELOPMENT_TESTED_NO_MATCHING_COLD_OR_FORMAL_314"
+}

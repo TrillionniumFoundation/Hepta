@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+"""Check fixed authored source syntax and original selfhost AST custody only."""
+import argparse
+import ast
+import base64
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import platform
+import subprocess
+import sys
+import traceback
+import urllib.request
+
+def git_blob(raw):
+    return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
+
+def identity(raw):
+    return {"bytes": len(raw), "git_blob": git_blob(raw),
+            "sha256": hashlib.sha256(raw).hexdigest()}
+
+def no_duplicate_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key: " + key)
+        result[key] = value
+    return result
+
+def parse_json(raw):
+    return json.loads(raw, object_pairs_hook=no_duplicate_keys)
+
+def write_new(path, raw):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("xb") as stream:
+        stream.write(raw)
+
+def json_new(path, value):
+    write_new(path, (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+
+def safe_path(value):
+    path = PurePosixPath(value)
+    if not isinstance(value, str) or value != str(path) or path.is_absolute() or not path.parts:
+        raise ValueError("invalid source path")
+    if any(part in ("", ".", "..") for part in path.parts) or "\\" in value or "\0" in value:
+        raise ValueError("unsafe source path")
+    return path
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--inputs", type=Path, required=True)
+    parser.add_argument("--root", type=Path, required=True)
+    args = parser.parse_args()
+    args.root.mkdir(parents=True, exist_ok=False)
+    evidence = args.root / "evidence"
+    evidence.mkdir()
+    result = {
+        "schema": "hepta.fixed_merge_draft_syntax_result.v1",
+        "scope": "SOURCE_SYNTAX_COMPILE_AND_AST_CUSTODY_ONLY",
+        "status": "INCOMPLETE",
+        "python": {"version": sys.version, "executable": sys.executable,
+                   "implementation": platform.python_implementation()},
+        "packets": [], "failures": [],
+        "product_imports_executed": False, "product_tests_executed": 0,
+        "HIA_generated": False, "native_executions": 0,
+        "cold_qualifications": 0, "whole_native": False,
+    }
+    try:
+        input_raw = args.inputs.read_bytes()
+        driver_raw = Path(__file__).read_bytes()
+        for label, raw, key in (
+                ("inputs", input_raw, "EXPECTED_INPUTS_GIT_BLOB"),
+                ("driver", driver_raw, "EXPECTED_DRIVER_GIT_BLOB")):
+            if git_blob(raw) != os.environ[key]:
+                raise ValueError(label + " harness source differs")
+            result[label] = identity(raw)
+        inputs = parse_json(input_raw)
+        write_new(evidence / "FIXED-INPUTS.json", input_raw)
+        write_new(evidence / "DRIVER.py", driver_raw)
+        validator_path = Path(__file__).with_name("validate_selfhost_merge.py")
+        validator_raw = validator_path.read_bytes()
+        validator_pin = inputs["selfhost_validator"]
+        if git_blob(validator_raw) != validator_pin["blob"] or len(validator_raw) != validator_pin["bytes"]:
+            raise ValueError("fixed selfhost validator differs")
+        write_new(evidence / "SELFHOST-VALIDATOR.py", validator_raw)
+        token = os.environ["HIA_SYNTAX_READ_TOKEN"]
+        repository = inputs["repository"]
+        if repository != "TrillionniumFoundation/Hepta":
+            raise ValueError("unexpected repository")
+        cache = {}
+        def fetch_blob(sha):
+            if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
+                raise ValueError("invalid Git blob pin")
+            if sha in cache:
+                return cache[sha]
+            request = urllib.request.Request(
+                "https://api.github.com/repos/" + repository + "/git/blobs/" + sha,
+                headers={"Accept": "application/vnd.github+json",
+                         "Authorization": "Bearer " + token,
+                         "X-GitHub-Api-Version": "2022-11-28",
+                         "User-Agent": "hepta-fixed-draft-syntax"})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                api_raw = response.read()
+            write_new(evidence / "api" / (sha + ".json"), api_raw)
+            value = parse_json(api_raw)
+            if value["sha"] != sha or value["encoding"] != "base64":
+                raise ValueError("Git blob response identity differs")
+            raw = base64.b64decode("".join(value["content"].splitlines()), validate=True)
+            if len(raw) != value["size"] or git_blob(raw) != sha:
+                raise ValueError("Git blob bytes differ")
+            write_new(evidence / "blobs" / (sha + ".blob"), raw)
+            cache[sha] = raw
+            return raw
+
+        selfhost = None
+        for pin in inputs["packets"]:
+            raw = fetch_blob(pin["blob"])
+            if len(raw) != pin["bytes"] or (
+                    "sha256" in pin and hashlib.sha256(raw).hexdigest() != pin["sha256"]):
+                raise ValueError("packet pin differs: " + pin["label"])
+            packet = parse_json(raw)
+            packet_path = evidence / "packets" / (pin["label"] + ".json")
+            write_new(packet_path, raw)
+            rows = []
+            if pin["layout"] == "byte-files-array":
+                for row in packet["files"]:
+                    rows.append((row["path"], row["text"], row["bytes"], row["blob"], None))
+            elif pin["layout"] == "backend-files-object":
+                for path, row in packet["files"].items():
+                    after = row["after"]
+                    rows.append((path, row["text"], after["bytes"],
+                                 after["git_blob_sha1"], after["sha256"]))
+            elif pin["layout"] == "selfhost-files-object":
+                for path, row in packet["files"].items():
+                    after = row["after"]
+                    rows.append((path, after["text"], after["bytes"],
+                                 after["git_blob"], after["sha256"]))
+                selfhost = (packet, packet_path)
+            else:
+                raise ValueError("unrecognized explicit packet layout")
+            if len(rows) != pin["files"]:
+                raise ValueError("packet file count differs")
+            seen = set()
+            file_reports = []
+            for path, text, size, blob, sha256 in rows:
+                relative = safe_path(path)
+                if path in seen:
+                    raise ValueError("duplicate packet path: " + path)
+                seen.add(path)
+                body = text.encode("utf-8")
+                actual = identity(body)
+                if size != actual["bytes"] or blob != actual["git_blob"] or (
+                        sha256 is not None and sha256 != actual["sha256"]):
+                    raise ValueError("source identity differs: " + path)
+                write_new(evidence / "sources" / pin["label"] / relative, body)
+                entry = {"path": path, **actual}
+                if path.endswith(".py"):
+                    try:
+                        tree = ast.parse(body, filename=pin["label"] + "/" + path)
+                        compile(tree, pin["label"] + "/" + path, "exec", dont_inherit=True)
+                    except (SyntaxError, ValueError, TypeError) as error:
+                        entry.update({"status": "FAIL", "error_type": type(error).__name__,
+                                      "error": str(error), "traceback": traceback.format_exc()})
+                        result["failures"].append({"packet": pin["label"], **entry})
+                    else:
+                        entry.update({"status": "PASS", "AST_parsed": True,
+                                      "code_compiled": True, "code_executed": False})
+                else:
+                    entry["status"] = "NOT_CHECKED_NON_PYTHON"
+                file_reports.append(entry)
+            result["packets"].append({"label": pin["label"], **identity(raw),
+                                      "files": file_reports})
+        if selfhost is None:
+            raise ValueError("missing fixed selfhost packet")
+        packet, packet_path = selfhost
+        source_roots = {name: evidence / "original-sources" / name for name in ("main", "a733")}
+        for path, row in packet["files"].items():
+            relative = safe_path(path)
+            for name, source_root in source_roots.items():
+                before = row["before"][name]
+                if before is not None:
+                    write_new(source_root / relative, fetch_blob(before["blob"]))
+        for path, blob in inputs["held_cold_supervisors"].items():
+            relative = safe_path(path)
+            body = fetch_blob(blob)
+            for source_root in source_roots.values():
+                write_new(source_root / relative, body)
+        command = [sys.executable, "-I", "-B", str(validator_path),
+                   "--packet", str(packet_path),
+                   "--main-source", str(source_roots["main"]),
+                   "--a733-source", str(source_roots["a733"]),
+                   "--output", str(evidence / "SELFHOST-AST-CUSTODY.json")]
+        with (evidence / "SELFHOST-VALIDATOR.stdout").open("xb") as stdout, (
+                evidence / "SELFHOST-VALIDATOR.stderr").open("xb") as stderr:
+            completed = subprocess.run(command, stdin=subprocess.DEVNULL,
+                                       stdout=stdout, stderr=stderr, timeout=60, check=False)
+        result["selfhost_validator"] = {
+            "command": command, "returncode": completed.returncode,
+            "source": identity(validator_raw), "product_imports_executed": False}
+        if completed.returncode != 0:
+            result["failures"].append({"stage": "selfhost-original-AST-custody",
+                                       "returncode": completed.returncode})
+        result["unique_original_blobs_fetched"] = len(cache)
+        result["python_files_checked"] = sum(
+            item["path"].endswith(".py") for group in result["packets"] for item in group["files"])
+        result["status"] = "FAIL" if result["failures"] else "PASS"
+    except BaseException as error:
+        result["status"] = "FAIL"
+        result["failures"].append({"stage": "harness", "error_type": type(error).__name__,
+                                   "error": str(error), "traceback": traceback.format_exc()})
+    finally:
+        json_new(evidence / "RESULT.json", result)
+        print(json.dumps(result, sort_keys=True))
+    return 0 if result["status"] == "PASS" else 1
+
+if __name__ == "__main__":
+    raise SystemExit(main())

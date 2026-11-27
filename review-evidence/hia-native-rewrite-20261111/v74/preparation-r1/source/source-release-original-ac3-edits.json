@@ -1,0 +1,1747 @@
+{
+  "schema": "hepta.hia.source-release-ac3-narrow-delta.v1",
+  "status": "STATIC_ONLY_NOT_GENERATED_OR_EXECUTED",
+  "target_commit": "ac3fb576419d9ec36841822b4be0fca420268f1b",
+  "owner_recovery_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+  "optional_unexecuted_filter_revision_blob": "666ff11553f7174085fa4d8f1ec800d29041c705",
+  "edit_protocol": "For each existing file, first verify exact before bytes/hash. Split UTF-8 text on newline preserving trailing empty string. Apply each edits entry in descending oldStart order, require removed equals original slice [oldStart:oldEnd], splice added, join with newline. Verify after hashes. This is an exact narrow patch, not authorization to overwrite current differing source.",
+  "modifications": [
+    {
+      "path": "hepta/cli.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 10605,
+        "sha256": "32bd495c8927286005fd6f2eeb224ea6df9752fe15e3ca8a18ce45836c2a0904",
+        "git_blob_sha1": "e81e607dcb052c77e3c1cf9fe946f70109e5d8e9"
+      },
+      "after": {
+        "bytes": 12036,
+        "sha256": "757f92293d63e285194452f3e819f304b0eff6d519ff3de74f2a1938d1496714",
+        "git_blob_sha1": "d7a75e0b0eb2c5498e1788d7cd83d14d7dbe0e6c"
+      },
+      "provenance": "PR893 9a12 explicit selfhost route/manifest pins/capabilities; add only those branches to exact ac3 unchanged base; preserve default native route.",
+      "edits": [
+        {
+          "oldStart": 22,
+          "newStart": 22,
+          "removed": [
+            "                  \"target\": \"x86_64-unknown-linux-gnu\", \"fallback\": False},"
+          ],
+          "added": [
+            "                  \"target\": \"x86_64-unknown-linux-gnu\", \"fallback\": False,",
+            "                  \"available_backends\": [\"native\", \"selfhost\"],",
+            "                  \"selfhost\": {\"input\": \"bounded primitive Core v8 with scalar exports\",",
+            "                               \"selection\": \"explicit compiler manifest and SHA256\",",
+            "                               \"runtime\": \"Linux x86-64 sealed native executable\",",
+            "                               \"hosted_cli_and_publication\": True}},"
+          ],
+          "oldEnd": 23,
+          "newEnd": 28,
+          "before": [
+            "        \"high_level_source_required\": False,",
+            "        \"inputs\": [\"standalone-hia-json\", \"explicit-hia-assembly\"],",
+            "        \"build\": {\"backend\": \"native\", \"kind\": \"object\","
+          ],
+          "after": [
+            "        \"edits\": {\"snapshot_bound\": True, \"entire_module_reverified\": True,",
+            "                  \"publication\": \"new_path_only\"},",
+            "        \"implementation\": \"python_host_bridge\","
+          ]
+        },
+        {
+          "oldStart": 68,
+          "newStart": 73,
+          "removed": [
+            "            command.add_argument(\"--backend\", choices=[\"native\"], default=\"native\")"
+          ],
+          "added": [
+            "            command.add_argument(\"--backend\", choices=[\"native\", \"selfhost\"], default=\"native\")"
+          ],
+          "oldEnd": 69,
+          "newEnd": 74,
+          "before": [
+            "        if action in {\"import-assembly\", \"render-assembly\", \"normalize\", \"build\", \"patch\", \"edit-query\", \"edit-apply\", \"edit-batch-query\", \"edit-batch-apply\"}:",
+            "            command.add_argument(\"--output\", \"-o\", required=action==\"build\")",
+            "        if action==\"build\":"
+          ],
+          "after": [
+            "            command.add_argument(\"--kind\", choices=[\"object\"], default=\"object\")",
+            "            command.add_argument(\"--target\", choices=[\"x86_64-unknown-linux-gnu\"], default=\"x86_64-unknown-linux-gnu\")",
+            "        if action in {\"patch\", \"impact\"}: command.add_argument(\"--request\", required=True)"
+          ]
+        },
+        {
+          "oldStart": 71,
+          "newStart": 76,
+          "removed": [],
+          "added": [
+            "            command.add_argument(\"--selfhost-manifest\", help=\"Operator-selected native compiler manifest\")",
+            "            command.add_argument(\"--selfhost-manifest-sha256\", help=\"Exact operator pin for that manifest\")"
+          ],
+          "oldEnd": 71,
+          "newEnd": 78,
+          "before": [
+            "            command.add_argument(\"--backend\", choices=[\"native\"], default=\"native\")",
+            "            command.add_argument(\"--kind\", choices=[\"object\"], default=\"object\")",
+            "            command.add_argument(\"--target\", choices=[\"x86_64-unknown-linux-gnu\"], default=\"x86_64-unknown-linux-gnu\")"
+          ],
+          "after": [
+            "        if action in {\"patch\", \"impact\"}: command.add_argument(\"--request\", required=True)",
+            "        if action==\"edit-query\":",
+            "            command.add_argument(\"--function\", required=True)"
+          ]
+        },
+        {
+          "oldStart": 82,
+          "newStart": 89,
+          "removed": [],
+          "added": [
+            "    if args.hia_action == \"build\":",
+            "        selected = (args.selfhost_manifest, args.selfhost_manifest_sha256)",
+            "        if args.backend == \"selfhost\" and not all(selected):",
+            "            parser.error(\"--backend selfhost requires --selfhost-manifest and --selfhost-manifest-sha256\")",
+            "        if args.backend != \"selfhost\" and any(value is not None for value in selected):",
+            "            parser.error(\"selfhost compiler options require --backend selfhost\")"
+          ],
+          "oldEnd": 82,
+          "newEnd": 95,
+          "before": [
+            "            command.add_argument(\"--query\", required=True)",
+            "            command.add_argument(\"--response\", required=True)",
+            "    args = parser.parse_args(argv)"
+          ],
+          "after": [
+            "    try:",
+            "        if args.hia_action==\"capabilities\":",
+            "            output_json(agent_capabilities())"
+          ]
+        },
+        {
+          "oldStart": 166,
+          "newStart": 179,
+          "removed": [
+            "            from .hia_program_native import build_program_machine",
+            "            result = build_program_machine(program, args.output, kind='object', linker='cc')"
+          ],
+          "added": [
+            "            if args.backend == 'selfhost':",
+            "                from .hia_program_selfhost import build_program_selfhost",
+            "                result = build_program_selfhost(program, args.output,",
+            "                    manifest=args.selfhost_manifest, manifest_sha256=args.selfhost_manifest_sha256,",
+            "                    kind=args.kind, target=args.target)",
+            "            else:",
+            "                from .hia_program_native import build_program_machine",
+            "                result = build_program_machine(program, args.output, kind='object', linker='cc')"
+          ],
+          "oldEnd": 168,
+          "newEnd": 187,
+          "before": [
+            "            output_json(inspect_program(program))",
+            "            return 0",
+            "        if args.hia_action == 'build':"
+          ],
+          "after": [
+            "            output_json(result)",
+            "            return 0 if result.get('ok') is True else 1",
+            "        if args.hia_action == 'impact':"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "hepta/hia_agent_contract.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 19895,
+        "sha256": "570797fb18db2277b544a9a862806da68a2b5d775bba1158a2881d7cf19e3a12",
+        "git_blob_sha1": "283990b13508c6c32e07ba4d7798a8cf679ad25b"
+      },
+      "after": {
+        "bytes": 20432,
+        "sha256": "8f854ed4ac863854aaab606501930988b7dc9d917c51c9e1fbe081ea1cb6b679",
+        "git_blob_sha1": "21133a2cd673c532303362e475a742da5e9f9abc"
+      },
+      "provenance": "PR893 resource groups adapted to actual .hiaasm compiler/core packer and actual new .hepta policy/packer; retain all current normalization resources and union both new groups in installation_manifest.",
+      "edits": [
+        {
+          "oldStart": 95,
+          "newStart": 95,
+          "removed": [],
+          "added": [
+            "# Native source-builder resources are data, never executable Python modules.",
+            "# Existing shared compiler bytes retain their .hiaasm source identity.",
+            "SOURCE_BUILD_FILES = (",
+            "    'examples/hia_bootstrap/source_build_policy.hepta',",
+            "    'examples/hia_bootstrap/selfhost.hiaasm',",
+            "    'examples/hia_bootstrap/source_build_packer.hepta',",
+            ")",
+            "",
+            "# The explicit Core JSON compiler additionally owns this packer resource.",
+            "COMPILER_BUILD_FILES = (",
+            "    'examples/hia_bootstrap/core_json_cli_packer.hiaasm',",
+            ")",
+            "",
+            ""
+          ],
+          "oldEnd": 95,
+          "newEnd": 109,
+          "before": [
+            "",
+            "# Build-input custody assets, not loadable native image adapters. The streaming",
+            "# SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated."
+          ],
+          "after": [
+            "PUBLICATION_BUILD_FILES = (",
+            "    'examples/hia_bootstrap/artifact_publication_policy.hiaasm',",
+            "    'examples/hia_bootstrap/artifact_publication_packer.hiaasm',"
+          ]
+        },
+        {
+          "oldStart": 122,
+          "newStart": 136,
+          "removed": [
+            "    for native_source in (*NATIVE_SOURCE_FILES, *PUBLICATION_BUILD_FILES):"
+          ],
+          "added": [
+            "    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES):"
+          ],
+          "oldEnd": 123,
+          "newEnd": 137,
+          "before": [
+            "    for filename in DISCOVERY_FILES:",
+            "        path = _agent_resource_path(\"docs/\" + filename)",
+            "        entries[\"docs/\" + filename] = sha256(path.read_bytes()).hexdigest()"
+          ],
+          "after": [
+            "        entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()",
+            "    from .hia_program_native import _implementation_hash",
+            "    from .hia_native_helpers import native_helpers_identity"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "hepta/artifact_publication_native.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 11468,
+        "sha256": "035de3668add66be45c0842d16b023fd4680294e482cc3cb99e5040b82e93f7b",
+        "git_blob_sha1": "04b1899992d005beec72aeaaa4c0194eafa9cc62"
+      },
+      "after": {
+        "bytes": 12429,
+        "sha256": "e20efb50c68501b4b4777a0807c9f1555aef9e09a9abb32222dfe2988b1ac36d",
+        "git_blob_sha1": "ee2bbac8e26da0e1576b7fec5f4d9ee70011a3a4"
+      },
+      "provenance": "PR894 5386 portable seal/fstat/pread segment only, plus complete SOURCE_BUILD_FILES+COMPILER_BUILD_FILES custody union; retain ac3 NativePublicationRefusal and _StoreAdmission semantics.",
+      "edits": [
+        {
+          "oldStart": 42,
+          "newStart": 42,
+          "removed": [
+            "    from .hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICATION_BUILD_FILES"
+          ],
+          "added": [
+            "    from .hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,SOURCE_BUILD_FILES,COMPILER_BUILD_FILES,PUBLICATION_BUILD_FILES"
+          ],
+          "oldEnd": 43,
+          "newEnd": 43,
+          "before": [
+            "    different checkout. The full build-source manifest remains bound through",
+            "    the exact package-owned contract; it is not a claim those tools are installed.",
+            "    \"\"\""
+          ],
+          "after": [
+            "    from .hia_json_preflight_native import _source_resource_path",
+            "    contract_name='docs/HIA_SELFHOST_CORE_SUPPORT.json'",
+            "    contract_path=_source_resource_path(contract_name);raw=contract_path.read_bytes()"
+          ]
+        },
+        {
+          "oldStart": 56,
+          "newStart": 56,
+          "removed": [
+            "    assets=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES"
+          ],
+          "added": [
+            "    assets=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES"
+          ],
+          "oldEnd": 57,
+          "newEnd": 57,
+          "before": [
+            "    expected_python={n for n in files if n.startswith('hepta/') and n.endswith('.py')}",
+            "    if actual_python!=expected_python:",
+            "        _reject('E_PUBLISH_NATIVE_CUSTODY','installed production module inventory changed')"
+          ],
+          "after": [
+            "    for name in (*sorted(actual_python),*assets):",
+            "        if name==contract_name:continue  # The outer manifest binds this exact JSON.",
+            "        path=root/name if name in actual_python else _source_resource_path(name)"
+          ]
+        },
+        {
+          "oldStart": 136,
+          "newStart": 136,
+          "removed": [
+            "        fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)",
+            "        view=memoryview(code)",
+            "        while view:",
+            "            written=os.write(fd,view)",
+            "            if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')",
+            "            view=view[written:]",
+            "        fcntl.fcntl(fd,fcntl.F_ADD_SEALS,",
+            "            fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL)"
+          ],
+          "added": [
+            "        try:",
+            "            fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)",
+            "            view=memoryview(code)",
+            "            while view:",
+            "                written=os.write(fd,view)",
+            "                if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')",
+            "                view=view[written:]",
+            "            # Linux UAPI numbers remain available when Python was built with",
+            "            # headers that omit the fcntl names. Only name lookup falls back;",
+            "            # the actual kernel seals and admitted bytes must be read back.",
+            "            required=(getattr(fcntl,'F_SEAL_WRITE',0x0008)",
+            "                      |getattr(fcntl,'F_SEAL_GROW',0x0004)",
+            "                      |getattr(fcntl,'F_SEAL_SHRINK',0x0002)",
+            "                      |getattr(fcntl,'F_SEAL_SEAL',0x0001))",
+            "            fcntl.fcntl(fd,getattr(fcntl,'F_ADD_SEALS',1033),required)",
+            "            if (fcntl.fcntl(fd,getattr(fcntl,'F_GET_SEALS',1034))&required!=required",
+            "                    or os.fstat(fd).st_size!=len(code) or os.pread(fd,len(code),0)!=code):",
+            "                _reject('E_PUBLISH_NATIVE_CUSTODY','sealed executable bytes or seals differ')",
+            "        except (OSError,AttributeError) as exc:",
+            "            raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: sealed executable snapshot unavailable') from exc"
+          ],
+          "oldEnd": 144,
+          "newEnd": 156,
+          "before": [
+            "        code=_admission[1]",
+            "    fd=None",
+            "    try:"
+          ],
+          "after": [
+            "        # No new wall-time or payload-size profile is imposed by this custody",
+            "        # bridge. Original synchronous filesystem operations are not replayed.",
+            "        result=subprocess.run(['/proc/self/fd/'+str(fd),operation,os.fspath(stage),os.fspath(destination)],"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "setup.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 2241,
+        "sha256": "7c9e4d617e64642e5d6a26a712ef97f9832b14c93bd68d66b121475b8c040ebc",
+        "git_blob_sha1": "8c99004307aebbc826ef74772795a6188588e459"
+      },
+      "after": {
+        "bytes": 2345,
+        "sha256": "4bb2d898a8840a341a96a7fe7b6d435de042d846cc154681a8e59d960a97b9c0",
+        "git_blob_sha1": "99e023118979b842dbafe9ead5599f105463b458"
+      },
+      "provenance": "PR893 explicit resource groups, full union; no product imports or altered build mode.",
+      "edits": [
+        {
+          "oldStart": 16,
+          "newStart": 16,
+          "removed": [
+            "    for symbol in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','PUBLICATION_BUILD_FILES'):"
+          ],
+          "added": [
+            "    for symbol in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES'):"
+          ],
+          "oldEnd": 17,
+          "newEnd": 17,
+          "before": [
+            "def agent_resources():",
+            "    tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())",
+            "    values={}"
+          ],
+          "after": [
+            "        declarations=[node for node in tree.body if isinstance(node,ast.Assign)",
+            "                      and any(isinstance(target,ast.Name) and target.id==symbol for target in node.targets)]",
+            "        if len(declarations)!=1:raise ValueError('one explicit Agent resource list required: '+symbol)"
+          ]
+        },
+        {
+          "oldStart": 26,
+          "newStart": 26,
+          "removed": [
+            "    names=tuple('docs/'+n for n in values['DISCOVERY_FILES'])+values['NATIVE_SOURCE_FILES']+values['PUBLICATION_BUILD_FILES']"
+          ],
+          "added": [
+            "    names=tuple('docs/'+n for n in values['DISCOVERY_FILES'])+values['NATIVE_SOURCE_FILES']+values['SOURCE_BUILD_FILES']+values['COMPILER_BUILD_FILES']+values['PUBLICATION_BUILD_FILES']"
+          ],
+          "oldEnd": 27,
+          "newEnd": 27,
+          "before": [
+            "        values[symbol]=names",
+            "    if any(Path(n).name!=n for n in values['DISCOVERY_FILES']):",
+            "        raise ValueError('invalid Agent discovery resource filenames')"
+          ],
+          "after": [
+            "    if len(names)!=len(set(names)) or any(Path(n).is_absolute() or '..' in Path(n).parts for n in names):",
+            "        raise ValueError('invalid or duplicate Agent resource paths')",
+            "    return names"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "MANIFEST.in",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 4070,
+        "sha256": "c23d9d014254fc7a6f9d91a47a4dbe2f5f87fa23b4376b4a1f59d8b19e2803d0",
+        "git_blob_sha1": "79a4c9c17925eb8bd8d6faa0893eae33f7701470"
+      },
+      "after": {
+        "bytes": 4290,
+        "sha256": "e9923d0df3474bb01f0b8a376cbaf758c20acceb02062062237d462975b85d7d",
+        "git_blob_sha1": "1d834edebf5a6eb17e94dbc8ab46658106cb4231"
+      },
+      "provenance": "Four actual resource additions only; retain all current five normalization additions and all prior resources.",
+      "edits": [
+        {
+          "oldStart": 76,
+          "newStart": 76,
+          "removed": [],
+          "added": [
+            "include examples/hia_bootstrap/source_build_policy.hepta",
+            "include examples/hia_bootstrap/selfhost.hiaasm",
+            "include examples/hia_bootstrap/source_build_packer.hepta",
+            "include examples/hia_bootstrap/core_json_cli_packer.hiaasm"
+          ],
+          "oldEnd": 76,
+          "newEnd": 80,
+          "before": [
+            "include examples/hia_bootstrap/program_normalization.hiaasm",
+            "include examples/hia_bootstrap/cpython_note_packer.hiaasm",
+            "include hepta/hia_program_normalization_notes.py"
+          ],
+          "after": [
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tools/hia_selfhost_contract.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 133083,
+        "sha256": "434eee55d72de5c25987b31c128e1d0877a5120f569116dc857bdd0c700efbf7",
+        "git_blob_sha1": "b6a278265f2d583b42f4d1ec5f2a720239f095bb"
+      },
+      "after": {
+        "bytes": 133502,
+        "sha256": "29f464550f0c08b9a434d032d1cbc51350d90d43ab3364a01c0c28efd3e1d0aa",
+        "git_blob_sha1": "fb4104db7a558af7f15b0ab608d4ac14dda749b3"
+      },
+      "provenance": "Nine owner authoring/test/source/doc SOURCE_FILES entries only; preserve current linked observer/normalization metadata, profile and every false completion/deletion/default flag.",
+      "edits": [
+        {
+          "oldStart": 17,
+          "newStart": 17,
+          "removed": [],
+          "added": [
+            "    'tools/build_hia_source_build.py',",
+            "    'tools/generate_hia_source_build.py',",
+            "    'tools/hia_source_build_syscalls.S',",
+            "    'examples/hia_bootstrap/source_build_policy.hepta',",
+            "    'examples/hia_bootstrap/source_build_packer.hepta',",
+            "    'tests/test_hia_source_build.py',",
+            "    'tests/test_hia_program_selfhost.py',",
+            "    'tests/test_hia_source_release_integration.py',",
+            "    'docs/HIA_NATIVE_SOURCE_RELEASE_INTEGRATION.md',"
+          ],
+          "oldEnd": 17,
+          "newEnd": 26,
+          "before": [
+            "CONTRACT_PATH = \"docs/HIA_SELFHOST_CORE_SUPPORT.json\"",
+            "PROFILE = 'selfhost-core-linux-x86_64-v69-native-execution-integration-pending'",
+            "SOURCE_FILES = ("
+          ],
+          "after": [
+            "    'tools/generate_hia_heap_kernels.py',",
+            "    'tests/__init__.py',",
+            "    'tests/test_hia_bulk_memory.py',"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tools/build_hia_core_json_cli.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 5192,
+        "sha256": "f2b3e76ad5669a455ed65533a78de76fda6a33110d23c19e9416306e094e3a30",
+        "git_blob_sha1": "9dcf9631cbcad570131ea98b52f5cdc9f23e6f04"
+      },
+      "after": {
+        "bytes": 6468,
+        "sha256": "c90bc4d9e5149c6fc194d0403bf4d9d7649137cc4d8f23300c4caa3cfb4901ef",
+        "git_blob_sha1": "be3457c40a3bc07ab432ecc64ba62acbc9699d88"
+      },
+      "provenance": "PR893 explicit compiler-manifest emission and strict pack receipt fields; actual .hiaasm paths; our narrow unrelated-cwd import support. Preserve current compile_stage/invoke APIs.",
+      "edits": [
+        {
+          "oldStart": 14,
+          "newStart": 14,
+          "removed": [],
+          "added": [
+            "import sys",
+            "",
+            "ROOT = Path(__file__).resolve().parents[1]",
+            "if __package__ in {None, ''}:",
+            "    sys.path.insert(0, str(ROOT))",
+            ""
+          ],
+          "oldEnd": 14,
+          "newEnd": 20,
+          "before": [
+            "from pathlib import Path",
+            "import struct",
+            ""
+          ],
+          "after": [
+            "from tools.generate_hia_core_json_cli import MAGIC, LIMIT",
+            "from tools.build_hia_json_preflight import (admit_cold_build, current_sources,",
+            "                                           build as build_frontend)"
+          ]
+        },
+        {
+          "oldStart": 20,
+          "newStart": 26,
+          "removed": [
+            "ROOT = Path(__file__).resolve().parents[1]"
+          ],
+          "added": [],
+          "oldEnd": 21,
+          "newEnd": 26,
+          "before": [
+            "from tools.qualify_hia_selfhost import compile_stage, invoke",
+            "from tools.qualify_hia_selfhost_cli import inspect_executable",
+            ""
+          ],
+          "after": [
+            "SOURCE = ROOT/'examples/hia_bootstrap/core_json_cli_packer.hiaasm'",
+            "",
+            ""
+          ]
+        },
+        {
+          "oldStart": 47,
+          "newStart": 52,
+          "removed": [
+            "    if not 0 < result['core_u32'] <= LIMIT or result['core_u32'] != len(packed[:result['core_u32']]):"
+          ],
+          "added": [
+            "    if (result.get('status') != 'returned'",
+            "            or type(result.get('abi_status')) is not int or result['abi_status'] != 0",
+            "            or type(result.get('core_u32')) is not int",
+            "            or not 0 < result['core_u32'] <= LIMIT",
+            "            or result['core_u32'] != len(packed[:result['core_u32']])",
+            "            or result.get('image_sha256') != sha256(packer_raw).hexdigest()",
+            "            or result.get('source_sha256') != sha256(frame).hexdigest()",
+            "            or result.get('source_unchanged') is not True):"
+          ],
+          "oldEnd": 48,
+          "newEnd": 60,
+          "before": [
+            "    if len(frame) > LIMIT:",
+            "        raise ValueError('qualified images exceed unchanged packer source capacity')",
+            "    result, packed = invoke(output, 'native-pack', packer, frame)"
+          ],
+          "after": [
+            "        raise ValueError('native HIA packer rejected image frame')",
+            "    executable_bytes = packed[:result['core_u32']]",
+            "    inspection = inspect_executable(executable_bytes)"
+          ]
+        },
+        {
+          "oldStart": 76,
+          "newStart": 88,
+          "removed": [],
+          "added": [
+            "    if output_profile == 'elf':",
+            "        from hepta.hia_program_selfhost import SOURCE_FILES, manifest_value",
+            "        selection = manifest_value(executable,",
+            "            compiler_sha256=report['compiler_sha256'], frontend_sha256=report['frontend_sha256'],",
+            "            packer_sha256=report['packer_sha256'], cold_report_sha256=report['cold_report_sha256'],",
+            "            source_sha256={name: admitted_sources[name] for name in SOURCE_FILES})",
+            "        if (executable.read_bytes() != executable_bytes",
+            "                or current_sources() != admitted_sources):",
+            "            raise ValueError('native JSON compiler selection changed before publication')",
+            "        with (output/'compiler-manifest.json').open('x') as stream:",
+            "            stream.write(json.dumps(selection, indent=2, sort_keys=True)+'\\n')"
+          ],
+          "oldEnd": 76,
+          "newEnd": 99,
+          "before": [
+            "        'production_activated':False, 'whole_production_cli_replaced':False,",
+            "        'whole_stack_rewritten_in_hia':False}",
+            "    (output/'build.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\\n')"
+          ],
+          "after": [
+            "    return executable",
+            "",
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tools/build_hia_release_install.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 4381,
+        "sha256": "a7993abb1132ca56d1ca80994ff8e08915e735d4d647e26e43cbbc196078faca",
+        "git_blob_sha1": "bb25158fb26818760884dc6b0203078b751fcf90"
+      },
+      "after": {
+        "bytes": 4457,
+        "sha256": "bdc793f4ae09672b465903a3987894eca085b19a43fedd40a5617674f0f136cb",
+        "git_blob_sha1": "545123c88e69c8b10a9c9309ad01502cbc7827bb"
+      },
+      "provenance": "Our unrelated-cwd script import support only; no installer semantic change.",
+      "edits": [
+        {
+          "oldStart": 12,
+          "newStart": 12,
+          "removed": [],
+          "added": [
+            "import sys"
+          ],
+          "oldEnd": 12,
+          "newEnd": 13,
+          "before": [
+            "import json",
+            "from pathlib import Path",
+            "import struct"
+          ],
+          "after": [
+            "",
+            "from tools.build_hia_json_preflight import admit_cold_build, current_sources",
+            "from tools.generate_hia_release_install import MAGIC"
+          ]
+        },
+        {
+          "oldStart": 13,
+          "newStart": 14,
+          "removed": [],
+          "added": [
+            "ROOT = Path(__file__).resolve().parents[1]",
+            "if __package__ in {None, ''}:",
+            "    sys.path.insert(0, str(ROOT))",
+            ""
+          ],
+          "oldEnd": 13,
+          "newEnd": 18,
+          "before": [
+            "from pathlib import Path",
+            "import struct",
+            ""
+          ],
+          "after": [
+            "from tools.build_hia_json_preflight import admit_cold_build, current_sources",
+            "from tools.generate_hia_release_install import MAGIC",
+            "from tools.qualify_hia_selfhost import compile_stage, invoke"
+          ]
+        },
+        {
+          "oldStart": 18,
+          "newStart": 23,
+          "removed": [
+            "ROOT = Path(__file__).resolve().parents[1]"
+          ],
+          "added": [],
+          "oldEnd": 19,
+          "newEnd": 23,
+          "before": [
+            "from tools.qualify_hia_selfhost import compile_stage, invoke",
+            "from tools.qualify_hia_selfhost_cli import inspect_executable",
+            ""
+          ],
+          "after": [
+            "SOURCES = (",
+            "    'examples/hia_bootstrap/release_install_policy.hiaasm',",
+            "    'examples/hia_bootstrap/release_install_packer.hiaasm',"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tools/build_hia_release_selection.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 4722,
+        "sha256": "25eac1d5c8416615343c1826338b793be010fb7063cdd98795132d535266ab1b",
+        "git_blob_sha1": "c140e5f3eea05ad8adc4c49ca6fee23b54756ef1"
+      },
+      "after": {
+        "bytes": 4799,
+        "sha256": "6c96838ff2f1179d33b3c06a4cc9c22a828609be0e05dd1c1934c0ef4477515a",
+        "git_blob_sha1": "36b43b7fe2c34b4f1b9c077c2e2a969ab072c840"
+      },
+      "provenance": "Our unrelated-cwd script import support only; native verify changes live in the generator/syscall transport.",
+      "edits": [
+        {
+          "oldStart": 11,
+          "newStart": 11,
+          "removed": [],
+          "added": [
+            "import sys",
+            "",
+            "ROOT = Path(__file__).resolve().parents[1]",
+            "if __package__ in {None, ''}:",
+            "    sys.path.insert(0, str(ROOT))",
+            ""
+          ],
+          "oldEnd": 11,
+          "newEnd": 17,
+          "before": [
+            "import json",
+            "from pathlib import Path",
+            "import struct"
+          ],
+          "after": [
+            "from tools.build_hia_json_preflight import admit_cold_build, current_sources",
+            "from tools.generate_hia_release_selection import MAGIC",
+            "from tools.qualify_hia_selfhost import compile_stage, invoke"
+          ]
+        },
+        {
+          "oldStart": 16,
+          "newStart": 22,
+          "removed": [
+            "ROOT = Path(__file__).resolve().parents[1]"
+          ],
+          "added": [],
+          "oldEnd": 17,
+          "newEnd": 22,
+          "before": [
+            "from tools.qualify_hia_selfhost import compile_stage, invoke",
+            "from tools.qualify_hia_selfhost_cli import inspect_executable",
+            ""
+          ],
+          "after": [
+            "SOURCES = (",
+            "    'examples/hia_bootstrap/release_install_policy.hiaasm',",
+            "    'examples/hia_bootstrap/sha256_stream.hiaasm',"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tools/generate_hia_release_selection.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 15181,
+        "sha256": "98711b5825d1b4fd8be4dae8b827eaa4c36811603e6ed9c1a1765b5953afd83d",
+        "git_blob_sha1": "78fc74c0c481a418e698437170800af1038b6d06"
+      },
+      "after": {
+        "bytes": 16238,
+        "sha256": "27ca858aa7c6f093b367df6bbc6c4f432987fb494d29b472be4c07a108cdde19",
+        "git_blob_sha1": "ede4f8a1c693c484aec142bda2f8b82e065875eb"
+      },
+      "provenance": "PR893 native read-only verify policy phases18/19/20, argument role, receipt operation; actual .hiaasm output names; unrelated-cwd import support.",
+      "edits": [
+        {
+          "oldStart": 9,
+          "newStart": 9,
+          "removed": [],
+          "added": [
+            "import sys"
+          ],
+          "oldEnd": 9,
+          "newEnd": 10,
+          "before": [
+            "from __future__ import annotations",
+            "import struct",
+            "import subprocess"
+          ],
+          "after": [
+            "import tempfile",
+            "from pathlib import Path",
+            "from hepta.hia_agent_assembly import render_assembly"
+          ]
+        },
+        {
+          "oldStart": 11,
+          "newStart": 12,
+          "removed": [],
+          "added": [
+            "",
+            "ROOT = Path(__file__).resolve().parents[1]",
+            "if __package__ in {None, ''}:",
+            "    sys.path.insert(0, str(ROOT))",
+            ""
+          ],
+          "oldEnd": 11,
+          "newEnd": 17,
+          "before": [
+            "import subprocess",
+            "import tempfile",
+            "from pathlib import Path"
+          ],
+          "after": [
+            "from hepta.hia_agent_assembly import render_assembly",
+            "from tools.generate_hia_artifact_publication import document",
+            "from tools.generate_hia_release_install import policy_source as installer_policy_source"
+          ]
+        },
+        {
+          "oldStart": 15,
+          "newStart": 21,
+          "removed": [
+            "ROOT = Path(__file__).resolve().parents[1]"
+          ],
+          "added": [],
+          "oldEnd": 16,
+          "newEnd": 21,
+          "before": [
+            "from tools.generate_hia_artifact_publication import document",
+            "from tools.generate_hia_release_install import policy_source as installer_policy_source",
+            ""
+          ],
+          "after": [
+            "MAGIC = int.from_bytes(b'HIASPK01', 'little')",
+            "STATE_MAGIC = int.from_bytes(b'HIASEL01', 'little')",
+            "STATE_BYTES = 192"
+          ]
+        },
+        {
+          "oldStart": 105,
+          "newStart": 110,
+          "removed": [],
+          "added": [
+            "    if phase == 18:",
+            "        if get(w, 8) != 4:",
+            "            return 16",
+            "        if get(w, 32) != 1 or get(w, 16) != get(w, 24):",
+            "            return 19",
+            "        i = 0",
+            "        while i < 64:",
+            "            if byte(w, 128 + i) != byte(w, 288 + i):",
+            "                return 19",
+            "            i = i + 1",
+            "        return 0",
+            "    if phase == 19:",
+            "        copy(w, 256, 1408, 192)",
+            "        copy(w, 768, 1600, 144)",
+            "        return 0",
+            "    if phase == 20:",
+            "        if stable(w, 1600, 768) == 0:",
+            "            return 12",
+            "        i = 0",
+            "        while i < 192:",
+            "            if byte(w, 256 + i) != byte(w, 1408 + i):",
+            "                return 12",
+            "            i = i + 1",
+            "        return 0"
+          ],
+          "oldEnd": 105,
+          "newEnd": 134,
+          "before": [
+            "        if get(w, 856) != get(w, 1288) or get(w, 864) != get(w, 1296):",
+            "            return 12",
+            "        return 0"
+          ],
+          "after": [
+            "    if phase == 16:",
+            "        if regular(w, 912, 256, 192) == 0:",
+            "            return 10"
+          ]
+        },
+        {
+          "oldStart": 131,
+          "newStart": 160,
+          "removed": [],
+          "added": [
+            "    if a == 6 and uint(s, 40, 6) == VERIFY:",
+            "        op = 4"
+          ],
+          "oldEnd": 131,
+          "newEnd": 162,
+          "before": [
+            "        op = 2",
+            "    if a == 6 and uint(s, 40, 6) == STATUS:",
+            "        op = 3"
+          ],
+          "after": [
+            "    if op == 0:",
+            "        return 16",
+            "    root = 40 + a"
+          ]
+        },
+        {
+          "oldStart": 141,
+          "newStart": 172,
+          "removed": [
+            "        if c == 0 or e != 64:"
+          ],
+          "added": [
+            "        if c == 0:"
+          ],
+          "oldEnd": 142,
+          "newEnd": 173,
+          "before": [
+            "        if c != 0 or d != 0 or e != 0:",
+            "            return 16",
+            "    else:"
+          ],
+          "after": [
+            "            return 16",
+            "        if c > 1 and byte(s, sequence_at) == 48:",
+            "            return 16"
+          ]
+        },
+        {
+          "oldStart": 143,
+          "newStart": 174,
+          "removed": [],
+          "added": [
+            "        if op == 4:",
+            "            if d != 64 or e != 0:",
+            "                return 16",
+            "            target_at = expected_at",
+            "        else:",
+            "            if e != 64:",
+            "                return 16"
+          ],
+          "oldEnd": 143,
+          "newEnd": 181,
+          "before": [
+            "    else:",
+            "        if c == 0 or e != 64:",
+            "            return 16"
+          ],
+          "after": [
+            "        if c > 1 and byte(s, sequence_at) == 48:",
+            "            return 16",
+            "        sequence = 0"
+          ]
+        },
+        {
+          "oldStart": 157,
+          "newStart": 195,
+          "removed": [],
+          "added": [
+            "        if op == 4 and sequence == 0:",
+            "            return 16"
+          ],
+          "oldEnd": 157,
+          "newEnd": 197,
+          "before": [
+            "            sequence = sequence * 10 + digit",
+            "            i = i + 1",
+            "        put(w, 16, sequence)"
+          ],
+          "after": [
+            "        if sequence == 0:",
+            "            if d != 1 or byte(s, expected_at) != 45:",
+            "                return 16"
+          ]
+        },
+        {
+          "oldStart": 303,
+          "newStart": 343,
+          "removed": [],
+          "added": [
+            "    if op == 4:",
+            "        at = append(o, at, VERIFY, 6)"
+          ],
+          "oldEnd": 303,
+          "newEnd": 345,
+          "before": [
+            "        at = append(o, at, ROLLBACK, 8)",
+            "    if op == 3:",
+            "        at = append(o, at, STATUS, 6)"
+          ],
+          "after": [
+            "    RECEIPT_SEQUENCE",
+            "    at = decimal(o, at, get(w, 24))",
+            "    RECEIPT_CURRENT"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tools/hia_release_selection_syscalls.S",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 8858,
+        "sha256": "a8e750d5bc19984d4d1ba40a844fc0fa7bf398d287dc0de76ac24b6fed23911b",
+        "git_blob_sha1": "0f994fc2cbdce08a5955ca072c31080a78a32ff1"
+      },
+      "after": {
+        "bytes": 9751,
+        "sha256": "a9b9391296495da4481d6fff367bf7bbdf1f6b1b97642c835a1ab954db17cd7e",
+        "git_blob_sha1": "26643a72faaa45e8abf3a8cb5110c2758f7596db"
+      },
+      "provenance": "PR893 verify arity/shared lock/full installed verifier/reopen exact state pathway; comment corrected to actual .hiaasm resource. No dlclose or publication changes.",
+      "edits": [
+        {
+          "oldStart": 22,
+          "newStart": 22,
+          "removed": [],
+          "added": [
+            " cmp QWORD PTR [r15],5",
+            " je selection_argc_ok"
+          ],
+          "oldEnd": 22,
+          "newEnd": 24,
+          "before": [
+            " mov r15,rsp",
+            " cmp QWORD PTR [r15],3",
+            " je selection_argc_ok"
+          ],
+          "after": [
+            " cmp QWORD PTR [r15],6",
+            " jne usage",
+            "selection_argc_ok:"
+          ]
+        },
+        {
+          "oldStart": 74,
+          "newStart": 76,
+          "removed": [],
+          "added": [
+            " cmp QWORD PTR [rbp+SELWORK+8],4",
+            " jne selection_mutation_arity",
+            " cmp QWORD PTR [r15],5",
+            " jne usage",
+            " jmp selection_arity_complete",
+            "selection_mutation_arity:",
+            " cmp QWORD PTR [rbp+SELWORK+8],3",
+            " je selection_arity_complete",
+            " cmp QWORD PTR [r15],6",
+            " jne usage",
+            "selection_arity_complete:"
+          ],
+          "oldEnd": 74,
+          "newEnd": 87,
+          "before": [
+            " cmp QWORD PTR [r15],3",
+            " jne usage",
+            "selection_arity_ok:"
+          ],
+          "after": [
+            " /* HIA emits the actual installer's verify argument packet. */",
+            " mov r12d,eax",
+            " mov ecx,eax"
+          ]
+        },
+        {
+          "oldStart": 108,
+          "newStart": 121,
+          "removed": [
+            " je selection_lock_open"
+          ],
+          "added": [
+            " jae selection_lock_open"
+          ],
+          "oldEnd": 109,
+          "newEnd": 122,
+          "before": [
+            " mov edx,0xa0800",
+            " xor r10d,r10d",
+            " cmp QWORD PTR [rbp+SELWORK+8],3"
+          ],
+          "after": [
+            " /* The private child fixes its own umask, never the operator's. */",
+            " mov edi,63",
+            " mov eax,95"
+          ]
+        },
+        {
+          "oldStart": 123,
+          "newStart": 136,
+          "removed": [
+            " jne identity_exit"
+          ],
+          "added": [
+            " jb identity_exit"
+          ],
+          "oldEnd": 124,
+          "newEnd": 137,
+          "before": [
+            " cmp rax,-2",
+            " jne selection_lock_result",
+            " cmp QWORD PTR [rbp+SELWORK+8],3"
+          ],
+          "after": [
+            " jmp selection_read_initial",
+            "selection_lock_result:",
+            " test rax,rax"
+          ]
+        },
+        {
+          "oldStart": 139,
+          "newStart": 152,
+          "removed": [
+            " jne selection_lock_flock"
+          ],
+          "added": [
+            " jb selection_lock_flock"
+          ],
+          "oldEnd": 140,
+          "newEnd": 153,
+          "before": [
+            " mov rdi,[rbp+SELWORK+48]",
+            " mov esi,6",
+            " cmp QWORD PTR [rbp+SELWORK+8],3"
+          ],
+          "after": [
+            " mov esi,5",
+            "selection_lock_flock:",
+            " mov eax,73"
+          ]
+        },
+        {
+          "oldStart": 153,
+          "newStart": 166,
+          "removed": [],
+          "added": [
+            " cmp QWORD PTR [rbp+SELWORK+8],4",
+            " je selection_verify_current"
+          ],
+          "oldEnd": 153,
+          "newEnd": 168,
+          "before": [
+            " call selection_read_state",
+            " cmp QWORD PTR [rbp+SELWORK+8],3",
+            " je selection_receipt"
+          ],
+          "after": [
+            " sgate 4",
+            " /* The exact actual installed-tree verifier runs under the exclusive lock. */",
+            " jmp open_release"
+          ]
+        },
+        {
+          "oldStart": 157,
+          "newStart": 172,
+          "removed": [],
+          "added": [
+            " cmp QWORD PTR [rbp+SELWORK+8],4",
+            " je selection_verified_current"
+          ],
+          "oldEnd": 157,
+          "newEnd": 174,
+          "before": [
+            " /* The exact actual installed-tree verifier runs under the exclusive lock. */",
+            " jmp open_release",
+            "/* @INSTALLER_VERIFY@ */"
+          ],
+          "after": [
+            " jmp selection_commit",
+            "",
+            "selection_commit:"
+          ]
+        },
+        {
+          "oldStart": 158,
+          "newStart": 175,
+          "removed": [],
+          "added": [
+            "",
+            "selection_verify_current:",
+            " /* The selected sequence/hash is a HIA decision under the shared lock. */",
+            " sgate 18",
+            " sgate 19",
+            " jmp open_release",
+            "",
+            "selection_verified_current:",
+            " /* Reopen and rehash actual selection after the full installed-tree read. */",
+            " mov rdi,[rbp+SELWORK+40]",
+            " mov eax,3",
+            " syscall",
+            " test rax,rax",
+            " js io_exit",
+            " call selection_read_state",
+            " sgate 20",
+            " sgate 18",
+            " call selection_check_lock_name",
+            " stat_current r14d",
+            " gate 5",
+            " jmp selection_receipt"
+          ],
+          "oldEnd": 158,
+          "newEnd": 196,
+          "before": [
+            " jmp open_release",
+            "/* @INSTALLER_VERIFY@ */",
+            " jmp selection_commit"
+          ],
+          "after": [
+            "",
+            "selection_commit:",
+            " /* HIA created the 160-byte state body; HIA SHA supplies its checksum. */"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_hia_artifact_publication_route.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 6510,
+        "sha256": "e850b77fb1c1c4b1c2f84bc3a7d38c969cbb31488248b375b47d0ee287126302",
+        "git_blob_sha1": "f66bcd39dd077a84bf963e441ec9f8399cbf01eb"
+      },
+      "after": {
+        "bytes": 11680,
+        "sha256": "2c8414c0cdfdbf4608ef57a7a4954607d52221250e8c60cb0a7ba4eff134f3eb",
+        "git_blob_sha1": "9cdb85dd043fed66eeec0e5e97bb233bbb009a2f"
+      },
+      "provenance": "Preserve all ac3 route controls; append exact PR894 four real-kernel custody controls and imports.",
+      "edits": [
+        {
+          "oldStart": 3,
+          "newStart": 3,
+          "removed": [],
+          "added": [
+            "import errno,fcntl,subprocess",
+            "from types import SimpleNamespace"
+          ],
+          "oldEnd": 3,
+          "newEnd": 5,
+          "before": [
+            "\"\"\"Explicit source-tree native publisher routing, no default/fallback change.\"\"\"",
+            "from pathlib import Path",
+            "import json,os,tempfile,unittest"
+          ],
+          "after": [
+            "from unittest.mock import patch",
+            "from hepta.artifact_publication import publish_verified,verify_published,withdraw_own_link,PublicationRejected",
+            ""
+          ]
+        },
+        {
+          "oldStart": 88,
+          "newStart": 90,
+          "removed": [],
+          "added": [
+            "",
+            "",
+            "class PublicationSealedDescriptorTests(unittest.TestCase):",
+            "    \"\"\"Real Linux memfd custody; the child mock cannot supply kernel seals.\"\"\"",
+            "",
+            "    def assert_closed(self, fd):",
+            "        with self.assertRaises(OSError) as caught:",
+            "            os.fstat(fd)",
+            "        self.assertEqual(caught.exception.errno, errno.EBADF)",
+            "",
+            "    def test_missing_python_fcntl_constants_still_require_real_complete_seals(self):",
+            "        import hepta.artifact_publication_native as native",
+            "        code = b'admitted executable bytes\\x00\\xff'",
+            "        observed = []",
+            "",
+            "        def inspect_sealed(argv, **kwargs):",
+            "            fd = int(argv[0].rsplit('/', 1)[1])",
+            "            observed.append(fd)",
+            "            self.assertEqual(fcntl.fcntl(fd, 1034) & 15, 15)",
+            "            self.assertEqual(os.pread(fd, len(code) + 1, 0), code)",
+            "            self.assertEqual(kwargs['pass_fds'], (fd,))",
+            "            for mutation in (lambda: os.write(fd, b'!'),",
+            "                             lambda: os.ftruncate(fd, len(code) + 1),",
+            "                             lambda: os.ftruncate(fd, len(code) - 1),",
+            "                             lambda: fcntl.fcntl(fd, 1033, 0x0010)):",
+            "                with self.assertRaises(OSError) as caught:",
+            "                    mutation()",
+            "                self.assertEqual(caught.exception.errno, errno.EPERM)",
+            "            return subprocess.CompletedProcess(argv, 0, b'checked', b'')",
+            "",
+            "        # The proxy intentionally exports no F_* names, while retaining the",
+            "        # real kernel syscall function. This also exercises newer Python hosts.",
+            "        without_constants = SimpleNamespace(fcntl=fcntl.fcntl)",
+            "        with patch.object(native, '_validated_code', return_value=code), \\",
+            "             patch.object(native, 'fcntl', without_constants), \\",
+            "             patch.object(native.subprocess, 'run', side_effect=inspect_sealed) as run:",
+            "            self.assertEqual(native._execute_native('selected', 'withdraw', 'stage', 'dest', b''), b'checked')",
+            "            run.assert_called_once()",
+            "        self.assertEqual(len(observed), 1)",
+            "        self.assert_closed(observed[0])",
+            "",
+            "    def test_kernel_refusal_closes_descriptor_without_starting_or_replaying(self):",
+            "        import hepta.artifact_publication_native as native",
+            "        create = os.memfd_create",
+            "        descriptors = []",
+            "",
+            "        def without_sealing(name, flags):",
+            "            # A real nonsealable memfd has F_SEAL_SEAL set from creation, so",
+            "            # the kernel itself refuses the subsequent ADD_SEALS operation.",
+            "            fd = create(name, flags & ~os.MFD_ALLOW_SEALING)",
+            "            descriptors.append(fd)",
+            "            self.assertEqual(fcntl.fcntl(fd, 1034), 1)",
+            "            return fd",
+            "",
+            "        with patch.object(native, '_validated_code', return_value=b'admitted'), \\",
+            "             patch.object(native.os, 'memfd_create', side_effect=without_sealing), \\",
+            "             patch.object(native.subprocess, 'run') as run:",
+            "            with self.assertRaisesRegex(PublicationRejected, 'E_PUBLISH_NATIVE_CUSTODY') as caught:",
+            "                native._execute_native('selected', 'withdraw', 'stage', 'dest', b'')",
+            "            self.assertIsInstance(caught.exception.__cause__, OSError)",
+            "            self.assertEqual(caught.exception.__cause__.errno, errno.EPERM)",
+            "            run.assert_not_called()",
+            "        self.assertEqual(len(descriptors), 1)",
+            "        self.assert_closed(descriptors[0])",
+            "",
+            "    def test_incomplete_kernel_seal_readback_refuses_before_child_start(self):",
+            "        import hepta.artifact_publication_native as native",
+            "        kernel_fcntl = fcntl.fcntl",
+            "        observed = []",
+            "",
+            "        def incomplete_sealing(fd, command, *args):",
+            "            if command == 1033:",
+            "                # Inject only F_SEAL_SEAL into the real kernel. The real",
+            "                # GET_SEALS result then lacks write and extent protection.",
+            "                return kernel_fcntl(fd, command, 1)",
+            "            result = kernel_fcntl(fd, command, *args)",
+            "            if command == 1034:",
+            "                self.assertEqual(result, 1)",
+            "                observed.append(fd)",
+            "            return result",
+            "",
+            "        with patch.object(native, '_validated_code', return_value=b'admitted'), \\",
+            "             patch.object(native.fcntl, 'fcntl', side_effect=incomplete_sealing), \\",
+            "             patch.object(native.subprocess, 'run') as run:",
+            "            with self.assertRaisesRegex(PublicationRejected, 'E_PUBLISH_NATIVE_CUSTODY.*seals differ'):",
+            "                native._execute_native('selected', 'withdraw', 'stage', 'dest', b'')",
+            "            run.assert_not_called()",
+            "        self.assertEqual(len(observed), 1)",
+            "        self.assert_closed(observed[0])",
+            "",
+            "    def test_absent_memfd_support_is_a_typed_refusal_without_child_start(self):",
+            "        import hepta.artifact_publication_native as native",
+            "        without_memfd = SimpleNamespace(fspath=os.fspath, close=os.close)",
+            "        with patch.object(native, '_validated_code', return_value=b'admitted'), \\",
+            "             patch.object(native, 'os', without_memfd), \\",
+            "             patch.object(native.subprocess, 'run') as run:",
+            "            with self.assertRaisesRegex(PublicationRejected, 'E_PUBLISH_NATIVE_CUSTODY'):",
+            "                native._execute_native('selected', 'withdraw', 'stage', 'dest', b'')",
+            "            run.assert_not_called()"
+          ],
+          "oldEnd": 88,
+          "newEnd": 189,
+          "before": [
+            "                self.assertEqual(verify_published(stage,dest,payload),receipt)",
+            "                self.assertTrue(withdraw_own_link(stage,dest));self.assertFalse(dest.exists())",
+            "            self.assertEqual(observed,['publish','verify','withdraw'])"
+          ],
+          "after": [
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_hia_release_selection.py",
+      "git_mode": "100644",
+      "before": {
+        "bytes": 24752,
+        "sha256": "eb694ce8e6b7e4579f6d15dc8c58b09b7c22626480c0ec9fb53409ec2cbba046",
+        "git_blob_sha1": "63bd5352d6b172b0cfda5aa0531cc785c31e4f23"
+      },
+      "after": {
+        "bytes": 32259,
+        "sha256": "054ac0656577a804330b13c1884500a99d015fca3847cc4c7a3c61bf639f0f56",
+        "git_blob_sha1": "ed01bcfc79b26a1e67a63956610fb8ec3c960d3d"
+      },
+      "provenance": "PR893 seven native verify/source observation additions over ac3; retain original activation/rollback controls and source resource spelling.",
+      "edits": [
+        {
+          "oldStart": 9,
+          "newStart": 9,
+          "removed": [],
+          "added": [
+            "import signal"
+          ],
+          "oldEnd": 9,
+          "newEnd": 10,
+          "before": [
+            "from pathlib import Path",
+            "import re",
+            "import shutil"
+          ],
+          "after": [
+            "import struct",
+            "import subprocess",
+            "import tempfile"
+          ]
+        },
+        {
+          "oldStart": 12,
+          "newStart": 13,
+          "removed": [],
+          "added": [
+            "import time"
+          ],
+          "oldEnd": 12,
+          "newEnd": 14,
+          "before": [
+            "import struct",
+            "import subprocess",
+            "import tempfile"
+          ],
+          "after": [
+            "import unittest",
+            "from unittest.mock import patch",
+            "from hepta.hia_agent_assembly import assemble_program, render_assembly"
+          ]
+        },
+        {
+          "oldStart": 184,
+          "newStart": 186,
+          "removed": [
+            "                (1,'activate',1,'a'*64,None),(2,'rollback',(1<<64)-1,'b'*64,'a'*64)]:"
+          ],
+          "added": [
+            "                (1,'activate',1,'a'*64,None),(2,'rollback',(1<<64)-1,'b'*64,'a'*64),",
+            "                (4,'verify',2,'b'*64,'a'*64)]:"
+          ],
+          "oldEnd": 185,
+          "newEnd": 188,
+          "before": [
+            "",
+            "    def test_vm_receipt_and_staged_name(self):",
+            "        for op,operation,sequence,current,previous in [(3,'status',0,None,None),"
+          ],
+          "after": [
+            "            w=fields(p0=14,p8=op,p24=sequence)",
+            "            if current:w[288:352]=current.encode()",
+            "            if previous:w[352:416]=previous.encode()"
+          ]
+        },
+        {
+          "oldStart": 200,
+          "newStart": 203,
+          "removed": [],
+          "added": [
+            "    def test_vm_selected_release_verify_identity_and_full_snapshot(self):",
+            "        root,digest='/private/releases','a'*64",
+            "        expected=struct.pack('<3Q',6,len(root),64)+b'verify'+root.encode()+digest.encode()",
+            "        self.assertEqual(observe(packet('verify',root,'1',digest),fields(p0=0),",
+            "            offsets=range(len(expected))),(len(expected),expected))",
+            "        for args in [('verify',root,'0',digest),('verify',root,'01',digest),",
+            "                     ('verify',root,'1','A'*64),('verify',root,'1',digest,digest)]:",
+            "            self.assertEqual(observe(packet(*args),fields(p0=0))[0],16)",
+            "        w=fields(p0=18,p8=4,p16=2,p24=2,p32=1)",
+            "        w[128:192]=digest.encode();w[256:448]=state(2,digest,'b'*64)",
+            "        self.assertEqual(observe(b'',w)[0],0)",
+            "        for at,value in ((8,1),(16,1),(32,0)):",
+            "            changed=bytearray(w);struct.pack_into('<Q',changed,at,value)",
+            "            self.assertEqual(observe(b'',changed)[0],16 if at==8 else 19)",
+            "        changed=bytearray(w);changed[128]=ord('b')",
+            "        self.assertEqual(observe(b'',changed)[0],19)",
+            "        w=fields(p0=20)",
+            "        raw=state(2,digest,'b'*64)",
+            "        w[256:448]=raw;w[1408:1600]=raw",
+            "        self.assertEqual(observe(b'',w)[0],0)",
+            "        for at in (256,352,416,768,776,784,792,816,856,864,872,880):",
+            "            changed=bytearray(w);changed[at]^=1",
+            "            self.assertEqual(observe(b'',changed)[0],12,at)",
+            ""
+          ],
+          "oldEnd": 200,
+          "newEnd": 227,
+          "before": [
+            "        expected=b'.hia-selection-stage-'+bytes(range(16)).hex().encode()+b'\\0'",
+            "        self.assertEqual(observe(b'x',w,workspace_offsets=range(640,640+len(expected)))[1],expected)",
+            ""
+          ],
+          "after": [
+            "    def test_independent_vm_packer_all_bytes(self):",
+            "        vm_pack()",
+            ""
+          ]
+        },
+        {
+          "oldStart": 291,
+          "newStart": 318,
+          "removed": [
+            "            args += [str(sequence),current or '-',self.ids[target]]"
+          ],
+          "added": [
+            "            args += [str(sequence),current or '-']",
+            "            if operation != 'verify':",
+            "                args.append(self.ids[target])"
+          ],
+          "oldEnd": 292,
+          "newEnd": 321,
+          "before": [
+            "        args=[str(self.app),operation,str(root or self.root)]",
+            "        data=b''",
+            "        if sequence is not None:"
+          ],
+          "after": [
+            "            data=self.wires[target] if wire is None else wire",
+            "        p=subprocess.run([*prefix,*args],input=data,capture_output=True,env={'PATH':''},timeout=30)",
+            "        self.observations.append({'case':self.id(),'operation':operation,'returncode':p.returncode,"
+          ]
+        },
+        {
+          "oldStart": 331,
+          "newStart": 360,
+          "removed": [],
+          "added": [
+            "    def test_selected_release_verify_is_coherent_readonly_and_requires_exact_identity(self):",
+            "        self.run_app('verify',1,self.ids[0],code=19)",
+            "        self.assertFalse((self.root/LOCK).exists())",
+            "        self.run_app('activate',0,None,0)",
+            "        before={str(p.relative_to(self.root)):(p.stat().st_ino,p.stat().st_mode,p.stat().st_size,",
+            "            p.stat().st_mtime_ns,p.read_bytes() if p.is_file() else None)",
+            "            for p in self.root.rglob('*')}",
+            "        verified=json.loads(self.run_app('verify',1,self.ids[0]).stdout)",
+            "        self.assertEqual(verified,{'schema':'hepta.hia.release-selection.v1','operation':'verify',",
+            "            'sequence':1,'current':self.ids[0],'previous':None,'release_verified':True})",
+            "        with (self.root/LOCK).open('rb') as held:",
+            "            fcntl.flock(held,fcntl.LOCK_SH|fcntl.LOCK_NB)",
+            "            self.run_app('verify',1,self.ids[0])",
+            "            self.run_app('activate',1,self.ids[0],1,code=18)",
+            "        self.run_app('verify',2,self.ids[0],code=19)",
+            "        self.run_app('verify',1,self.ids[1],1,code=19)",
+            "        self.run_app('verify',1,self.ids[0],wire=self.wires[1],code=11)",
+            "        after={str(p.relative_to(self.root)):(p.stat().st_ino,p.stat().st_mode,p.stat().st_size,",
+            "            p.stat().st_mtime_ns,p.read_bytes() if p.is_file() else None)",
+            "            for p in self.root.rglob('*')}",
+            "        self.assertEqual(after,before)",
+            "        self.assertFalse(any(p.name.startswith('.hia-selection-stage-') for p in self.root.iterdir()))",
+            "        app=self.root/self.ids[0]/'app'",
+            "        app.chmod(0o700);app.write_bytes(b'changed installed executable');app.chmod(0o500)",
+            "        self.run_app('verify',1,self.ids[0],code=11)",
+            "        self.assertEqual((self.root/CURRENT).read_bytes(),before[CURRENT][-1])",
+            "",
+            "    def test_selected_verify_rechecks_actual_state_after_mid_read_replacement(self):",
+            "        # The advisory lock cannot stop a noncooperating same-UID writer. This",
+            "        # control changes an actual state after the original read and requires",
+            "        # readback refusal; it grants no protection after the observation ends.",
+            "        wire=install_controls.bundle([('app',0o500,b'bounded-readback-control\\0'*(400000))])",
+            "        digest=sha256(wire).hexdigest()",
+            "        installed=subprocess.run([str(self.installer),'install',str(self.root),digest],",
+            "            input=wire,capture_output=True,env={'PATH':''},timeout=30)",
+            "        self.assertEqual(installed.returncode,0,installed.stderr)",
+            "        self.run_app('activate',0,None,0)",
+            "        activated=subprocess.run([str(self.app),'activate',str(self.root),'1',self.ids[0],digest],",
+            "            input=wire,capture_output=True,env={'PATH':''},timeout=30)",
+            "        self.assertEqual(activated.returncode,0,activated.stderr)",
+            "        selected_path=self.root/CURRENT",
+            "        original=selected_path.read_bytes()",
+            "        for replace_inode in (False,True):",
+            "            child=subprocess.Popen([str(self.app),'verify',str(self.root),'2',digest],",
+            "                stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':''})",
+            "            try:",
+            "                child.stdin.write(wire);child.stdin.close();child.stdin=None",
+            "                expected=str(self.root/digest/'app')",
+            "                deadline=time.monotonic()+15",
+            "                observed=False",
+            "                while time.monotonic()<deadline:",
+            "                    self.assertIsNone(child.poll(),'verifier ended before actual file-read boundary')",
+            "                    for descriptor in Path(f'/proc/{child.pid}/fd').iterdir():",
+            "                        try:",
+            "                            if os.readlink(descriptor)==expected:",
+            "                                observed=True",
+            "                                break",
+            "                        except FileNotFoundError:",
+            "                            pass",
+            "                    if observed:",
+            "                        break",
+            "                    time.sleep(0.001)",
+            "                self.assertTrue(observed,'actual installed payload descriptor was not observed')",
+            "                child.send_signal(signal.SIGSTOP)",
+            "                _,stopped=os.waitpid(child.pid,os.WUNTRACED)",
+            "                self.assertTrue(os.WIFSTOPPED(stopped),'verifier must be alive at the actual read boundary')",
+            "                if replace_inode:",
+            "                    replacement=self.root/'independent-replacement'",
+            "                    replacement.write_bytes(original);replacement.chmod(0o400)",
+            "                    replacement.replace(selected_path)",
+            "                else:",
+            "                    # A valid same-sequence/current record with a different",
+            "                    # previous release must also fail the complete snapshot.",
+            "                    selected_path.chmod(0o600)",
+            "                    selected_path.write_bytes(state(2,digest,self.ids[1]))",
+            "                    selected_path.chmod(0o400)",
+            "                child.send_signal(signal.SIGCONT)",
+            "                output,error=child.communicate(timeout=30)",
+            "                self.assertEqual((child.returncode,output),(12,b''),error)",
+            "                self.observations.append({'case':self.id(),'selection_inode_replaced':replace_inode,",
+            "                    'actual_installed_payload_descriptor_observed':True,'returncode':child.returncode})",
+            "            finally:",
+            "                if child.poll() is None:",
+            "                    child.kill()",
+            "                child.communicate(timeout=5)",
+            "                selected_path.chmod(0o600);selected_path.write_bytes(original);selected_path.chmod(0o400)",
+            ""
+          ],
+          "oldEnd": 331,
+          "newEnd": 447,
+          "before": [
+            "            self.assertEqual((self.root/CURRENT).read_bytes(),original)",
+            "        self.run_app('rollback',1,self.ids[0],1,code=20)",
+            ""
+          ],
+          "after": [
+            "    def test_actual_lock_contention_and_two_process_compare_and_swap(self):",
+            "        self.run_app('activate',0,None,0)",
+            "        with (self.root/LOCK).open('rb') as held:"
+          ]
+        },
+        {
+          "oldStart": 442,
+          "newStart": 558,
+          "removed": [],
+          "added": [
+            "",
+            "    def test_selected_verify_has_no_mutation_syscalls_or_child_and_retries_eintr(self):",
+            "        self.run_app('activate',0,None,0)",
+            "        prefix,trace=self.trace('flock:error=EINTR:when=1')",
+            "        self.run_app('verify',1,self.ids[0],prefix=prefix)",
+            "        raw=trace.read_text()",
+            "        self.assertIn('INJECTED',raw)",
+            "        self.assertEqual(len(re.findall(r'^execve\\(',raw,re.M)),1)",
+            "        self.assertNotRegex(raw,r'\\b(?:fork|vfork|clone|clone3|fsync|fchmod|renameat2|unlinkat|mkdirat)\\(')",
+            "        self.assertNotIn('O_CREAT',raw)",
+            "        self.assertNotIn('ld.so',raw)",
+            "        self.assertRegex(raw,r'flock\\(\\d+, LOCK_SH\\|LOCK_NB\\)')"
+          ],
+          "oldEnd": 442,
+          "newEnd": 570,
+          "before": [
+            "        self.assertNotIn('ld.so',raw)",
+            "        self.assertLess(raw.index('flock('),raw.index('renameat2('))",
+            "        self.assertLess(raw.index('fsync('),raw.index('renameat2('))"
+          ],
+          "after": [
+            "",
+            "",
+            ""
+          ]
+        }
+      ]
+    }
+  ],
+  "additions": [
+    {
+      "path": "docs/HIA_NATIVE_SOURCE_RELEASE_INTEGRATION.md",
+      "git_mode": "100644",
+      "bytes": 7008,
+      "sha256": "cad030ac8cf88db89c32b6c2e9ece8588e8b368256f4f8550aa5c2828de856d3",
+      "git_blob_sha1": "1302f589451c5c8eb057bd47af657f1f8997e589",
+      "content_in_authoring_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+      "content_unchanged_from_that_packet": true
+    },
+    {
+      "path": "hepta/hia_program_selfhost.py",
+      "git_mode": "100644",
+      "bytes": 22492,
+      "sha256": "a36331d64abd913a9c1b399a74eae3ab5c898f8f0f1b126df14c4f811ef016af",
+      "git_blob_sha1": "d51413f89cebea9444d0864cb2d624216b8d73e4",
+      "content_in_authoring_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+      "content_unchanged_from_that_packet": true
+    },
+    {
+      "path": "tests/test_hia_program_selfhost.py",
+      "git_mode": "100644",
+      "bytes": 25099,
+      "sha256": "14107698c6e1acd2beae9e713fb476d8ffcfd57ad893d1fdacecc3d59693024c",
+      "git_blob_sha1": "c305c01cc256feb155000caca7a27db75f956635",
+      "content_in_authoring_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+      "content_unchanged_from_that_packet": true
+    },
+    {
+      "path": "tests/test_hia_source_build.py",
+      "git_mode": "100644",
+      "bytes": 46199,
+      "sha256": "9f6aec33247043577cba42025d001164d274a921a603537d64d4d3716d69f8f7",
+      "git_blob_sha1": "8749e1156ee7cd9a4db9102a45b8fe60bb0261c7",
+      "content_in_authoring_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+      "content_unchanged_from_that_packet": true
+    },
+    {
+      "path": "tests/test_hia_source_release_integration.py",
+      "git_mode": "100644",
+      "bytes": 9476,
+      "sha256": "f05a6fcf9dd0f5a1b7e852fca96f5e21dba3bf1e32af75cd5266a810032e6402",
+      "git_blob_sha1": "5c7106e3c45f789d344a00ea294a50730865cd52",
+      "content_in_authoring_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+      "content_unchanged_from_that_packet": true
+    },
+    {
+      "path": "tools/build_hia_source_build.py",
+      "git_mode": "100644",
+      "bytes": 15489,
+      "sha256": "516405bfdfb12370c5d57e6e74ea52c2080380f04cd57635570b1a7c7f2fa298",
+      "git_blob_sha1": "14cad75dda452318a8e68d688a01b24ec3e79894",
+      "content_in_authoring_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+      "content_unchanged_from_that_packet": true
+    },
+    {
+      "path": "tools/generate_hia_source_build.py",
+      "git_mode": "100644",
+      "bytes": 14556,
+      "sha256": "6e2e04996ea9d397c34ffe3ecb1822ba0daa72d99ec1107ec36f202cace57949",
+      "git_blob_sha1": "e18e320f1c7a719628bb96cf41c7b276f64d55b9",
+      "content_in_authoring_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+      "content_unchanged_from_that_packet": true
+    },
+    {
+      "path": "tools/hia_source_build_syscalls.S",
+      "git_mode": "100644",
+      "bytes": 3578,
+      "sha256": "2170b208f14766b7c851dfc776fca618f691a11621fd85a6f254f00fb7f7f9fa",
+      "git_blob_sha1": "43178909184fa69099b801faf8b947109f19a220",
+      "content_in_authoring_blob": "a1b9f3230a92b58fee31da3968e01fc15c50f96c",
+      "content_unchanged_from_that_packet": true
+    }
+  ],
+  "unchanged": [
+    {
+      "path": "tests/test_hia_release_selection_review.py",
+      "bytes": 14019,
+      "sha256": "ac55277e4d97a659bf64583a8cb3e6f66c4067936fb73b2c86ba9dfb0b340e3e",
+      "git_blob_sha1": "fb22c3d5cfa16899b3a2713b7f03cebb4ec7cf72",
+      "provenance": "Already byte-identical to ac3; no change required."
+    }
+  ],
+  "protected_current_inputs": [
+    {
+      "path": "tools/qualify_hia_selfhost.py",
+      "bytes": 66931,
+      "sha256": "7e4cde28c3146088417607ad0edc405a201718aa074225c074d0cf0bb9c1560b",
+      "git_blob_sha1": "be15c5a4f42fb818567c0debe29eadfb914d1cb6",
+      "strict_compile_receipt_present": true,
+      "unified_linked_observer_present": true,
+      "action": "DO_NOT_CHANGE"
+    },
+    {
+      "path": "tools/build_hia_json_preflight.py",
+      "bytes": 10334,
+      "sha256": "cbd46e55f76f4dcfbe7ae3a73a5e0582f49c08d634b3664018f2a78d5a03afaf",
+      "git_blob_sha1": "63bff7606afe7dd2c74c2ed0c44b10d0f84c13f7",
+      "action": "DO_NOT_CHANGE"
+    }
+  ],
+  "provenance_notes": [
+    "All current existing files were fetched at exact ac3fb576 and independently Git-blob verified before comparison.",
+    "Current hepta/cli.py, publisher and setup are exact8b9; current agent contract, MANIFEST and selfhost contract contain additional normalization/observer inputs which this patch preserves.",
+    "NativePublicationRefusal body/call-local store admission remain intact; portable custody is a narrow segment import, not the PR894 whole publisher.",
+    "The existing release-selection review file is already identical; importing it again is unnecessary.",
+    "No default/native-adoption/whole-delivery/deletion flag is promoted; whole compiler, service and platform coverage remains incomplete."
+  ],
+  "generation_and_gate_dependencies": [
+    "Generate source_build_policy.hepta and source_build_packer.hepta from the merged actual generator.",
+    "Generate release_selection_policy.hiaasm and release_selection_packer.hiaasm from the merged actual generator.",
+    "Regenerate language coverage using current semantic contract, then support and check; regenerate inventory with the final staged identity. Use the repository's original gates.",
+    "Run the complete original SourceBuilderNativeTests including both ptrace controls; CI must observe its actual tracing capability.",
+    "Run complete SelfhostBuildNativeTests including installed-wheel/no-authoring import/custody controls; these had not been executed before local outage.",
+    "Run original release source/native/review controls and the preserved publisher controls.",
+    "For the external full runner, route SOURCE_BUILD_COLD_REPORT to fresh matching source; both source builder and explicit compiler class use it. Clear DEVELOPMENT_MANIFEST/DEVELOPMENT_COMPILER conflicts; use unique SOURCE_BUILD_OBSERVATIONS and SELFHOST_BUILD_EVIDENCE directories."
+  ],
+  "current_reconstructed_source_qualified": false
+}

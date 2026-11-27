@@ -1,0 +1,301 @@
+{
+  "schema": "hepta.main-service-front-readonly-review.v1",
+  "observed_at": "2026-11-13 03:02:38 UTC",
+  "repository": "TrillionniumFoundation/Hepta",
+  "source_commit": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+  "reported_tree": "578a72d9bd6dadf0375bed33e3d1aa5341c8f452",
+  "tree_provenance": "Exact tree supplied and independently enumerated by root/remote; this reviewer independently fetched and recomputed all ten file Git blobs and SHA256 values, not the whole tree.",
+  "scope": {
+    "source_review_only": true,
+    "files": 10,
+    "product_execution": false,
+    "python_ast_execution": false,
+    "tests_run": 0,
+    "native_entries": 0,
+    "product_ref_changed": false,
+    "qualification_transferred": false,
+    "whole_native_claim": false
+  },
+  "findings": [
+    {
+      "id": "service-request-policy",
+      "path": "hepta/hia_agent_service.py",
+      "functions": [
+        "__init__",
+        "call",
+        "_reference_call"
+      ],
+      "ranges": [
+        [
+          83,
+          118
+        ],
+        [
+          261,
+          345
+        ]
+      ],
+      "classification": "Python production coordination with explicit optional native subowners",
+      "evidence": "Constructor captures candidate-budget and slot-ledger images. call reads HEPTA_HIA_AGENT_JOURNAL_MANIFEST and delegates selected calls to hia_agent_journal_native.call_with_native_journal; without it _reference_call runs Python snapshot, request key/digest binding, durable intent/completed/unknown SQL, schema and implementation checks, context/budget calls, dynamic tool dispatch, output validation, cost insertion, and terminal update.",
+      "implications": "Existing journal/candidate/slot kernels must not be reported absent. This source does not contain the later Context/Emission/Verification/Requests/Artifacts/Evaluation coordinator facades seen in a733; no current-main runtime test was executed."
+    },
+    {
+      "id": "service-context-policy",
+      "path": "hepta/hia_agent_service.py",
+      "functions": [
+        "_context",
+        "_budget",
+        "_remaining_ms",
+        "_hia_context"
+      ],
+      "ranges": [
+        [
+          353,
+          389
+        ],
+        [
+          478,
+          530
+        ]
+      ],
+      "classification": "Python policy",
+      "evidence": "Context/profile/store bindings, workload/objective checks, buffer and scalar budget checks, time/deadline decisions, and response construction remain in Python. _hia_context publishes the context artifact, then INSERTs contexts, then invokes execution_budgets.create. _remaining_ms re-reads context SQL on each call.",
+      "implications": "Execution-budget storage already has its own native admission in AgentStore; a future context migration must retain that provider and original partial-effect order rather than migrate or duplicate it again."
+    },
+    {
+      "id": "service-artifact-emission-policy",
+      "path": "hepta/hia_agent_service.py",
+      "functions": [
+        "_hia_artifact",
+        "_hia_read",
+        "_compile",
+        "_hia_emit",
+        "_native"
+      ],
+      "ranges": [
+        [
+          417,
+          477
+        ],
+        [
+          847,
+          922
+        ]
+      ],
+      "classification": "Python policy with foreign/native backend providers",
+      "evidence": "Source-vs-path capture, expected digest and artifact publication, cursor SQL, UTF-8/base64 output paging, output quota trimming, compile deadline/temporary directory/linker sequencing, object publication, signature/native/build receipt policy remain Python control flow.",
+      "implications": "emit_program_machine/compile_program_machine and Store can independently select native providers. This is not a claim that all invoked backend code is Python; backend implementation ownership is assigned to the other reviewer."
+    },
+    {
+      "id": "contract-seven-functions",
+      "path": "hepta/hia_agent_contract.py",
+      "functions": [
+        "catalog",
+        "installation_manifest",
+        "check_vocabulary",
+        "validate",
+        "_valid",
+        "input_diagnostic",
+        "obj"
+      ],
+      "ranges": [
+        [
+          194,
+          370
+        ]
+      ],
+      "classification": "Python policy",
+      "evidence": "All seven top-level function bodies were read, including validate.fail/matches. Catalog/schema selection, recursive vocabulary and validation decisions, first diagnostic, installation source/resource inventory and hashing, and diagnostic/schema construction are direct Python bodies without the later Contract selection/facade.",
+      "implications": "The source is not merely SQLite/FFI transport. This review does not establish semantic equivalence to the independently developed Contract7 owner or justify deleting its Python reference."
+    },
+    {
+      "id": "store-sql-policy",
+      "path": "hepta/hia_agent_store.py",
+      "functions": [
+        "AgentStore.__init__",
+        "transaction",
+        "put",
+        "get",
+        "get_json",
+        "resolve_uri",
+        "profile",
+        "check_profile"
+      ],
+      "ranges": [
+        [
+          235,
+          474
+        ]
+      ],
+      "classification": "Python namespace/transaction/publication coordination; SQLite remains a foreign provider",
+      "evidence": "AgentStore creates SQLite and WAL tables, selects and constructs the execution budget provider, sequences BEGIN IMMEDIATE/ROLLBACK/COMMIT, checks dedup and namespace authority, and orders file publication vs metadata insertion. Optional HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST selects store-hash/store-put/store-get native file operations; default performs the Python file path.",
+      "implications": "Separate file syscall mechanisms from SQL/metadata policy. Do not label all Store work native from the artifact file kernel, or all work Python while ignoring execution-budget/artifact selection."
+    },
+    {
+      "id": "wire-current-native-profile",
+      "paths": [
+        "hepta/hia_program_tools.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_json_wire_native.py"
+      ],
+      "functions": [
+        "bounded_json_wire",
+        "_reference_bounded_json_wire",
+        "wire",
+        "decode_data",
+        "WireSession",
+        "NativeJsonWire.encode_ordinary"
+      ],
+      "classification": "Default Python wire plus explicit bounded HIA continuation profile",
+      "evidence": "bounded_json_wire selects HEPTA_HIA_JSON_WIRE_MANIFEST or retained Python DFS+JSONEncoder. NativeJsonWire calls a real image entry and transports HIA-requested summary/child/codepoint/limb/digit-limit/float-format observations; the Python observer does not recursively serialize the graph. Ordinary options are typed facts and arbitrary renderer objects have a distinct refusal fact. The declared product profile explicitly says entire_python_call_domain_replaced=false; max is 8 MiB with bounded node/depth workspace.",
+      "implications": "This is a substantive newer native JSON-wire path and must not be missed. This reviewer did not read/execute its .hepta HIA asset or its qualification reports, and does not infer all-domain lifecycle/metaclass/active-stack compatibility from the bridge."
+    },
+    {
+      "id": "json-decode-current-selection",
+      "paths": [
+        "hepta/hia_json_decode.py",
+        "hepta/hia_agent_store.py"
+      ],
+      "functions": [
+        "decode_hia_json",
+        "decode_internal_canonical",
+        "decode_data"
+      ],
+      "classification": "Explicit bounded native decoder/converter paths plus default Python producers",
+      "evidence": "Core text decode selects HEPTA_HIA_JSON_DECODE_MANIFEST within stated byte/node/depth checks, else preflight/json.loads. Internal canonical decoding also has a selected native decoder and default json.loads. Agent decode_data separately offers HEPTA_HIA_AGENT_DATA_JSON_MANIFEST and HEPTA_HIA_AGENT_BINARY64_MANIFEST; without them its text-number/preflight logic and json.loads/float remain hosted.",
+      "implications": "Existing syntax/tree decoding and numeric conversion owners are not the full in-process normalization or assembly orchestration owner."
+    },
+    {
+      "id": "public-front-still-python",
+      "paths": [
+        "hepta/hia_program.py",
+        "hepta/hia_agent_assembly.py"
+      ],
+      "functions": [
+        "_decode",
+        "_structure",
+        "_bounded_detached_snapshot",
+        "verify_program",
+        "_parse_assembly_document",
+        "assemble_program",
+        "_render_assembly_document",
+        "render_assembly",
+        "diagnose_assembly"
+      ],
+      "classification": "Python normalization and public front coordination, with existing native Core primitive hook",
+      "evidence": "verify_program still directly handles VerifiedProgram recursion, _decode, composite elaboration, version collision and selected_core_structure or primitive/interface/function checking. _decode performs Python detached snapshot/structural accounting and optional selected canonical wire before the detached decode. Assembly's complete source/parser/renderer/public roundtrip bodies were read and directly perform the policy; no separate two-entry Core verification or assembly-front selection exists in these public source bodies.",
+      "implications": "Do not transfer the a733 Core2/Assembly12+lazy ownership result to main. Existing selected Core admission is real and is not to be duplicated. Full normalization still depends on current explicit JSON providers and Python object/exception semantics."
+    },
+    {
+      "id": "primitive-json-frontend-is-distinct",
+      "path": "hepta/hia_core_json_frontend_native.py",
+      "functions": [
+        "NativeCoreJsonFrontend.render",
+        "installed_frontend"
+      ],
+      "classification": "Native primitive JSON-to-assembly representation bridge",
+      "evidence": "The bridge renders exact bytes through a real image entry with max node/depth parameters and flat/elf/exec output profile. It enforces unchanged 1 MiB output and returns representation errors. Its docstring states that output still needs the compiler's semantic check.",
+      "implications": "This is not the public assembly source parser, verify_program coordinator, general object normalization, or a declaration of whole-native activation."
+    }
+  ],
+  "limits": [
+    "Read-only selected body audit; no Python AST interpreter, project import, HIA compilation, native execution, installation, or tests.",
+    "Ten full file bytes and identities are retained. Whole-main tree enumeration is the remote reviewer's separate evidence.",
+    "For hia_program.py, full text was fetched but the detailed semantic read here covered the public normalize/verify routes; the body-resource verifier and entire _structure implementation were not exhaustively audited.",
+    "For hia_agent_service.py, full text was fetched but _hia_verify/_hia_evaluate/slot policy bodies are only located, not fully semantically audited in this report.",
+    "No claim that new-main CI, a733 CI, or any independent development qualification is interchangeable.",
+    "Initial lookup hepta/core_json_frontend_native.py returned 404; peer corrected the path to hepta/hia_core_json_frontend_native.py. No product failure is inferred."
+  ],
+  "source_identities": [
+    {
+      "path": "hepta/hia_agent_service.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 103676,
+      "sha256": "40533792712128cef9f455acdcc3086c99eab3483e0a9b1afe099164b6c1109f",
+      "blob": "c7d0bb71445438b75c506f5d372007c7179c35ef",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_agent_service.py"
+    },
+    {
+      "path": "hepta/hia_agent_contract.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 24771,
+      "sha256": "e3b6c98a6abaaf92889fb1f5c8e5a9c15eeeabf8d37b09ec4b98430637b68eba",
+      "blob": "932cda6feb271b2415b927df26b03e912e692f1f",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_agent_contract.py"
+    },
+    {
+      "path": "hepta/hia_agent_store.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 21825,
+      "sha256": "d51503beefbf043075deb7e626f1810b42d8842a51da21f4f71abddf1a3f0f9e",
+      "blob": "95a31480933b4c6de151b88cf7e4cc5a35e407d0",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_agent_store.py"
+    },
+    {
+      "path": "hepta/hia_program.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 45247,
+      "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+      "blob": "5d0027f4453759e4156a3496e64215c441a727e4",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_program.py"
+    },
+    {
+      "path": "hepta/hia_agent_assembly.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 15216,
+      "sha256": "e37095496bf159ad573a31214d4d73e916648b4f0664edb541014f54681fbc03",
+      "blob": "aa4462d5ee8cd29df1a9cd9762e1edcb6dd00a3f",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_agent_assembly.py"
+    },
+    {
+      "path": "hepta/hia_json_wire_native.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 18432,
+      "sha256": "f3bc7821501c43757384d0567359e31faa19afcd6ce0f257c29981ce1e020127",
+      "blob": "4db96db54a4893735d133039c0f2aea36392e4fa",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_json_wire_native.py"
+    },
+    {
+      "path": "hepta/hia_bounded_wire.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 1252,
+      "sha256": "653c896e3536a0c1be035144344e6d572ce25d8ea223105eecb3be0c21e82286",
+      "blob": "419570bdcc2e083cd51287fa6d89915cb732fd65",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_bounded_wire.py"
+    },
+    {
+      "path": "hepta/hia_core_json_frontend_native.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 2725,
+      "sha256": "155d8750731cff5a2a622df42c8e55344bb256217c497468adc853ed762af769",
+      "blob": "8f25d29b4811653517ecb766ecde7a0e886a57bf",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_core_json_frontend_native.py"
+    },
+    {
+      "path": "hepta/hia_program_tools.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 22889,
+      "sha256": "273106e522628b1218b928a641d86400936c8a11bf98317f5ffc9577671e8b5d",
+      "blob": "ff9eae40d474b8b74ceb90177863e211100e80bc",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_program_tools.py"
+    },
+    {
+      "path": "hepta/hia_json_decode.py",
+      "ref": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+      "bytes": 2342,
+      "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4",
+      "blob": "ccbb2db08fed3088fb4dc8c79ed5b44c2bdd6500",
+      "full_content_sha_verified": true,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/blob/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8/hepta/hia_json_decode.py"
+    }
+  ]
+}

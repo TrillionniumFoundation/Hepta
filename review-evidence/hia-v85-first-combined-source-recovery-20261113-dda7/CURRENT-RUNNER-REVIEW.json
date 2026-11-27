@@ -1,0 +1,77 @@
+{
+  "schema": "hepta.combined-runner-seven-fixes-source-review.v1",
+  "status": "MINIMUM_SEVEN_FIXES_PRESENT_NO_NEW_DEFINITE_BLOCKER_FOUND",
+  "reviewed": {
+    "runner": {
+      "blob": "3b650a10a7c41e938fb147fa4bfa2d9fef6e936c",
+      "bytes": 44863,
+      "sha256": "9c37564e8d127a31d79fda9d59bc63246a37aaa2a1c550d28e80b3e9b21d5abd"
+    },
+    "gate": {
+      "blob": "40b230288e6db39817aeee26b616d5a613af4f2c",
+      "bytes": 6837,
+      "sha256": "269f59f75f44a3a34cd62606caafcc9354d3bf62cee760d630c196b0c6dcabe4"
+    }
+  },
+  "scope": "Only the seven earlier concrete issues and source-path isolation in the fixed current source. No product, generation or test execution; no architecture re-audit.",
+  "review_method": {
+    "full_source_read": true,
+    "one_pure_stdlib_regex_literal_check": true,
+    "product_executions": 0,
+    "generators": 0,
+    "tests": 0,
+    "source_mutations": 0
+  },
+  "seven_fixes": [
+    {
+      "id": "R1",
+      "status": "PRESENT",
+      "evidence": "Gate reads the separately pinned original executed IDs, checks exact main016f530/a733973 cardinalities and unique IDs, applies longest matching rename prefix, and rejects every missing frozen method. Candidate-projected lists are kept separately."
+    },
+    {
+      "id": "R2",
+      "status": "PRESENT",
+      "evidence": "ObservedResult flushes JSONL startTest/stopTest events. Complete requires actual_started_ids == selected_ids == actual_stopped_ids and testsRun == expected; anomalies and duplicate IDs still reject."
+    },
+    {
+      "id": "R3",
+      "status": "MINIMUM_FIXED_TREE_CHECK_PRESENT",
+      "evidence": "assert_current_tree checks git write-tree equals the frozen tree, git diff against that explicit tree, and untracked nonignored paths. Called after second generation and after Source; candidate upload compares returned full tree leaves to the frozen tree.",
+      "limit": "This uses Git worktree/index comparison, not an independent per-path raw-byte/POSIX-mode sweep. Git stat-cache/assume-unchanged semantics therefore remain a limit to claims about this particular guard. The final snapshot separately captures actual bytes but does not compare that snapshot to the saved candidate tree. No actual present-run divergence is asserted."
+    },
+    {
+      "id": "R4",
+      "status": "PRESENT_AND_ORIGINAL_FAILURE_BYTES_RECOVERED",
+      "evidence": "main always attempts snapshot_failure_or_terminal_sources before evidence persistence, including ignored/untracked/partial non-.git paths, modes, fixed original Git references and physically retained changed/new bytes. Snapshot failure sets FAIL. The actual first failure produced 3039 rows/235 retained byte rows; independent recovery and root local readback reconstructed the complete 97,733,589-byte tree."
+    },
+    {
+      "id": "R5",
+      "status": "PRESENT",
+      "evidence": "Physical migration source != target is required. deduplicate-identical-legacy-path now separately requires non-symlink target and target.read_bytes() == original raw before admission. The owner-regeneration action remains separate."
+    },
+    {
+      "id": "R6",
+      "status": "PRESENT",
+      "evidence": "main stores source_tests and tests_run before after-Source tree validation. source_test_stage_started and fallback report loading preserve unknown rather than false zero when the child produces no complete report."
+    },
+    {
+      "id": "R7",
+      "status": "PRESENT",
+      "evidence": "Blob API writes exact successful and HTTP-error response bytes before parsing; each POST has persisted expected OID/size/SHA intent, ACK and strict GET readback. API receipt list is written in finally. Complete compressed evidence and its full chunk intent are on disk before first chunk POST. No timed-out POST replay logic is introduced."
+    }
+  ],
+  "other_checked": [
+    "Gate removes the absolute helper tools directory from sys.path and inserts actual source first.",
+    "Tree GET suffix regex is an ordinary Python string containing one runtime escaped question mark; exact /<40hex>?recursive=1 matches, while missing question mark fails. No regex blocker.",
+    "Pre-generation, post-generation and reproduction command lists are separate; @EVIDENCE@ replacement remains argv-based without a shell.",
+    "Candidate Source result never grants cold or native qualification, and API paths only create/read blobs/trees, not product commits or refs."
+  ],
+  "original_execution_boundary": {
+    "first_run": 43379129114,
+    "harness_commit": "97b869129993f450f17bc632ab6da21c9a504a75",
+    "actual_syntax_pass_files": 1439,
+    "first_pre_generation": "FAIL; exact unreviewed dynamic import mechanism in hia_proof_contract.py:_safe_core_method_reference is separately owned by Remote",
+    "source_tests_executed": 0
+  },
+  "successor_note": "Root announced d14e1808af9c12c313cc6681b3bd26f32bf5ac08 for bounded failure stdout/stderr display. That later source was not read in this fixed 3b650/40b230 review."
+}

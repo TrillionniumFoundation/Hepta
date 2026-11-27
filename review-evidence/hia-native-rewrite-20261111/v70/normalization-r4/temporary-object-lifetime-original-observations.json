@@ -1,0 +1,82 @@
+{
+  "differences": [
+    "nonfinite_temporary_float",
+    "sort_failure_temporary_values"
+  ],
+  "elapsed_ns": 69823045,
+  "failures": [],
+  "full_owner_qualified": false,
+  "images_unchanged": true,
+  "new_compile_count": 0,
+  "observations": [
+    {
+      "case": "nonfinite_temporary_float",
+      "equal": false,
+      "native": {
+        "message": "E_HIA_FORMAT: invalid/deep UTF-8 JSON",
+        "status": "raised",
+        "trace_after_exception_released": [
+          "items",
+          "temporary_float_del"
+        ],
+        "trace_while_exception_held": [
+          "items"
+        ],
+        "type": "HIAProgramRejected"
+      },
+      "original": {
+        "message": "E_HIA_FORMAT: invalid/deep UTF-8 JSON",
+        "status": "raised",
+        "trace_after_exception_released": [
+          "items",
+          "temporary_float_del"
+        ],
+        "trace_while_exception_held": [
+          "items",
+          "temporary_float_del"
+        ],
+        "type": "HIAProgramRejected"
+      }
+    },
+    {
+      "case": "sort_failure_temporary_values",
+      "equal": false,
+      "native": {
+        "message": "original sorting callback",
+        "status": "raised",
+        "trace_after_exception_released": [
+          "items",
+          "compare",
+          "temporary_value_del:two",
+          "temporary_value_del:one"
+        ],
+        "trace_while_exception_held": [
+          "items",
+          "compare"
+        ],
+        "type": "RuntimeError"
+      },
+      "original": {
+        "message": "original sorting callback",
+        "status": "raised",
+        "trace_after_exception_released": [
+          "items",
+          "compare",
+          "temporary_value_del:two",
+          "temporary_value_del:one"
+        ],
+        "trace_while_exception_held": [
+          "items",
+          "compare",
+          "temporary_value_del:two",
+          "temporary_value_del:one"
+        ],
+        "type": "RuntimeError"
+      }
+    }
+  ],
+  "schema": "hia.normalization.v70.r4-original-temporary-exception-lifetime.v1",
+  "script_sha256": "f7a445ebe4cbcf75e2d64f63c7d6d7a3e213924ddaeaa1576b21c289e93e60db",
+  "source_unchanged": true,
+  "status": "COMPLETED_ORIGINAL_OBSERVATIONS"
+}

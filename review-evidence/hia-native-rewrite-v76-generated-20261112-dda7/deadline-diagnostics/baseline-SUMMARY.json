@@ -1,0 +1,223 @@
+{
+  "after_context_return_is_a_conservative_subset_not_entire_context_lifetime": true,
+  "cases": [
+    {
+      "after_second_context_return": {
+        "fresh_digest_calls": 47,
+        "fresh_digest_wall_seconds": 2.182501084,
+        "remaining_test_wall_seconds": 3.115820503
+      },
+      "case": "observe-ledger-expired-r1",
+      "dependencies_unchanged": true,
+      "digest_map_sizes": [
+        928
+      ],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-24878752441ca943bf5838d2e70bc6a05a10731611b265860b06e1d2b03a2043\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "fresh_digest_calls": 110,
+      "fresh_digest_wall_seconds": 5.518314316,
+      "ledger_direct_calls": 0,
+      "ledger_operate_calls": 0,
+      "native_entries": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1341,
+          "wall_seconds": 0.524615777
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "wall_seconds": 0.004738644
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 218,
+          "wall_seconds": 0.039074315
+        }
+      },
+      "observation_status": "COMPLETE",
+      "old_policy_calls": [],
+      "original_compile_observations": [
+        {
+          "actual_timeout_ms": 0,
+          "raised": true,
+          "wall_seconds": 1.4472e-05
+        }
+      ],
+      "profile": "ledger",
+      "result_bytes": 42847,
+      "result_sha256": "310343985126321299fcbef8555a50544bb0133a56a6d518054b3d8003f4ad34",
+      "source_unchanged": true,
+      "test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "test_status": "FAIL",
+      "whole_observed_test_wall_seconds": 8.715117313
+    },
+    {
+      "after_second_context_return": {
+        "fresh_digest_calls": 53,
+        "fresh_digest_wall_seconds": 2.640638597,
+        "remaining_test_wall_seconds": 3.7384450709999992
+      },
+      "case": "observe-ledger-loop-r1",
+      "dependencies_unchanged": true,
+      "digest_map_sizes": [
+        928
+      ],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-cd85b9805f43e2e590cfcb732dc8ce03ee07aa08751ce140c172badb9ffecc5c\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "fresh_digest_calls": 116,
+      "fresh_digest_wall_seconds": 5.415674032,
+      "ledger_direct_calls": 0,
+      "ledger_operate_calls": 0,
+      "native_entries": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1405,
+          "wall_seconds": 0.559637469
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "wall_seconds": 0.005038184
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 230,
+          "wall_seconds": 0.043391649
+        }
+      },
+      "observation_status": "COMPLETE",
+      "old_policy_calls": [],
+      "original_compile_observations": [
+        {
+          "actual_timeout_ms": 182,
+          "raised": false,
+          "wall_seconds": 0.198613229
+        }
+      ],
+      "profile": "ledger",
+      "result_bytes": 44574,
+      "result_sha256": "c1ee80d740ac01c0abe1fc8d9e297c6b8acbc899918d50ce1339e6b20fb37929",
+      "source_unchanged": true,
+      "test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+      "test_status": "FAIL",
+      "whole_observed_test_wall_seconds": 8.47129386
+    },
+    {
+      "after_second_context_return": {
+        "fresh_digest_calls": 47,
+        "fresh_digest_wall_seconds": 2.163405079,
+        "remaining_test_wall_seconds": 3.002728608000001
+      },
+      "case": "observe-namespace-expired-r1",
+      "dependencies_unchanged": true,
+      "digest_map_sizes": [
+        928
+      ],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-deec3189ffbb18aec2292a4828c2e3e04c509dbe8f35e90e7a17a2e6b69d00bc\", \"status\": \"rejected\", \"error\": {\"code\": \"E_CAPTURE_TIMEOUT\", \"phase\": \"admission\", \"message\": \"Compiler exceeded wall-time budget\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "fresh_digest_calls": 110,
+      "fresh_digest_wall_seconds": 5.282009665,
+      "ledger_direct_calls": 0,
+      "ledger_operate_calls": 0,
+      "native_entries": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1341,
+          "wall_seconds": 0.510487332
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "wall_seconds": 0.004693386
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 218,
+          "wall_seconds": 0.036531709
+        }
+      },
+      "observation_status": "COMPLETE",
+      "old_policy_calls": [],
+      "original_compile_observations": [
+        {
+          "actual_timeout_ms": 74,
+          "raised": true,
+          "wall_seconds": 0.076326187
+        }
+      ],
+      "profile": "namespace",
+      "result_bytes": 42699,
+      "result_sha256": "29c3cdd7ddf92c4bbe682d77dccbb3b6200a6cd3f26a6db0fdf36bd99b1471f7",
+      "source_unchanged": true,
+      "test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "test_status": "FAIL",
+      "whole_observed_test_wall_seconds": 8.331405476
+    },
+    {
+      "after_second_context_return": {
+        "fresh_digest_calls": 53,
+        "fresh_digest_wall_seconds": 2.216481401,
+        "remaining_test_wall_seconds": 3.2262847689999994
+      },
+      "case": "observe-namespace-loop-r1",
+      "dependencies_unchanged": true,
+      "digest_map_sizes": [
+        928
+      ],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-7365a853f83f555f25b6f9818dcb3dac1c93f5ef5c3f89f1b92e00cc5ba34393\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "fresh_digest_calls": 116,
+      "fresh_digest_wall_seconds": 5.077391905,
+      "ledger_direct_calls": 0,
+      "ledger_operate_calls": 0,
+      "native_entries": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1405,
+          "wall_seconds": 0.517101904
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "wall_seconds": 0.005017623
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 230,
+          "wall_seconds": 0.039251175
+        }
+      },
+      "observation_status": "COMPLETE",
+      "old_policy_calls": [],
+      "original_compile_observations": [
+        {
+          "actual_timeout_ms": 298,
+          "raised": false,
+          "wall_seconds": 0.159932085
+        }
+      ],
+      "profile": "namespace",
+      "result_bytes": 44403,
+      "result_sha256": "eb1fac16a4b731b2fb9c60afb9c51afd617509f568d46aeb3c6f811593458214",
+      "source_unchanged": true,
+      "test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+      "test_status": "FAIL",
+      "whole_observed_test_wall_seconds": 8.227063985
+    }
+  ],
+  "current_source_cold": false,
+  "default_flip": false,
+  "digest_files_per_call": 928,
+  "fresh_source_bytes_per_call": 27096453,
+  "inclusive_durations_overlap_do_not_sum": true,
+  "interpretation": [
+    "Complete source hashing remains dominant in these observations; every call freshly reads the complete closure.",
+    "Ledger semantic operations were never reached in these two setup workloads.",
+    "The first compile received 0..298 ms after earlier admission; NativeElf/Plan improvements alone do not remove the measured source hashing cost.",
+    "These new Py3.12 observations do not relabel the original V9 Py3.14 failures or establish qualification/performance across different machines."
+  ],
+  "native_budget_ms": 1000,
+  "original_budget_ms": 3000,
+  "original_test_body_unchanged": true,
+  "qualification": false,
+  "schema": "hia.context-budget.four-original-summary.v1",
+  "scope": "PYTHON3_12_DEVELOPMENT_ORIGINAL_BUDGET_OBSERVATION",
+  "source_base": "5f7f95367e8e395863801487e969d286b9091110",
+  "source_files_preserved": 3120,
+  "source_manifest_guard_not_cached_or_moved": true,
+  "source_tree": "4f4e58e06a6e03adcd6548bd8ea4ef591c20359f",
+  "status": "DIAGNOSTIC_COMPLETE_ORIGINAL_FOUR_TESTS_FAILED"
+}

@@ -1,0 +1,249 @@
+{
+  "added_function_asts": [
+    "check_materialization_extension"
+  ],
+  "all_four_input_files_unchanged": true,
+  "all_other_function_asts_unchanged": true,
+  "changed_function_asts": [
+    "apply_sources",
+    "regenerate"
+  ],
+  "controls": 20,
+  "matching_controls": 19,
+  "new_complete_input": {
+    "blob": "684d9cebab563fb2d7ca0e4aae8f0deac28397be",
+    "bytes": 58467,
+    "sha256": "ca2b5dd0560cc27cb4b5c684978d8a9a62402d79d5f91c2515eb9f3168898e24"
+  },
+  "observations": [
+    {
+      "case": "actual_original_and_complete_file",
+      "expected": "accepted",
+      "matches_expected": true,
+      "outcome": "accepted",
+      "value": {
+        "complete_target_blob": "684d9cebab563fb2d7ca0e4aae8f0deac28397be",
+        "relation": "retained-prefix-complete-program",
+        "retained_prefix_blob": "544235f7f1364b0956657888547465d527d62d9e",
+        "retained_prefix_bytes": 41578,
+        "semantic_equivalence_claim": false
+      },
+      "wall_seconds": 0.0003533690014592139
+    },
+    {
+      "case": "changed_original_prefix",
+      "error": "retained fragment bytes differ",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 489, in check_materialization_extension\n    check(len(original) == pin[\"prefix_bytes\"] and oid(\"blob\", original) == pin[\"blob\"]\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: retained fragment bytes differ\n",
+      "wall_seconds": 0.0006619340001634555
+    },
+    {
+      "case": "changed_target_prefix",
+      "error": "complete canonical program bytes differ",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 493, in check_materialization_extension\n    check(len(actual) == pin[\"target_bytes\"] and oid(\"blob\", actual) == pin[\"target_blob\"]\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: complete canonical program bytes differ\n",
+      "wall_seconds": 0.0004703619997599162
+    },
+    {
+      "case": "changed_target_closure",
+      "error": "complete canonical program bytes differ",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 493, in check_materialization_extension\n    check(len(actual) == pin[\"target_bytes\"] and oid(\"blob\", actual) == pin[\"target_blob\"]\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: complete canonical program bytes differ\n",
+      "wall_seconds": 0.00035693400059244595
+    },
+    {
+      "case": "truncated_target",
+      "error": "complete canonical program bytes differ",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 493, in check_materialization_extension\n    check(len(actual) == pin[\"target_bytes\"] and oid(\"blob\", actual) == pin[\"target_blob\"]\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: complete canonical program bytes differ\n",
+      "wall_seconds": 0.0003866279985231813
+    },
+    {
+      "case": "changed_pin_path",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.00011869199988723267
+    },
+    {
+      "case": "changed_pin_target",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.0001041350005834829
+    },
+    {
+      "case": "changed_pin_mode",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.00012253699969733134
+    },
+    {
+      "case": "changed_pin_action",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.00010331199882784858
+    },
+    {
+      "case": "changed_pin_prefix_bytes",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.00010533800013945438
+    },
+    {
+      "case": "changed_pin_target_bytes",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 9.49969999055611e-05
+    },
+    {
+      "case": "changed_pin_blob",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.0003332090000185417
+    },
+    {
+      "case": "changed_pin_prefix_sha256",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.00012182999853393994
+    },
+    {
+      "case": "changed_pin_target_blob",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.0002280040007462958
+    },
+    {
+      "case": "changed_pin_target_sha256",
+      "error": "unreviewed retained-prefix extension",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 487, in check_materialization_extension\n    check(all(type(pin.get(key)) is type(value) and pin[key] == value\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unreviewed retained-prefix extension\n",
+      "wall_seconds": 0.00011272300071141217
+    },
+    {
+      "case": "symlink_target",
+      "error": "complete canonical program absent",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 491, in check_materialization_extension\n    check(target.is_file() and not target.is_symlink(), \"complete canonical program absent\")\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: complete canonical program absent\n",
+      "wall_seconds": 0.00025967799956561066
+    },
+    {
+      "case": "directory_target",
+      "error": "complete canonical program absent",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 491, in check_materialization_extension\n    check(target.is_file() and not target.is_symlink(), \"complete canonical program absent\")\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: complete canonical program absent\n",
+      "wall_seconds": 0.00023589699958392885
+    },
+    {
+      "case": "fifo_target",
+      "error": "complete canonical program absent",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 491, in check_materialization_extension\n    check(target.is_file() and not target.is_symlink(), \"complete canonical program absent\")\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: complete canonical program absent\n",
+      "wall_seconds": 0.0004127990014239913
+    },
+    {
+      "case": "missing_target",
+      "error": "complete canonical program absent",
+      "error_type": "RuntimeError",
+      "expected": "rejected",
+      "matches_expected": true,
+      "outcome": "rejected",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v86-r9-materialization-review-r1/check_r9.py\", line 62, in observe\n    value=admit(pin_value,old_value,path)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 491, in check_materialization_extension\n    check(target.is_file() and not target.is_symlink(), \"complete canonical program absent\")\n  File \"/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r9.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: complete canonical program absent\n",
+      "wall_seconds": 0.0002704639991861768
+    },
+    {
+      "case": "physical_target_mode_0755_with_pin_100644",
+      "expected": "rejected",
+      "matches_expected": false,
+      "outcome": "accepted",
+      "value": {
+        "complete_target_blob": "684d9cebab563fb2d7ca0e4aae8f0deac28397be",
+        "relation": "retained-prefix-complete-program",
+        "retained_prefix_blob": "544235f7f1364b0956657888547465d527d62d9e",
+        "retained_prefix_bytes": 41578,
+        "semantic_equivalence_claim": false
+      },
+      "wall_seconds": 0.0004501940002228366
+    }
+  ],
+  "original_fragment": {
+    "blob": "544235f7f1364b0956657888547465d527d62d9e",
+    "bytes": 41578,
+    "sha256": "eb56e6922b6b47524ef7005bb15d886221e34deaa46794b7805ab819c6473008"
+  },
+  "product_executed": false,
+  "qualification": false,
+  "r8": {
+    "blob": "9434c7e7cc4cfc31cc57fd40557e4cb3b1b027fd",
+    "bytes": 47009,
+    "sha256": "9f350fdc898122dc2d9a3dcedd84f833500dde8f3ea8e5375a2a2cee20911a0a"
+  },
+  "r9": {
+    "blob": "dd141887690ced77704e7ba2f6ac482edca97f02",
+    "bytes": 49317,
+    "sha256": "771e597d334c64787e04f44a988b8ce3a35df4ae7a5e972be44309b28b4c5415"
+  },
+  "schema": "hepta.r9-materialization-extension-controls.v1",
+  "scope": "Actual new harness helper only; no product import or generator/test/native execution",
+  "source_gate_gates_unchanged": true,
+  "status": "COUNTEREXAMPLE"
+}

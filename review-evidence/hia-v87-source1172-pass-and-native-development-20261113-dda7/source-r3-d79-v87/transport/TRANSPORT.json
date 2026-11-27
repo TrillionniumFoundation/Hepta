@@ -1,0 +1,83 @@
+{
+  "schema": "hepta.source-r3-mixed-transport.v1",
+  "original_source_manifest": "97e52715891c1c498fd765cf009abb3247277d0a",
+  "original_source_recipe": "edbad170cbde09252cda6bd20e78af12cb8393e1",
+  "original_metadata_unchanged": true,
+  "representation": {
+    "raw_binary_entries": 74,
+    "utf8_wrapper_entries": 1,
+    "logical_chunks": 75,
+    "replaced_logical_path": "source-r3-d79-v87/archive/chunk-074.bin",
+    "effective_path": "source-r3-d79-v87/archive/chunk-074.base64.json",
+    "wrapper": {
+      "bytes": 76695,
+      "sha256": "e5f9974d75773805055ab1df3c8634e9996266333148d3a65dcba58dbb431417",
+      "blob": "8c43200601b343faab093975604091635f67ef91"
+    },
+    "decoded": {
+      "bytes": 57298,
+      "sha256": "ac1a4d90baa773970038483fbfe2f44cf1647e78aacc306f192643f35b30b7c1",
+      "blob": "ebdcd775af1e64a8d647f0d8463f5717cde38d9e"
+    }
+  },
+  "wrapper_post_response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Action completed."
+      }
+    ],
+    "structuredContent": {
+      "sha": "8c43200601b343faab093975604091635f67ef91"
+    },
+    "isError": false
+  },
+  "wrapper_actual_full_get": {
+    "equal": true,
+    "bytes": 76695,
+    "blob": "8c43200601b343faab093975604091635f67ef91",
+    "sha256": "e5f9974d75773805055ab1df3c8634e9996266333148d3a65dcba58dbb431417"
+  },
+  "original_ci_receipts": "transport/ORIGINAL-CI-READBACKS.json",
+  "readback": "transport/READBACK.json",
+  "authoring_resume": {
+    "branch": "codex/hia-audit-v87-source1172-20261113-dda7",
+    "commit": "8ebe50cc14d501107f2a5f890e0eedf2e831afdd",
+    "leaf": "a71390200c16fbe1b8905bf0cea81b90b45d65af",
+    "existing_files": 97,
+    "exact_rows_verified": true,
+    "initial_structured_comparison_issue": "Object key order differed; tuple comparison of path/mode/type/sha proved all 97 rows identical.",
+    "binary_get_port_limit": {
+      "error": "HTTPError: 400: GitHub Fetch only accepts UTF-8 text. (Response: None)",
+      "error_code": "INVALID_ARGUMENT"
+    },
+    "raw_chunk_ref_retry": false,
+    "product_execution": false,
+    "wrapper": {
+      "sha": "8c43200601b343faab093975604091635f67ef91",
+      "bytes": 76695,
+      "full_get_verified": true
+    },
+    "note": "The 74 raw chunk byte receipts are inherited from the already verified original CI/root custody; this successor adds actual UTF-8 wrapper full GET and complete mixed reconstruction, without pretending that the UTF-8-only connector returned binary bytes."
+  },
+  "actual_command": {
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "-B",
+      "/workspace/scratch/dda74a4fae35/v87-source-r3-terminal-transport-r1/resume-completion-r1/source-r3-d79-v87/transport/reconstruct_source_r3.py",
+      "--root",
+      "/workspace/scratch/dda74a4fae35/v87-source-r3-terminal-transport-r1/resume-completion-r1/source-r3-d79-v87",
+      "--compare-zip",
+      "/workspace/scratch/dda74a4fae35/recovered-v85/third-build.zip",
+      "--report",
+      "/workspace/scratch/dda74a4fae35/v87-source-r3-terminal-transport-r1/resume-completion-r1/source-r3-d79-v87/transport/READBACK.json"
+    ],
+    "elapsed_seconds": 5.8657136610017915,
+    "product_executions": 0,
+    "returncode": 0
+  },
+  "stdout": "{\n  \"all_member_bytes_sha256_git_verified\": true,\n  \"all_member_modes\": \"0644\",\n  \"archive\": {\n    \"bytes\": 38854610,\n    \"git_blob\": \"e2408131443bb7d7a8e3d521981af56c7f4dbaa4\",\n    \"sha256\": \"22a8029c4ecbb161a1b1c44dc5e05f0b042a5a53fbaf48605256217758104fb8\"\n  },\n  \"fresh_binary_connector_get_claimed\": false,\n  \"gzip_crc_isize_verified\": true,\n  \"logical_bytes\": 178076592,\n  \"logical_members\": 3554,\n  \"manifest_blob\": \"97e52715891c1c498fd765cf009abb3247277d0a\",\n  \"original_3554_raw_zip_members_compared\": 3554,\n  \"original_archive_and_manifest_unchanged\": true,\n  \"original_outer_zip_compared\": true,\n  \"product_executions\": 0,\n  \"qualification_transferred\": false,\n  \"raw_chunk_git_readback\": \"Original CI/full-root receipts retained; this offline check validates exact bytes against all original chunk identities.\",\n  \"representation\": {\n    \"binary_files\": 74,\n    \"logical_chunks\": 75,\n    \"terminal_utf8_wrappers\": 1,\n    \"wrapper_blob\": \"8c43200601b343faab093975604091635f67ef91\",\n    \"wrapper_bytes\": 76695,\n    \"wrapper_sha256\": \"e5f9974d75773805055ab1df3c8634e9996266333148d3a65dcba58dbb431417\"\n  },\n  \"schema\": \"hepta.source-r3-mixed-transport-readback.v1\",\n  \"status\": \"COMPLETE_BYTES_AND_MEMBERS_EQUAL\",\n  \"tar\": {\n    \"bytes\": 180848640,\n    \"sha256\": \"b5c5d5009a70fa7b6ab258719b71cbbb35fddcfb10ec7fcdeb59c17f2bb7e2d1\"\n  },\n  \"whole_native\": false\n}\n",
+  "stderr": "",
+  "refs_scope": "Only codex/hia-audit-v87-source1172-20261113-dda7 is authorized for this evidence mount; every new commit has one current parent and [skip ci]. No product/source/PR ref mutation.",
+  "qualification_transferred": false
+}

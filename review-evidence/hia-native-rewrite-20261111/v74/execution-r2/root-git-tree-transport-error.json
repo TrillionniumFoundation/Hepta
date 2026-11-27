@@ -1,0 +1,17 @@
+{
+  "schema": "hia.root.git-tree-transport-observation.v1",
+  "operation": "create_tree",
+  "artifact_count": 110,
+  "response": {
+    "error": "GitHub API error 422: {\"message\":\"Sorry, your request timed out.  It's likely that your input was too large to process.  Consider building the tree incrementally, or building the commits you need in a local clone of the repository and then pushing them to GitHub.\",\"documentation_url\":\"https://docs.github.com/rest/git/trees#create-a-tree\",\"status\":\"422\"}",
+    "error_code": "INVALID_ARGUMENT",
+    "error_data": {
+      "message": "Sorry, your request timed out.  It's likely that your input was too large to process.  Consider building the tree incrementally, or building the commits you need in a local clone of the repository and then pushing them to GitHub.",
+      "documentation_url": "https://docs.github.com/rest/git/trees#create-a-tree",
+      "status": "422"
+    }
+  },
+  "root_initial_label_correction": "No successful tree was returned; the first reader called this a tree mismatch before inspecting the structured GitHub 422 error.",
+  "product_or_audit_ref_changed": false,
+  "resolution": "Create only changed directories bottom-up with direct child entries, checking each canonical tree hash; then make one leased evidence-only commit."
+}

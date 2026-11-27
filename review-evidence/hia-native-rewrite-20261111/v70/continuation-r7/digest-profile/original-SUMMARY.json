@@ -1,0 +1,89 @@
+{
+  "baseline_after": {
+    "cpu_ns": 14939020,
+    "wall_ns": 14938292
+  },
+  "baseline_before": {
+    "cpu_ns": 16608101,
+    "wall_ns": 16607205
+  },
+  "cgroup": "0::/user.slice/user-1000.slice/user@1000.service/app.slice/hepta-runtime-job-1a1cd034fa4-2564-1166.service\n",
+  "cleared_selector_names": [
+    "HEPTA_RUNTIME_JOB_ID"
+  ],
+  "components": {
+    "fresh_read_bytes": {
+      "bytes": 21419885,
+      "cpu_ns": 5898642,
+      "files": 771,
+      "wall_ns": 5895659
+    },
+    "hexdigest": {
+      "cpu_ns": 280330,
+      "wall_ns": 286508
+    },
+    "sha256_constructor": {
+      "cpu_ns": 8799270,
+      "wall_ns": 8809351
+    },
+    "sorting": {
+      "cpu_ns": 74300,
+      "wall_ns": 74337
+    }
+  },
+  "contract_source": {
+    "bytes": 123529,
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-fixture-r2/tools/hia_selfhost_contract.py",
+    "sha256": "07570c6a50600a553b8d81b6d2b5067b1a77d61912afa263cf6cf3e6ed3d98a1"
+  },
+  "cpu_overlap": "673 full qualification may still be running",
+  "enumerations": [
+    {
+      "construction": {
+        "cpu_ns": 20920,
+        "wall_ns": 20920
+      },
+      "inclusive_with_consumer": {
+        "cpu_ns": 1236511,
+        "wall_ns": 1236479
+      },
+      "iterator_cpu_ns": 250331,
+      "iterator_wall_ns": 252100,
+      "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-fixture-r2/hepta",
+      "pattern": "*.py",
+      "yield_count": 178
+    }
+  ],
+  "file_count": 771,
+  "finished": 1794440911.7590163,
+  "fresh_source_map_identical": true,
+  "function_source": "def file_digests(root=ROOT):\n    root = Path(root)\n    # Include the complete Python seed package, not a hand-maintained subset\n    # that can omit a transitively imported checker or native ABI dependency.\n    paths = sorted(set(SOURCE_FILES) | {\n        p.relative_to(root).as_posix() for p in (root / \"hepta\").rglob(\"*.py\")\n    })\n    return {path: sha256((root / path).read_bytes()).hexdigest() for path in paths}\n",
+  "head_after": "67382498b9d60bfecf3696d8c2cb632d8f20281b",
+  "head_before": "67382498b9d60bfecf3696d8c2cb632d8f20281b",
+  "instrumentation_note": "Clock and Python instrumentation overhead is retained; the instrumented call is not a timing qualification. Inclusive enumeration consumer time must not be added to its active iterator time.",
+  "instrumented": {
+    "cpu_ns": 21131684,
+    "wall_ns": 21130861
+  },
+  "performance_qualification": false,
+  "pid": 914453,
+  "product_modified": false,
+  "result": {
+    "bytes": 629402,
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/diagnostic-file-digests-673-r1/RESULT.json",
+    "sha256": "bfda09ebdf31dd0ab1a4e5f0e161b31bdb70eee3d7f914af759ca9f51b81552a"
+  },
+  "scope": "ONE_READ_ONLY_DECOMPOSITION_OF_EXACT_673_FILE_DIGESTS",
+  "sorting": [
+    {
+      "cpu_ns": 74300,
+      "items": 771,
+      "wall_ns": 74337
+    }
+  ],
+  "started": 1794440911.6959932,
+  "status": "OBSERVED_ORIGINAL_FUNCTION_RETURN_AND_SOURCE_CONSERVED",
+  "tests_executed": 0,
+  "tree_after": "4412879c31f0a9fe489a76f123b919936f8bed67",
+  "tree_before": "4412879c31f0a9fe489a76f123b919936f8bed67"
+}

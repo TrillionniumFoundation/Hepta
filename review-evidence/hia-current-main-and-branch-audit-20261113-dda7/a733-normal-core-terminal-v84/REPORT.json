@@ -1,0 +1,816 @@
+{
+  "schema": "hepta.original-a733-normal-core-terminal-log-review.v1",
+  "observed_at": "2026-11-13 03:09:15 UTC",
+  "repository": "TrillionniumFoundation/Hepta",
+  "identity": {
+    "run_id": 43347253395,
+    "run_attempt": 1,
+    "event": "push",
+    "head_sha": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9",
+    "head_branch": "codex/hia-assembly-default-scope-v84-20261113-dda7",
+    "expected_tree": "1c5ba7e1217f46f2b95512640d08f19e2cc8b1fd",
+    "expected_source_files": 3324,
+    "expected_source_manifest_sha256": "c57810ba897e7db0546f47754fec462d6951fb510c255684ea5ca64ff411a036",
+    "runtime_artifact_source_verification": "PENDING_INDEPENDENT_CUSTODY_COLLECTOR"
+  },
+  "terminal": {
+    "workflow_status": "completed",
+    "workflow_conclusion": "failure",
+    "native": {
+      "job_id": 131629478571,
+      "conclusion": "failure",
+      "started_at": "2026-11-13T01:45:33Z",
+      "completed_at": "2026-11-13T03:07:46Z"
+    },
+    "source": {
+      "job_id": 131629479106,
+      "conclusion": "success",
+      "unittest_count": 973,
+      "unittest_seconds": 515.05,
+      "original_log_blob": "2ca627194a95d843e0637f835bb0b89f15a5886d"
+    }
+  },
+  "actual_environment_from_original_log": {
+    "python": "CPython 3.14.4",
+    "runner_os": "Ubuntu 24.04.5 x86_64",
+    "basis": "setup-python output, original native log; no cross-run hardware attribution"
+  },
+  "cold": {
+    "original_step": {
+      "name": "Run python -B tools/replay_hia_selfhost_cold.py --output \"$RUNNER_TEMP/hia-cold.json\"",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-11-13T01:46:34Z",
+      "completed_at": "2026-11-13T01:49:35Z"
+    },
+    "stdout_summary": {
+      "line": 380,
+      "timestamp": "2026-11-13T01:49:35.3068583Z",
+      "payload": {
+        "checks_passed": 11,
+        "checks_total": 11,
+        "generation_sha256": [
+          "81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109",
+          "81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109",
+          "81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109"
+        ],
+        "modified_generation_sha256": [
+          "b6b7bef7304ccd3fdf92388e8947095bd36be8d764cadad27ded7fc4135a2585",
+          "285ab2a2e427fbd24cdea521b8d6aafb9cd1b6ff8e62a9dce3c6ce78b795aa0d",
+          "285ab2a2e427fbd24cdea521b8d6aafb9cd1b6ff8e62a9dce3c6ce78b795aa0d"
+        ],
+        "output": "/home/runner/work/_temp/hia-cold.json",
+        "status": "COLD_SELFHOST_REPLAY_PASS"
+      }
+    },
+    "full_cold_report_read": false,
+    "complete_cold_reference_phase_custody_verified": false,
+    "inner_qualification_checks_count": null,
+    "elapsed_seconds_from_cold_report": null,
+    "cold_step_timestamps_are_not_internal_cpu_or_elapsed_measurements": true
+  },
+  "language": {
+    "original_step": {
+      "name": "Run python -B tests/test_hia_selfhost_language_coverage.py --output \"$RUNNER_TEMP/hia-language.json\"",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-11-13T01:49:35Z",
+      "completed_at": "2026-11-13T01:51:25Z"
+    },
+    "stdout_summary": {
+      "line": 409,
+      "timestamp": "2026-11-13T01:51:25.2390803Z",
+      "payload": {
+        "counts": {
+          "checked_arithmetic_traps_per_compiler": 150,
+          "checked_cast_traps_per_compiler": 36,
+          "checks_passed": 1242,
+          "checks_total": 1242,
+          "compilers": 2,
+          "positive_programs_per_compiler": 138,
+          "rejections_per_compiler": 274,
+          "scalar_witnesses": 1183,
+          "shift_traps_per_compiler": 20,
+          "traps_per_compiler": 206
+        },
+        "error": null,
+        "output": "/home/runner/work/_temp/hia-language.json",
+        "status": "SELFHOST_LANGUAGE_COVERAGE_PASS"
+      }
+    },
+    "unit_tests": {
+      "count": 10,
+      "seconds": 0.004
+    },
+    "full_language_json_read": false
+  },
+  "passed_prior_component_groups": [
+    {
+      "step": 8,
+      "name": "Native linked loader and compiler receipt bindings",
+      "tests": 37,
+      "unittest_seconds": 9.346,
+      "log_line": 500,
+      "summary_timestamp": "2026-11-13T01:51:35.4999674Z",
+      "started_at": "2026-11-13T01:51:25Z",
+      "completed_at": "2026-11-13T01:51:35Z"
+    },
+    {
+      "step": 9,
+      "name": "Native applications and actual Core memory controls",
+      "tests": 252,
+      "unittest_seconds": 385.526,
+      "log_line": 821,
+      "summary_timestamp": "2026-11-13T01:58:01.8212477Z",
+      "started_at": "2026-11-13T01:51:35Z",
+      "completed_at": "2026-11-13T01:58:01Z"
+    },
+    {
+      "step": 10,
+      "name": "Native Core module graph and actual workspace projects",
+      "tests": 17,
+      "unittest_seconds": 15.751,
+      "log_line": 862,
+      "summary_timestamp": "2026-11-13T01:58:17.7468571Z",
+      "started_at": "2026-11-13T01:58:01Z",
+      "completed_at": "2026-11-13T01:58:17Z"
+    },
+    {
+      "step": 11,
+      "name": "Native Core workspace JSON materialization and actual ABI",
+      "tests": 32,
+      "unittest_seconds": 75.653,
+      "log_line": 913,
+      "summary_timestamp": "2026-11-13T01:59:33.6602812Z",
+      "started_at": "2026-11-13T01:58:17Z",
+      "completed_at": "2026-11-13T01:59:33Z"
+    },
+    {
+      "step": 12,
+      "name": "Native Core capability edge policy and actual CFG",
+      "tests": 10,
+      "unittest_seconds": 4.329,
+      "log_line": 942,
+      "summary_timestamp": "2026-11-13T01:59:38.1256245Z",
+      "started_at": "2026-11-13T01:59:33Z",
+      "completed_at": "2026-11-13T01:59:38Z"
+    },
+    {
+      "step": 13,
+      "name": "Native explicit workspace facts and semantic ELF materialization",
+      "tests": 21,
+      "unittest_seconds": 54.336,
+      "log_line": 982,
+      "summary_timestamp": "2026-11-13T02:00:32.7002784Z",
+      "started_at": "2026-11-13T01:59:38Z",
+      "completed_at": "2026-11-13T02:00:32Z"
+    },
+    {
+      "step": 14,
+      "name": "Native full Core function declarations SSA and CFG",
+      "tests": 10,
+      "unittest_seconds": 17.066,
+      "log_line": 1011,
+      "summary_timestamp": "2026-11-13T02:00:49.9000915Z",
+      "started_at": "2026-11-13T02:00:32Z",
+      "completed_at": "2026-11-13T02:00:49Z"
+    },
+    {
+      "step": 15,
+      "name": "Native whole primitive Core declaration SSA CFG and export admission",
+      "tests": 12,
+      "unittest_seconds": 18.557,
+      "log_line": 1042,
+      "summary_timestamp": "2026-11-13T02:01:08.5846666Z",
+      "started_at": "2026-11-13T02:00:49Z",
+      "completed_at": "2026-11-13T02:01:08Z"
+    },
+    {
+      "step": 16,
+      "name": "Native complete local instruction policy",
+      "tests": 10,
+      "unittest_seconds": 4.885,
+      "log_line": 1071,
+      "summary_timestamp": "2026-11-13T02:01:13.6039222Z",
+      "started_at": "2026-11-13T02:01:08Z",
+      "completed_at": "2026-11-13T02:01:13Z"
+    },
+    {
+      "step": 17,
+      "name": "Native streaming SHA complete retained state controls",
+      "tests": 9,
+      "unittest_seconds": 13.853,
+      "log_line": 1107,
+      "summary_timestamp": "2026-11-13T02:01:27.6674688Z",
+      "started_at": "2026-11-13T02:01:13Z",
+      "completed_at": "2026-11-13T02:01:27Z"
+    },
+    {
+      "step": 18,
+      "name": "Native exact-byte artifact publication and real kernel races",
+      "tests": 43,
+      "unittest_seconds": 101.91,
+      "log_line": 1169,
+      "summary_timestamp": "2026-11-13T02:03:09.7900240Z",
+      "started_at": "2026-11-13T02:01:27Z",
+      "completed_at": "2026-11-13T02:03:09Z"
+    },
+    {
+      "step": 19,
+      "name": "Native whole primitive Core admission and body resource flow",
+      "tests": 11,
+      "unittest_seconds": 45.06,
+      "log_line": 1199,
+      "summary_timestamp": "2026-11-13T02:03:54.9820041Z",
+      "started_at": "2026-11-13T02:03:09Z",
+      "completed_at": "2026-11-13T02:03:55Z"
+    },
+    {
+      "step": 20,
+      "name": "Standalone native complete Core admission CLI",
+      "tests": 7,
+      "unittest_seconds": 36.212,
+      "log_line": 1225,
+      "summary_timestamp": "2026-11-13T02:04:31.4649855Z",
+      "started_at": "2026-11-13T02:03:55Z",
+      "completed_at": "2026-11-13T02:04:31Z"
+    },
+    {
+      "step": 21,
+      "name": "Native snapshot-bound edits and complete Core patch CLI",
+      "tests": 27,
+      "unittest_seconds": 117.932,
+      "log_line": 1272,
+      "summary_timestamp": "2026-11-13T02:06:29.6863124Z",
+      "started_at": "2026-11-13T02:04:31Z",
+      "completed_at": "2026-11-13T02:06:29Z"
+    },
+    {
+      "step": 22,
+      "name": "Native ordinary Agent candidate bytes diagnostics and real crash cuts",
+      "tests": 25,
+      "unittest_seconds": 63.147,
+      "log_line": 1317,
+      "summary_timestamp": "2026-11-13T02:07:33.1971761Z",
+      "started_at": "2026-11-13T02:06:29Z",
+      "completed_at": "2026-11-13T02:07:33Z"
+    },
+    {
+      "step": 23,
+      "name": "Native full Core execution and installed worker bindings",
+      "tests": 43,
+      "unittest_seconds": 50.072,
+      "log_line": 1390,
+      "summary_timestamp": "2026-11-13T02:08:23.5234381Z",
+      "started_at": "2026-11-13T02:07:33Z",
+      "completed_at": "2026-11-13T02:08:23Z"
+    },
+    {
+      "step": 24,
+      "name": "Native structural budgets arbitrary precision and installed composition",
+      "tests": 61,
+      "unittest_seconds": 61.356,
+      "log_line": 1484,
+      "summary_timestamp": "2026-11-13T02:09:25.1581376Z",
+      "started_at": "2026-11-13T02:08:23Z",
+      "completed_at": "2026-11-13T02:09:25Z"
+    },
+    {
+      "step": 25,
+      "name": "Native public live heap payload bounds and installed composition",
+      "tests": 41,
+      "unittest_seconds": 238.71,
+      "log_line": 1578,
+      "summary_timestamp": "2026-11-13T02:13:24.1281578Z",
+      "started_at": "2026-11-13T02:09:25Z",
+      "completed_at": "2026-11-13T02:13:24Z"
+    },
+    {
+      "step": 26,
+      "name": "Native complete nominal types helpers constructor functions and outer lowering",
+      "tests": 381,
+      "unittest_seconds": 1656.301,
+      "log_line": 2029,
+      "summary_timestamp": "2026-11-13T02:41:01.0880733Z",
+      "started_at": "2026-11-13T02:13:24Z",
+      "completed_at": "2026-11-13T02:41:01Z"
+    }
+  ],
+  "passed_prior_outer_execution_sum": 1049,
+  "count_note": "1049 is the sum of the 19 separate pre-failure unittest summaries, not a unique-method count or whole-suite qualification; the language ten tests and 1242 language checks are separate denominators.",
+  "failed_step": {
+    "api": {
+      "name": "Native durable execution budgets request journal and artifact namespace",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 27,
+      "started_at": "2026-11-13T02:41:01Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    "outer_tests": 108,
+    "outer_failures": 2,
+    "outer_errors_reported": 0,
+    "unittest_seconds": 1571.207,
+    "outer_failed_tests": [
+      "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_original_agent_tools_and_campaign_with_all_three_owners_and_no_namespace_reference",
+      "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_original_tools_campaign_buffers_and_lease_snapshot_with_four_native_owners"
+    ],
+    "nested_groups": [
+      {
+        "profile": "namespace",
+        "tests": 35,
+        "failures": 3,
+        "seconds": 389.129
+      },
+      {
+        "profile": "ledger",
+        "tests": 48,
+        "failures": 3,
+        "seconds": 601.279
+      }
+    ],
+    "nested_failure_occurrences": [
+      {
+        "profile": "namespace",
+        "test": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "lines": [
+          2214,
+          2238
+        ],
+        "site": "tests/test_hia_agent_native_tools.py:67 (first baseline emit)",
+        "error_code": "E_CAPTURE_TIMEOUT",
+        "message": "Compiler exceeded wall-time budget",
+        "full_test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "original_timestamped_traceback": "2026-11-13T03:07:12.8023552Z FAIL: test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)\n2026-11-13T03:07:12.8025145Z ----------------------------------------------------------------------\n2026-11-13T03:07:12.8025646Z Traceback (most recent call last):\n2026-11-13T03:07:12.8026824Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 656, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n2026-11-13T03:07:12.8028009Z     _base, _candidate, baseline, build, receipts = self.build_pair(\n2026-11-13T03:07:12.8028576Z                                                    ~~~~~~~~~~~~~~~^\n2026-11-13T03:07:12.8029109Z         budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n2026-11-13T03:07:12.8029653Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8030434Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n2026-11-13T03:07:12.8031397Z     baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n2026-11-13T03:07:12.8032370Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 265, in emit\n2026-11-13T03:07:12.8033249Z     return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n2026-11-13T03:07:12.8033903Z            ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8034556Z         backend_profile=self.backend, output_kind=kind, codegen=codegen,\n2026-11-13T03:07:12.8035638Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8036155Z         verification_receipts=list(receipts)))\n2026-11-13T03:07:12.8036623Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8037423Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 162, in result\n2026-11-13T03:07:12.8038260Z     return self.call(tool, arguments)[\"result\"]\n2026-11-13T03:07:12.8038719Z            ~~~~~~~~~^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8039438Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 157, in call\n2026-11-13T03:07:12.8040402Z     raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n2026-11-13T03:07:12.8041093Z                                + json.dumps(response, ensure_ascii=False))\n2026-11-13T03:07:12.8043569Z tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-30a694385f85ed53bb9ddc9ae997524f1c7055385ac4bc1e74a4cdf65576d305\", \"status\": \"rejected\", \"error\": {\"code\": \"E_CAPTURE_TIMEOUT\", \"phase\": \"admission\", \"message\": \"Compiler exceeded wall-time budget\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n2026-11-13T03:07:12.8046058Z \n"
+      },
+      {
+        "profile": "namespace",
+        "test": "test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "lines": [
+          2240,
+          2247
+        ],
+        "site": "tests/test_hia_agent_native_tools.py:571 (after evaluate returned)",
+        "observed_seconds": 5.602196661999642,
+        "required_less_than_seconds": 5,
+        "full_test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "original_timestamped_traceback": "2026-11-13T03:07:12.8047601Z FAIL: test_native_timeout_is_incomplete_terminated_and_not_adoptable (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable)\n2026-11-13T03:07:12.8048974Z ----------------------------------------------------------------------\n2026-11-13T03:07:12.8049516Z Traceback (most recent call last):\n2026-11-13T03:07:12.8050640Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 571, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n2026-11-13T03:07:12.8051707Z     self.assertLess(time.monotonic() - started, 5)\n2026-11-13T03:07:12.8052365Z     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8052826Z AssertionError: 5.602196661999642 not less than 5\n2026-11-13T03:07:12.8053141Z \n"
+      },
+      {
+        "profile": "namespace",
+        "test": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "lines": [
+          2249,
+          2275
+        ],
+        "site": "tests/test_hia_agent_native_tools.py:67 (first baseline emit)",
+        "error_code": "E_HIA_REJECTED",
+        "message": "E_HIA_PROGRAM_LIMIT: native build deadline is exhausted",
+        "full_test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "original_timestamped_traceback": "2026-11-13T03:07:12.8054863Z FAIL: test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)\n2026-11-13T03:07:12.8056331Z ----------------------------------------------------------------------\n2026-11-13T03:07:12.8056853Z Traceback (most recent call last):\n2026-11-13T03:07:12.8057941Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 590, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n2026-11-13T03:07:12.8059085Z     _base, _candidate, baseline, build, receipts = self.build_pair(\n2026-11-13T03:07:12.8059685Z                                                    ~~~~~~~~~~~~~~~^\n2026-11-13T03:07:12.8060282Z         document=looping, candidate=looping, workload=workload,\n2026-11-13T03:07:12.8060884Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8061452Z         budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n2026-11-13T03:07:12.8061996Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8062816Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n2026-11-13T03:07:12.8063735Z     baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n2026-11-13T03:07:12.8064859Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 265, in emit\n2026-11-13T03:07:12.8065730Z     return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n2026-11-13T03:07:12.8066363Z            ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8067309Z         backend_profile=self.backend, output_kind=kind, codegen=codegen,\n2026-11-13T03:07:12.8067925Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8068426Z         verification_receipts=list(receipts)))\n2026-11-13T03:07:12.8068871Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8069658Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 162, in result\n2026-11-13T03:07:12.8070460Z     return self.call(tool, arguments)[\"result\"]\n2026-11-13T03:07:12.8070894Z            ~~~~~~~~~^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8071659Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 157, in call\n2026-11-13T03:07:12.8072679Z     raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n2026-11-13T03:07:12.8073407Z                                + json.dumps(response, ensure_ascii=False))\n2026-11-13T03:07:12.8076291Z tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-e71561619271d2f035e278f27c933ce123bfd4087593281be8c52def3725adf0\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_REJECTED\", \"phase\": \"admission\", \"message\": \"E_HIA_PROGRAM_LIMIT: native build deadline is exhausted\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n2026-11-13T03:07:12.8078731Z \n"
+      },
+      {
+        "profile": "ledger",
+        "test": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "lines": [
+          2340,
+          2364
+        ],
+        "site": "tests/test_hia_agent_native_tools.py:67 (first baseline emit)",
+        "error_code": "E_CAPTURE_TIMEOUT",
+        "message": "Compiler exceeded wall-time budget",
+        "full_test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "original_timestamped_traceback": "2026-11-13T03:07:12.8185285Z FAIL: test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)\n2026-11-13T03:07:12.8186199Z ----------------------------------------------------------------------\n2026-11-13T03:07:12.8186550Z Traceback (most recent call last):\n2026-11-13T03:07:12.8187508Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 656, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n2026-11-13T03:07:12.8188287Z     _base, _candidate, baseline, build, receipts = self.build_pair(\n2026-11-13T03:07:12.8188675Z                                                    ~~~~~~~~~~~~~~~^\n2026-11-13T03:07:12.8189041Z         budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n2026-11-13T03:07:12.8189403Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8189920Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n2026-11-13T03:07:12.8190544Z     baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n2026-11-13T03:07:12.8191175Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 265, in emit\n2026-11-13T03:07:12.8191773Z     return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n2026-11-13T03:07:12.8192238Z            ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8192645Z         backend_profile=self.backend, output_kind=kind, codegen=codegen,\n2026-11-13T03:07:12.8193028Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8193346Z         verification_receipts=list(receipts)))\n2026-11-13T03:07:12.8193629Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8194106Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 162, in result\n2026-11-13T03:07:12.8194606Z     return self.call(tool, arguments)[\"result\"]\n2026-11-13T03:07:12.8195036Z            ~~~~~~~~~^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8195485Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 157, in call\n2026-11-13T03:07:12.8196084Z     raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n2026-11-13T03:07:12.8196664Z                                + json.dumps(response, ensure_ascii=False))\n2026-11-13T03:07:12.8198243Z tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-84fcbc0ec97b3c3a7fb4ab147eb160479e223c6dce50317535c2781d7b414cb4\", \"status\": \"rejected\", \"error\": {\"code\": \"E_CAPTURE_TIMEOUT\", \"phase\": \"admission\", \"message\": \"Compiler exceeded wall-time budget\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n2026-11-13T03:07:12.8199665Z \n"
+      },
+      {
+        "profile": "ledger",
+        "test": "test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "lines": [
+          2366,
+          2373
+        ],
+        "site": "tests/test_hia_agent_native_tools.py:571 (after evaluate returned)",
+        "observed_seconds": 5.583486049000385,
+        "required_less_than_seconds": 5,
+        "full_test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "original_timestamped_traceback": "2026-11-13T03:07:12.8200585Z FAIL: test_native_timeout_is_incomplete_terminated_and_not_adoptable (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable)\n2026-11-13T03:07:12.8201408Z ----------------------------------------------------------------------\n2026-11-13T03:07:12.8201748Z Traceback (most recent call last):\n2026-11-13T03:07:12.8202420Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 571, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n2026-11-13T03:07:12.8203098Z     self.assertLess(time.monotonic() - started, 5)\n2026-11-13T03:07:12.8203448Z     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8203748Z AssertionError: 5.583486049000385 not less than 5\n2026-11-13T03:07:12.8203951Z \n"
+      },
+      {
+        "profile": "ledger",
+        "test": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "lines": [
+          2375,
+          2401
+        ],
+        "site": "tests/test_hia_agent_native_tools.py:67 (first baseline emit)",
+        "error_code": "E_CAPTURE_TIMEOUT",
+        "message": "Compiler exceeded wall-time budget",
+        "full_test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "original_timestamped_traceback": "2026-11-13T03:07:12.8205045Z FAIL: test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline)\n2026-11-13T03:07:12.8205921Z ----------------------------------------------------------------------\n2026-11-13T03:07:12.8206253Z Traceback (most recent call last):\n2026-11-13T03:07:12.8207089Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 590, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n2026-11-13T03:07:12.8207831Z     _base, _candidate, baseline, build, receipts = self.build_pair(\n2026-11-13T03:07:12.8208199Z                                                    ~~~~~~~~~~~~~~~^\n2026-11-13T03:07:12.8208554Z         document=looping, candidate=looping, workload=workload,\n2026-11-13T03:07:12.8208894Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8209253Z         budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n2026-11-13T03:07:12.8209612Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8210121Z   File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n2026-11-13T03:07:12.8210730Z     baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n2026-11-13T03:07:12.8211358Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 265, in emit\n2026-11-13T03:07:12.8211934Z     return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n2026-11-13T03:07:12.8212360Z            ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8212756Z         backend_profile=self.backend, output_kind=kind, codegen=codegen,\n2026-11-13T03:07:12.8213141Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8213455Z         verification_receipts=list(receipts)))\n2026-11-13T03:07:12.8213738Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8214207Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 162, in result\n2026-11-13T03:07:12.8214832Z     return self.call(tool, arguments)[\"result\"]\n2026-11-13T03:07:12.8215128Z            ~~~~~~~~~^^^^^^^^^^^^^^^^^\n2026-11-13T03:07:12.8215581Z   File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 157, in call\n2026-11-13T03:07:12.8216336Z     raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n2026-11-13T03:07:12.8216803Z                                + json.dumps(response, ensure_ascii=False))\n2026-11-13T03:07:12.8218378Z tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-7dbf91d37d1f1bf7c83428f26159e8876bf25cee6e5f84220e3f602052cbf45e\", \"status\": \"rejected\", \"error\": {\"code\": \"E_CAPTURE_TIMEOUT\", \"phase\": \"admission\", \"message\": \"Compiler exceeded wall-time budget\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n2026-11-13T03:07:12.8219821Z \n"
+      }
+    ],
+    "budget_preservation": {
+      "frozen_context_max_total_wall_ms": 3000,
+      "frozen_context_max_native_wall_ms": 1000,
+      "post_evaluate_assert_less_than_seconds": 5,
+      "modified": false
+    },
+    "explanation": "The two outer failures contain six original nested test failures. Four failures occur during the first emit; three are E_CAPTURE_TIMEOUT and one is an exhausted native-build deadline. Two separate failures occur at the unchanged less-than-five-seconds assertion. No product cause, runner cause, or fastpath performance causality is inferred."
+  },
+  "skipped_business_steps": [
+    {
+      "name": "Native retained retirement state and actual resource custody",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 28,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native worker request admission and ordinary request continuity",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 29,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native immutable release installation and recovery observations",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 30,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native release selection CAS rollback and crash recovery",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 31,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native source admission build and explicit public compiler",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 32,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native complete CLI arguments formatting and continuations",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 33,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native complete machine Code owners and exception custody",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 34,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native machine instructions through complete original callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 35,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native machine ELF writer and exact exception custody",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 36,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native machine ELF through complete original callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 37,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native machine plan policy and original object lifetimes",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 38,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native machine plan through complete original callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 39,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native service context policy integers and held proof identity",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 40,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native service context through all original Agent callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 41,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native complete Core lowering through all original machine and Core callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 42,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native shared frame Call and short circuit ownership",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 43,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native service emission continuation and exception custody",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 44,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native service emission through all original Agent callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 45,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native complete Core emitter through all original machine and Core callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 46,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native borrowed byte ABI complete policy and whole emission custody",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 47,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native borrowed byte ABI through all original byte and Agent buffer callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 48,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native complete build coordinator and installation custody",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 49,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native complete build coordinator through all original 114 callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 50,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native service verification complete policy and default replay",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 51,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native service verification through all original Agent callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 52,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native proof contract complete public policy and held capability",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 53,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native proof contract through all original 22 proof and 18 machine callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 54,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native eight-body service requests complete component",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 55,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native requests through all original 48 Agent callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 56,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native requests through all original 35 namespace callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 57,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native requests through all original 48 ledger callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 58,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native six-body service artifacts complete component",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 59,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native artifacts through all original 48 Agent callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 60,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native artifacts through all original 35 namespace callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 61,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native artifacts through all original 48 ledger callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 62,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native nine-body service evaluation complete component",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 63,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native evaluation through all original 48 Agent callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 64,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native evaluation through all original 35 namespace callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 65,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    },
+    {
+      "name": "Native evaluation through all original 48 ledger callers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 66,
+      "started_at": "2026-11-13T03:07:12Z",
+      "completed_at": "2026-11-13T03:07:12Z"
+    }
+  ],
+  "skipped_business_step_count": 39,
+  "artifact": {
+    "id": 14006895740,
+    "name": "hia-core-native-a733926a2786a3d4a37304bd2d18ebb2eac57ac9-1",
+    "size_in_bytes": 193650347,
+    "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/14006895740",
+    "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/14006895740/zip",
+    "expired": false,
+    "created_at": "2026-11-13T03:07:41Z",
+    "expires_at": "2026-11-20T03:07:16Z",
+    "updated_at": "2026-11-13T03:07:41Z",
+    "digest": "sha256:d91c2215aa578cf915c06a3e52b6ca9aba38b52276dbe618fadc98d50ead1bad",
+    "workflow_run": {
+      "id": 43347253395,
+      "repository_id": 1432132756,
+      "head_repository_id": 1432132756,
+      "head_branch": "codex/hia-assembly-default-scope-v84-20261113-dda7",
+      "head_sha": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9"
+    }
+  },
+  "artifact_custody": {
+    "api_size_and_digest_equal_original_upload_log": true,
+    "whole_outer_zip_downloaded_locally": false,
+    "whole_outer_zip_sha256_independently_checked": false,
+    "outer_crc_checked": false,
+    "inner_crc_checked": false,
+    "all_source_bytes_checked": false,
+    "collector_owner": "/root/native_composite_lowering",
+    "collector_plan": "New independent pure-evidence append input; no test or compiler rerun. Original five-artifact collector stays frozen.",
+    "prepared_validator_blob": "974743947aef5c508c85783e23679f41a4b988f4"
+  },
+  "immutable_originals": {
+    "native_log": {
+      "bytes": 400027,
+      "sha256": "1faef2084c158617468828f74871369a9fc8fd4e6d923a437a4a116e6e14c477",
+      "blob": "b6f9387f7e4f99af21ed437554253660f96a8105",
+      "create_ack": true,
+      "full_readback_equal": true
+    },
+    "terminal_authority": {
+      "bytes": 90251,
+      "sha256": "7745021b378872e8a7ec65f629dd8bee43d0aeb794455d93d052ea2d325ae60d",
+      "blob": "e55507a1df058f566b978eecb23ebf95c26b2384",
+      "create_ack": true,
+      "full_readback_equal": true
+    },
+    "source_log": {
+      "blob": "2ca627194a95d843e0637f835bb0b89f15a5886d",
+      "bytes": 274258,
+      "sha256": "639b58a427fabea02952fab23a61a8890a6bf6d4022f48906d53e5ade4970cbf",
+      "full_readback_equal": true
+    },
+    "prior_time_bound": {
+      "bytes": 133723,
+      "sha256": "b03d10860333b9324a356b38f04bad5731292987fd86f2b7a83a1fdd6495fca0",
+      "blob": "79e3ec882266d1ebe52d8c750b766e6ce869c0bc",
+      "create_ack": true,
+      "full_readback_equal": true
+    },
+    "exact_workflow": {
+      "blob": "d29bad9298ad5c8a1970236b5db7fc1968333710",
+      "bytes": 63685,
+      "sha256": "1dcac955b54cca079d1ba502c3cd0390e3429ca828ba3e78ac13c22e60d01190"
+    }
+  },
+  "preservation": {
+    "original_run_restarted": false,
+    "local_exec_after_environment_outage": false,
+    "source_modified": false,
+    "limits_modified": false,
+    "failed_results_reclassified": false,
+    "skips_counted_as_pass": false,
+    "whole_native": false,
+    "current_main_qualification": false
+  },
+  "live_main_separation": {
+    "main_at_other_review": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+    "this_run_head": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9",
+    "qualification_interchangeable": false
+  }
+}

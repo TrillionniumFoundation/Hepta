@@ -1,0 +1,54 @@
+name: Check host GCC 15.2 reproduction for unchanged retained tests
+"on":
+  push:
+    branches:
+      - codex/hia-note-reference-host-gcc15-v75-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Exact independent harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Exact complete original source
+        uses: actions/checkout@v4
+        with:
+          path: source
+          ref: 7e9c5a796a29746d169f9db97392ec774f627c03
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Resolve official compiler image and extract private host prefix
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          bash "$GITHUB_WORKSPACE/harness/prepare_host_gcc15.sh"
+      - name: Check original cc lookup with exact original C and host linker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I -S -B "$GITHUB_WORKSPACE/harness/reproduce_note_host_gcc15.py"
+      - name: Preserve original compiler resolution and all command results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-note-reference-host-gcc15-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-reference-prerequisites
+            ${{ runner.temp }}/hia-reference-reproduction

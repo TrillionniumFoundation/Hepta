@@ -1,0 +1,278 @@
+{
+  "checks": {
+    "all_3153_source_bytes_modes_unchanged": true,
+    "all_963_files_read_in_order": true,
+    "all_ordered_maps_equal": true,
+    "all_three_scans_passed": true,
+    "all_three_workers_returned_zero": true,
+    "trace_complete": true
+  },
+  "conclusions": [
+    "Actual directory traversal opened the same flat hepta directory twice, each with one nonempty getdents64 and one EOF getdents64. It did not enumerate 963 directories.",
+    "The remaining 963 opens/fstats/closes correspond to the original 963 ordered file reads; 962 nonempty files each returned data then EOF, and one empty file returned EOF: 1925 reads total.",
+    "The exact 88 large-file seek branches predicted from CPython3.14.4 source were observed.",
+    "The tracing process caused about9.618x wall time and9834 voluntary context switches. Strace syscall elapsed intervals cannot be substituted for uninstrumented kernel CPU or path-construction cost.",
+    "The two untraced scans each took about36ms after independent full-source identity checking had warmed the OS page cache. They ran in separate new Python processes.",
+    "This diagnostic does not fix or rerun the original3second cases and does not authorize a default or freshness-policy change."
+  ],
+  "harness_commit": "915eb403ea1effce8218380b7183bc563e6f383d",
+  "harness_tree": "d2b8f3f0b9bfd7c72e12417ff916ee6bf8e912d1",
+  "job_id": 131158714137,
+  "limits": {
+    "business_cases_executed": false,
+    "current_source_cold": false,
+    "default": false,
+    "deletion": false,
+    "full": false,
+    "live": false,
+    "original_limits_changed": false
+  },
+  "new_product_candidate": false,
+  "observer_wall_ratio": 9.618415328823891,
+  "original_artifact": {
+    "bytes": 2042273,
+    "id": 13941730416,
+    "sha256": "d53d0328f2a667511b11ed2caf68b94af9dc4d010647282a60920cd734b873ec"
+  },
+  "original_job_log": {
+    "bytes": 1480158,
+    "git_blob": "9c9243d4f89d1dc8257b148c6fedf5cbdc1d08a9",
+    "sha256": "8edf164dd6eb9a9e9af136a629b713e527128337292fb9964ea1b504114bd579"
+  },
+  "repeated_full_source_guard_page_cache_effect_recorded": true,
+  "run_id": 43211128957,
+  "scans": {
+    "after": {
+      "business_cases_executed": false,
+      "contract_module_sha256": "722f015682a834244cb639481f30d5585fdfb6994e08e250e3e7b0feb3b64e51",
+      "executable": "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+      "label": "after",
+      "map_matches_exact_contract": true,
+      "maxrss_kib_before_after": [
+        42508,
+        42508
+      ],
+      "ordered_map_sha256": "1e608a7f9c3eae361e1149edb56b7e4979723e6585cbe7798d69b3d2b32feb7b",
+      "original_limits_changed": false,
+      "pid": 2734,
+      "product_changed": false,
+      "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+      "rusage_after": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_maxrss": 42508,
+        "ru_minflt": 4010,
+        "ru_nivcsw": 1,
+        "ru_nvcsw": 0,
+        "ru_oublock": 8,
+        "ru_stime": 0.01706,
+        "ru_utime": 0.077275
+      },
+      "rusage_before": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_maxrss": 42508,
+        "ru_minflt": 3694,
+        "ru_nivcsw": 0,
+        "ru_nvcsw": 0,
+        "ru_oublock": 8,
+        "ru_stime": 0.010034,
+        "ru_utime": 0.048166
+      },
+      "rusage_delta": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_minflt": 316,
+        "ru_nivcsw": 1,
+        "ru_nvcsw": 0,
+        "ru_oublock": 0,
+        "ru_stime": 0.007025999999999999,
+        "ru_utime": 0.029108999999999996
+      },
+      "scan_cpu_ns": 36119234,
+      "scan_wall_ns": 36120529,
+      "schema": "hia.fresh-source.single-scan.v1",
+      "scope": "DIAGNOSTIC_ONLY_NO_QUALIFICATION",
+      "source": "/home/runner/work/Hepta/Hepta/source",
+      "status": "PASS"
+    },
+    "before": {
+      "business_cases_executed": false,
+      "contract_module_sha256": "722f015682a834244cb639481f30d5585fdfb6994e08e250e3e7b0feb3b64e51",
+      "executable": "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+      "label": "before",
+      "map_matches_exact_contract": true,
+      "maxrss_kib_before_after": [
+        42508,
+        42508
+      ],
+      "ordered_map_sha256": "1e608a7f9c3eae361e1149edb56b7e4979723e6585cbe7798d69b3d2b32feb7b",
+      "original_limits_changed": false,
+      "pid": 2729,
+      "product_changed": false,
+      "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+      "rusage_after": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_maxrss": 42508,
+        "ru_minflt": 4020,
+        "ru_nivcsw": 1,
+        "ru_nvcsw": 0,
+        "ru_oublock": 8,
+        "ru_stime": 0.012914,
+        "ru_utime": 0.082454
+      },
+      "rusage_before": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_maxrss": 42508,
+        "ru_minflt": 3704,
+        "ru_nivcsw": 1,
+        "ru_nvcsw": 0,
+        "ru_oublock": 8,
+        "ru_stime": 0.010888,
+        "ru_utime": 0.048500999999999996
+      },
+      "rusage_delta": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_minflt": 316,
+        "ru_nivcsw": 0,
+        "ru_nvcsw": 0,
+        "ru_oublock": 0,
+        "ru_stime": 0.002026,
+        "ru_utime": 0.033953000000000004
+      },
+      "scan_cpu_ns": 35964012,
+      "scan_wall_ns": 35956077,
+      "schema": "hia.fresh-source.single-scan.v1",
+      "scope": "DIAGNOSTIC_ONLY_NO_QUALIFICATION",
+      "source": "/home/runner/work/Hepta/Hepta/source",
+      "status": "PASS"
+    },
+    "observed": {
+      "business_cases_executed": false,
+      "contract_module_sha256": "722f015682a834244cb639481f30d5585fdfb6994e08e250e3e7b0feb3b64e51",
+      "executable": "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+      "label": "observed",
+      "map_matches_exact_contract": true,
+      "maxrss_kib_before_after": [
+        23728,
+        24024
+      ],
+      "ordered_map_sha256": "1e608a7f9c3eae361e1149edb56b7e4979723e6585cbe7798d69b3d2b32feb7b",
+      "original_limits_changed": false,
+      "pid": 2733,
+      "product_changed": false,
+      "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+      "rusage_after": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_maxrss": 24024,
+        "ru_minflt": 4033,
+        "ru_nivcsw": 0,
+        "ru_nvcsw": 12442,
+        "ru_oublock": 8,
+        "ru_stime": 0.083752,
+        "ru_utime": 0.119186
+      },
+      "rusage_before": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_maxrss": 23728,
+        "ru_minflt": 3717,
+        "ru_nivcsw": 0,
+        "ru_nvcsw": 2608,
+        "ru_oublock": 8,
+        "ru_stime": 0.022532999999999997,
+        "ru_utime": 0.06862499999999999
+      },
+      "rusage_delta": {
+        "ru_inblock": 0,
+        "ru_majflt": 0,
+        "ru_minflt": 316,
+        "ru_nivcsw": 0,
+        "ru_nvcsw": 9834,
+        "ru_oublock": 0,
+        "ru_stime": 0.061218999999999996,
+        "ru_utime": 0.05056100000000001
+      },
+      "scan_cpu_ns": 111721894,
+      "scan_wall_ns": 346631366,
+      "schema": "hia.fresh-source.single-scan.v1",
+      "scope": "DIAGNOSTIC_ONLY_NO_QUALIFICATION",
+      "source": "/home/runner/work/Hepta/Hepta/source",
+      "status": "PASS"
+    }
+  },
+  "scope": "EXACT_4B_CPYTHON3144_SYSCALL_DIAGNOSTIC_NOT_QUALIFICATION",
+  "source_commit": "4b19af89a766593f7d5f1cc2db256e81aba7afcb",
+  "source_tree": "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c",
+  "status": "DIAGNOSTIC_COMPLETE",
+  "trace_summary": {
+    "begin_line": 1301,
+    "complete_expected_source_reads": true,
+    "counts": {
+      "clock_gettime": 2,
+      "close": 965,
+      "fstat": 965,
+      "getdents64": 4,
+      "getrusage": 2,
+      "lseek": 88,
+      "mmap": 1,
+      "munmap": 1,
+      "openat": 965,
+      "read": 1925
+    },
+    "end_line": 6220,
+    "families": {
+      "close": {
+        "count": 965,
+        "observed_elapsed_seconds": 0.022304999999999933
+      },
+      "fstat": {
+        "count": 965,
+        "observed_elapsed_seconds": 0.02234699999999997
+      },
+      "getdents64": {
+        "count": 4,
+        "observed_elapsed_seconds": 0.000215
+      },
+      "lseek": {
+        "count": 88,
+        "observed_elapsed_seconds": 0.0019089999999999999
+      },
+      "openat": {
+        "count": 965,
+        "observed_elapsed_seconds": 0.023406000000000034
+      },
+      "read": {
+        "count": 1925,
+        "observed_elapsed_seconds": 0.04843100000000042
+      }
+    },
+    "observed_syscall_elapsed_seconds": {
+      "clock_gettime": 6.7e-05,
+      "close": 0.022304999999999933,
+      "fstat": 0.02234699999999997,
+      "getdents64": 0.000215,
+      "getrusage": 6.7e-05,
+      "lseek": 0.0019089999999999999,
+      "mmap": 3.3e-05,
+      "munmap": 8e-05,
+      "openat": 0.023406000000000034,
+      "read": 0.04843100000000042
+    },
+    "parse_complete": true,
+    "path_object_construction_is_not_classified_as_kernel_time": true,
+    "schema": "hia.fresh-source.strace-window.v1",
+    "source_read_bytes": 28526830,
+    "syscall_elapsed_is_not_uninstrumented_kernel_cpu": true,
+    "syscall_errors": {},
+    "trace": {
+      "bytes": 1333396,
+      "sha256": "16bbb7ac5409e5c796f16379bb2180cfa13c444eebb7cea356e0e198f6f9f621"
+    },
+    "window_lines": 4918
+  }
+}

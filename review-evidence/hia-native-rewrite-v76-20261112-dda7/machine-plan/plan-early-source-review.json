@@ -1,0 +1,73 @@
+{
+  "schema": "hia.machine-plan.independent-readonly-review.v1",
+  "reviewer": "hia_surface_audit",
+  "input": {
+    "blob": "225c264e95b12e2a33eceaedb3ae5f8e668a608c",
+    "bytes": 88294,
+    "sha256": "66639e2e4f48517294958f549d08b0512f70a7adbbe9b54899146b0452806fb2",
+    "all_five_file_bytes_and_sha256_verified": true,
+    "files": [
+      {
+        "path": "hepta/hia_machine_plan_control_native.py",
+        "bytes": 25542,
+        "sha256": "c9a1145b47b037e3e637d67144adec2b1ceed663617b5faa34516fb29808168f"
+      },
+      {
+        "path": "tools/hia_machine_plan_control.py",
+        "bytes": 25518,
+        "sha256": "0576d000eff5e6cd6657f59ce569db5bff2f376360fa779f0eebec44e0013a9c"
+      },
+      {
+        "path": "tools/generate_hia_machine_plan_control.py",
+        "bytes": 16157,
+        "sha256": "07dbbd88a28ddc98ec168aafddbfab24615653a8a61b2185a6c253446192494d"
+      },
+      {
+        "path": "hepta/hia_machine_plan.py",
+        "bytes": 15593,
+        "sha256": "2a7bafd337f3b09e2283f06c30d5ab59304ce214f046955b652fbf3e3f703996"
+      },
+      {
+        "path": "hepta/hia_machine_plan_native.py",
+        "bytes": 415,
+        "sha256": "5c7882ed95889d58f9d1b233c607d86510e87841597a356391aae2e93771cf4b"
+      }
+    ]
+  },
+  "scope": {
+    "source_only": true,
+    "tests_run": 0,
+    "machine_image_executed": false,
+    "author_worktree_edited": false,
+    "qualification_granted": false
+  },
+  "findings": [
+    {
+      "id": "handled-delivery-identity",
+      "classification": "CONCRETE_SOURCE_CONTROL_FLOW_NOT_EXECUTED_BY_REVIEWER",
+      "location": "hepta/hia_machine_plan_control_native.py:_capture_with_handler",
+      "observation": "Any BaseException raised by frame.image._delivery.deliver(frame.handled) is caught and followed by _capture(frame), without checking the raised object is frame.handled.",
+      "impact": "A mechanism error or interrupted delivery can execute the already-claimed foreign primitive under the wrong handled-exception state, instead of retaining an unknown result.",
+      "proposed_control": "Closed delivery or a separate actual mechanism exception; assert zero foreign calls and retained unknown custody, then positive exact-object delivery.",
+      "author_response": "Author confirmed the source condition and will reproduce then add identity admission; no implementation or test pass is claimed in this review."
+    },
+    {
+      "id": "partial-constructor-arena",
+      "classification": "CONCRETE_SOURCE_LIFETIME_CANDIDATE_NOT_EXECUTED_BY_REVIEWER",
+      "location": "hepta/hia_machine_plan_control_native.py:PlanFrame.__init__/close(release=False)",
+      "observation": "If state allocation succeeds and output allocation raises, constructor calls close(release=False). Its state buffer remains owned by self, and a held error traceback retains self until final retirement.",
+      "impact": "An unstarted bridge-owned arena may remain live through a held constructor error although no HIA policy instruction needs it.",
+      "proposed_control": "Real first arena and controlled second allocation MemoryError; retain original exception and traceback, inspect actual arena weak reference; clean only bridge-owned unstarted arenas, not original arguments or foreign locals.",
+      "author_response": "Author agreed this is a source-level window and plans an actual witness before a narrow cleanup correction."
+    }
+  ],
+  "checked_boundaries": [
+    "HIA command 4 admits only native stages 4, 5 and 7; outstanding observation stages 1 and 2 cannot silently become retirement authority.",
+    "Retirement request 5 consumes temporary birth ownership; request 6 drops each slot in original slot order.",
+    "DROP_SLOT clears the frame reference to a shared _Cell, not its value, preserving another retained native generator's cell.",
+    "Caught-error delivery and generator cancellation remain subject to actual CPython controls; no source-only claim of exact foreign traceback or refcount equivalence.",
+    "The reviewed public generator expressions predominantly yield boolean predicates. A hypothetical general foreign-yield example was not relabeled a demonstrated bug in these four public APIs."
+  ],
+  "retained_author_observations": "The packet states 8 actual lifecycle controls passed for this revision and an earlier 12-method gate remained UNKNOWN; this review neither reruns nor upgrades those observations.",
+  "scratch_status": "Local execution surface reset during review; all five reviewed sources were read from the exact immutable Git packet."
+}

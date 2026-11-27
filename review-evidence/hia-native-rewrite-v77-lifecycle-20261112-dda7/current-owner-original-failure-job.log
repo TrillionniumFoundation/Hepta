@@ -1,0 +1,1468 @@
+﻿2026-11-12T10:38:17.3073665Z Current runner version: '2.338.2'
+2026-11-12T10:38:17.3098802Z ##[group]Runner Image Provisioner
+2026-11-12T10:38:17.3099680Z Hosted Compute Agent
+2026-11-12T10:38:17.3100203Z Version: 20261028.624
+2026-11-12T10:38:17.3100737Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-12T10:38:17.3101391Z Build Date: 2026-10-28T21:51:42Z
+2026-11-12T10:38:17.3102027Z Worker ID: {c8427a51-5af2-41f9-b1df-1f7cf4dce910}
+2026-11-12T10:38:17.3102634Z Region: westus2
+2026-11-12T10:38:17.3103186Z Cloud: Azure
+2026-11-12T10:38:17.3103884Z ##[endgroup]
+2026-11-12T10:38:17.3105136Z ##[group]Operating System
+2026-11-12T10:38:17.3105734Z Ubuntu
+2026-11-12T10:38:17.3106214Z 24.04.5
+2026-11-12T10:38:17.3106717Z LTS
+2026-11-12T10:38:17.3107265Z ##[endgroup]
+2026-11-12T10:38:17.3107761Z ##[group]Runner Image
+2026-11-12T10:38:17.3108332Z Image: ubuntu-24.04
+2026-11-12T10:38:17.3108823Z Version: 20261101.360.1
+2026-11-12T10:38:17.3109974Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-12T10:38:17.3111247Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-12T10:38:17.3112088Z ##[endgroup]
+2026-11-12T10:38:17.3113079Z ##[group]GITHUB_TOKEN Permissions
+2026-11-12T10:38:17.3115346Z Contents: read
+2026-11-12T10:38:17.3115860Z Metadata: read
+2026-11-12T10:38:17.3116438Z ##[endgroup]
+2026-11-12T10:38:17.3118360Z Secret source: Actions
+2026-11-12T10:38:17.3119250Z Cache mode: write
+2026-11-12T10:38:17.3119870Z Prepare workflow directory
+2026-11-12T10:38:17.3415809Z Prepare all required actions
+2026-11-12T10:38:17.3476407Z Getting action download info
+2026-11-12T10:38:17.6821087Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-12T10:38:17.7754451Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-12T10:38:17.8921545Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-12T10:38:18.1455463Z Complete job name: current-source-owners
+2026-11-12T10:38:18.2305336Z ##[group]Run actions/checkout@v4
+2026-11-12T10:38:18.2306073Z with:
+2026-11-12T10:38:18.2306475Z   ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+2026-11-12T10:38:18.2306957Z   fetch-depth: 2
+2026-11-12T10:38:18.2307349Z   persist-credentials: false
+2026-11-12T10:38:18.2307808Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T10:38:18.2311102Z   token: ***
+2026-11-12T10:38:18.2311472Z   ssh-strict: true
+2026-11-12T10:38:18.2311847Z   ssh-user: git
+2026-11-12T10:38:18.2312199Z   clean: true
+2026-11-12T10:38:18.2312567Z   sparse-checkout-cone-mode: true
+2026-11-12T10:38:18.2312996Z   fetch-tags: false
+2026-11-12T10:38:18.2313480Z   show-progress: true
+2026-11-12T10:38:18.2313868Z   lfs: false
+2026-11-12T10:38:18.2314227Z   submodules: false
+2026-11-12T10:38:18.2314607Z   set-safe-directory: true
+2026-11-12T10:38:18.2315023Z   allow-unsafe-pr-checkout: false
+2026-11-12T10:38:18.2315612Z ##[endgroup]
+2026-11-12T10:38:18.4913318Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T10:38:18.4916221Z ##[group]Getting Git version info
+2026-11-12T10:38:18.4917055Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-12T10:38:18.4918379Z [command]/usr/bin/git version
+2026-11-12T10:38:18.4974114Z git version 2.56.0
+2026-11-12T10:38:18.4994628Z ##[endgroup]
+2026-11-12T10:38:18.5009784Z Temporarily overriding HOME='/home/runner/work/_temp/82993862-2ebc-4a8f-9d4a-f5bd4b1e65e8' before making global git config changes
+2026-11-12T10:38:18.5011607Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T10:38:18.5014807Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T10:38:18.5063989Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-12T10:38:18.5068193Z ##[group]Initializing the repository
+2026-11-12T10:38:18.5072554Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-12T10:38:18.5159016Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T10:38:18.5160531Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T10:38:18.5161983Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T10:38:18.5162608Z hint: call:
+2026-11-12T10:38:18.5162955Z hint:
+2026-11-12T10:38:18.5163610Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T10:38:18.5164173Z hint:
+2026-11-12T10:38:18.5164652Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T10:38:18.5165385Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T10:38:18.5165966Z hint:
+2026-11-12T10:38:18.5166305Z hint: 	git branch -m <name>
+2026-11-12T10:38:18.5166835Z hint:
+2026-11-12T10:38:18.5167586Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T10:38:18.5169052Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-12T10:38:18.5181606Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T10:38:18.5234738Z ##[endgroup]
+2026-11-12T10:38:18.5237867Z ##[group]Disabling automatic garbage collection
+2026-11-12T10:38:18.5238876Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T10:38:18.5282449Z ##[endgroup]
+2026-11-12T10:38:18.5283536Z ##[group]Setting up auth
+2026-11-12T10:38:18.5286312Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T10:38:18.5325741Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T10:38:18.5869126Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T10:38:18.5873144Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T10:38:18.6051499Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T10:38:18.6092721Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T10:38:18.6319867Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T10:38:18.6367909Z ##[endgroup]
+2026-11-12T10:38:18.6368637Z ##[group]Fetching the repository
+2026-11-12T10:38:18.6378624Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=2 origin 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+2026-11-12T10:38:22.6549823Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T10:38:22.6551871Z  * branch            4b19af89a766593f7d5f1cc2db256e81aba7afcb -> FETCH_HEAD
+2026-11-12T10:38:22.6554423Z ##[endgroup]
+2026-11-12T10:38:22.6555407Z ##[group]Determining the checkout info
+2026-11-12T10:38:22.6556795Z ##[endgroup]
+2026-11-12T10:38:22.6562528Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T10:38:22.6619296Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T10:38:22.6665414Z ##[group]Checking out the ref
+2026-11-12T10:38:22.6669430Z [command]/usr/bin/git checkout --progress --force 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+2026-11-12T10:38:22.9946316Z Note: switching to '4b19af89a766593f7d5f1cc2db256e81aba7afcb'.
+2026-11-12T10:38:22.9946670Z 
+2026-11-12T10:38:22.9946879Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-12T10:38:22.9947307Z changes and commit them, and you can discard any commits you make in this
+2026-11-12T10:38:22.9947764Z state without impacting any branches by switching back to a branch.
+2026-11-12T10:38:22.9948055Z 
+2026-11-12T10:38:22.9948258Z If you want to create a new branch to retain commits you create, you may
+2026-11-12T10:38:22.9949085Z do so (now or later) by using -c with the switch command. Example:
+2026-11-12T10:38:22.9949317Z 
+2026-11-12T10:38:22.9949438Z   git switch -c <new-branch-name>
+2026-11-12T10:38:22.9949596Z 
+2026-11-12T10:38:22.9949724Z Or undo this operation with:
+2026-11-12T10:38:22.9949875Z 
+2026-11-12T10:38:22.9949987Z   git switch -
+2026-11-12T10:38:22.9950129Z 
+2026-11-12T10:38:22.9950324Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-12T10:38:22.9950628Z 
+2026-11-12T10:38:22.9950873Z HEAD is now at 4b19af8 Integrate HIA ELF, plan and held context owners with native heap optimization
+2026-11-12T10:38:22.9980186Z ##[endgroup]
+2026-11-12T10:38:23.0038027Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T10:38:23.0069340Z 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+2026-11-12T10:38:23.0078036Z ##[group]Removing auth
+2026-11-12T10:38:23.0081739Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T10:38:23.0117285Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T10:38:23.0331391Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T10:38:23.0362314Z http.https://github.com/.extraheader
+2026-11-12T10:38:23.0369683Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T10:38:23.0406129Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T10:38:23.0617787Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T10:38:23.0654952Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T10:38:23.0868069Z ##[endgroup]
+2026-11-12T10:38:23.1119127Z ##[group]Run actions/setup-python@v5
+2026-11-12T10:38:23.1119424Z with:
+2026-11-12T10:38:23.1119649Z   python-version: 3.14.4
+2026-11-12T10:38:23.1119904Z   check-latest: false
+2026-11-12T10:38:23.1121974Z   token: ***
+2026-11-12T10:38:23.1122200Z   update-environment: true
+2026-11-12T10:38:23.1122444Z   allow-prereleases: false
+2026-11-12T10:38:23.1122679Z   freethreaded: false
+2026-11-12T10:38:23.1122905Z ##[endgroup]
+2026-11-12T10:38:23.2271415Z ##[group]Installed versions
+2026-11-12T10:38:23.2287586Z Version 3.14.4 was not found in the local cache
+2026-11-12T10:38:23.5301493Z (node:2094) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T10:38:23.5302745Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T10:38:24.1951969Z Version 3.14.4 is available for downloading
+2026-11-12T10:38:24.1952922Z Download from "https://github.com/actions/python-versions/releases/download/3.14.4-25113653268/python-3.14.4-linux-24.04-x64.tar.gz"
+2026-11-12T10:38:24.7270557Z Extract downloaded archive
+2026-11-12T10:38:24.7412700Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/8c7a9e13-bbc5-4815-a82c-b2be4112b523 -f /home/runner/work/_temp/164adaf9-3701-40cf-a622-0e3ba284d0b1
+2026-11-12T10:38:26.6606148Z Execute installation script
+2026-11-12T10:38:26.6723109Z Check if Python hostedtoolcache folder exist...
+2026-11-12T10:38:26.6723859Z Create Python 3.14.4 folder
+2026-11-12T10:38:26.6746714Z Copy Python binaries to hostedtoolcache folder
+2026-11-12T10:38:27.0645813Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-12T10:38:27.0682581Z Upgrading pip...
+2026-11-12T10:38:29.3552732Z Looking in links: /tmp/tmppf894hd4
+2026-11-12T10:38:29.3565472Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/site-packages (26.0.1)
+2026-11-12T10:38:30.4844594Z Collecting pip
+2026-11-12T10:38:30.5370917Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-12T10:38:30.5486746Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-12T10:38:30.6837985Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 16.3 MB/s  0:00:00
+2026-11-12T10:38:30.6838311Z 
+2026-11-12T10:38:30.6967526Z Installing collected packages: pip
+2026-11-12T10:38:30.6967922Z Attempting uninstall: pip
+2026-11-12T10:38:30.6985983Z Found existing installation: pip 26.0.1
+2026-11-12T10:38:30.7228257Z Uninstalling pip-26.0.1:
+2026-11-12T10:38:30.7276899Z Successfully uninstalled pip-26.0.1
+2026-11-12T10:38:31.8604471Z Successfully installed pip-26.3
+2026-11-12T10:38:31.9293101Z Create complete file
+2026-11-12T10:38:31.9328410Z Successfully set up CPython (3.14.4)
+2026-11-12T10:38:31.9329430Z ##[endgroup]
+2026-11-12T10:38:31.9524267Z ##[group]Run python -B - <<'PYADMIT'
+2026-11-12T10:38:31.9524621Z [36;1mpython -B - <<'PYADMIT'[0m
+2026-11-12T10:38:31.9524963Z [36;1mimport hashlib, json, os, pathlib, platform, subprocess, sys[0m
+2026-11-12T10:38:31.9525375Z [36;1mout=pathlib.Path(os.environ['RUNNER_TEMP'])/'hia-native-owners-v76'[0m
+2026-11-12T10:38:31.9525706Z [36;1mout.mkdir(mode=0o700,exist_ok=False)[0m
+2026-11-12T10:38:31.9525939Z [36;1mdef git(*args):[0m
+2026-11-12T10:38:31.9526220Z [36;1m    return subprocess.check_output(['git',*args],text=True).strip()[0m
+2026-11-12T10:38:31.9526584Z [36;1mraw=pathlib.Path('.github/workflows/hia-core.yml').read_bytes()[0m
+2026-11-12T10:38:31.9526950Z [36;1mrecord={'schema':'hia.v76.current-owner-source-admission.v1',[0m
+2026-11-12T10:38:31.9527469Z [36;1m        'expected_head':'4b19af89a766593f7d5f1cc2db256e81aba7afcb','expected_tree':'1bc7c90996e1910ad66ba771b0bfee1d5bfa655c',[0m
+2026-11-12T10:38:31.9528061Z [36;1m        'head':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),[0m
+2026-11-12T10:38:31.9528478Z [36;1m        'status_porcelain':git('status','--porcelain=v1','--untracked-files=all'),[0m
+2026-11-12T10:38:31.9528893Z [36;1m        'tracked_files':len(git('ls-tree','-r','--name-only','HEAD').splitlines()),[0m
+2026-11-12T10:38:31.9529331Z [36;1m        'source_workflow_bytes':len(raw),'source_workflow_sha256':hashlib.sha256(raw).hexdigest(),[0m
+2026-11-12T10:38:31.9529825Z [36;1m        'python':platform.python_version(),'implementation':platform.python_implementation(),[0m
+2026-11-12T10:38:31.9530258Z [36;1m        'platform':sys.platform,'harness_commit':os.environ['GITHUB_SHA'],[0m
+2026-11-12T10:38:31.9530588Z [36;1m        'event':os.environ['GITHUB_EVENT_NAME'],[0m
+2026-11-12T10:38:31.9530869Z [36;1m        'whole_native_delivery_qualified':False}[0m
+2026-11-12T10:38:31.9531239Z [36;1mpassed=(record['head']==record['expected_head'] and record['tree']==record['expected_tree'][0m
+2026-11-12T10:38:31.9531681Z [36;1m        and not record['status_porcelain'] and record['tracked_files']==3153[0m
+2026-11-12T10:38:31.9532023Z [36;1m        and record['source_workflow_bytes']==45310[0m
+2026-11-12T10:38:31.9532462Z [36;1m        and record['source_workflow_sha256']=='30f59b1a79e82d82b5f30278b5a0b61866645fb819341d6ce79478bf70b01670'[0m
+2026-11-12T10:38:31.9532933Z [36;1m        and record['python']=='3.14.4' and record['implementation']=='CPython'[0m
+2026-11-12T10:38:31.9533273Z [36;1m        and record['platform']=='linux')[0m
+2026-11-12T10:38:31.9533763Z [36;1mrecord['status']='EXACT_SOURCE_ADMITTED_NOT_QUALIFICATION' if passed else 'SOURCE_HOLD'[0m
+2026-11-12T10:38:31.9534251Z [36;1m(out/'SOURCE-ADMISSION.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')[0m
+2026-11-12T10:38:31.9534650Z [36;1mprint(json.dumps(record,sort_keys=True),flush=True)[0m
+2026-11-12T10:38:31.9534954Z [36;1mraise SystemExit(0 if passed else 1)[0m
+2026-11-12T10:38:31.9535189Z [36;1mPYADMIT[0m
+2026-11-12T10:38:31.9558894Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:38:31.9559118Z env:
+2026-11-12T10:38:31.9559342Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:31.9559900Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:38:31.9560242Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:31.9560536Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:31.9560831Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:31.9561187Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:38:31.9561441Z ##[endgroup]
+2026-11-12T10:38:32.3006643Z {"event": "push", "expected_head": "4b19af89a766593f7d5f1cc2db256e81aba7afcb", "expected_tree": "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c", "harness_commit": "b5f7bc6a649236ba830185288d1d454a463fd1d3", "head": "4b19af89a766593f7d5f1cc2db256e81aba7afcb", "implementation": "CPython", "platform": "linux", "python": "3.14.4", "schema": "hia.v76.current-owner-source-admission.v1", "source_workflow_bytes": 45310, "source_workflow_sha256": "30f59b1a79e82d82b5f30278b5a0b61866645fb819341d6ce79478bf70b01670", "status": "EXACT_SOURCE_ADMITTED_NOT_QUALIFICATION", "status_porcelain": "", "tracked_files": 3153, "tree": "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c", "whole_native_delivery_qualified": false}
+2026-11-12T10:38:32.3094609Z ##[group]Run set -euo pipefail
+2026-11-12T10:38:32.3094903Z [36;1mset -euo pipefail[0m
+2026-11-12T10:38:32.3095332Z [36;1mcurl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key[0m
+2026-11-12T10:38:32.3095954Z [36;1mfingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')[0m
+2026-11-12T10:38:32.3096444Z [36;1mtest "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421[0m
+2026-11-12T10:38:32.3096850Z [36;1msudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc[0m
+2026-11-12T10:38:32.3097555Z [36;1mprintf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list[0m
+2026-11-12T10:38:32.3098135Z [36;1msudo apt-get update[0m
+2026-11-12T10:38:32.3098464Z [36;1msudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace[0m
+2026-11-12T10:38:32.3098885Z [36;1mprintf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"[0m
+2026-11-12T10:38:32.3118377Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:38:32.3118595Z env:
+2026-11-12T10:38:32.3118814Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:32.3119161Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:38:32.3119491Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:32.3119786Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:32.3120085Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:32.3120374Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:38:32.3120627Z ##[endgroup]
+2026-11-12T10:38:32.3391609Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-11-12T10:38:32.3392226Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-11-12T10:38:32.3392517Z 
+2026-11-12T10:38:32.4106492Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-12T10:38:32.4107074Z 100  3167  100  3167    0     0  44235      0 --:--:-- --:--:-- --:--:-- 44605
+2026-11-12T10:38:32.4188692Z gpg: directory '/home/runner/.gnupg' created
+2026-11-12T10:38:32.4189421Z gpg: keybox '/home/runner/.gnupg/pubring.kbx' created
+2026-11-12T10:38:32.4211971Z gpg: /home/runner/.gnupg/trustdb.gpg: trustdb created
+2026-11-12T10:38:32.4371184Z deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main
+2026-11-12T10:38:32.5136730Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-11-12T10:38:32.5359321Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-11-12T10:38:32.5447068Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-11-12T10:38:32.5463983Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-11-12T10:38:32.5516844Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-11-12T10:38:32.5544236Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-11-12T10:38:32.6617934Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20 InRelease [5554 B]
+2026-11-12T10:38:32.6838719Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [694 kB]
+2026-11-12T10:38:32.7085271Z Get:9 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [764 kB]
+2026-11-12T10:38:32.7174906Z Get:10 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.6 kB]
+2026-11-12T10:38:32.8045111Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1450 kB]
+2026-11-12T10:38:32.8117134Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [315 kB]
+2026-11-12T10:38:32.8142208Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1711 kB]
+2026-11-12T10:38:32.8220763Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [344 kB]
+2026-11-12T10:38:32.8249076Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1883 kB]
+2026-11-12T10:38:32.8341925Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [430 kB]
+2026-11-12T10:38:32.8384713Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [50.7 kB]
+2026-11-12T10:38:32.8394658Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [14.3 kB]
+2026-11-12T10:38:32.9111722Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1193 kB]
+2026-11-12T10:38:32.9155110Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [238 kB]
+2026-11-12T10:38:32.9628381Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1228 kB]
+2026-11-12T10:38:32.9654508Z Get:27 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 Packages [13.2 kB]
+2026-11-12T10:38:32.9684680Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [248 kB]
+2026-11-12T10:38:32.9707188Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1788 kB]
+2026-11-12T10:38:32.9778887Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [411 kB]
+2026-11-12T10:38:32.9805218Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [45.4 kB]
+2026-11-12T10:38:32.9820121Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [12.4 kB]
+2026-11-12T10:38:37.7593815Z Fetched 13.2 MB in 1s (10.7 MB/s)
+2026-11-12T10:38:38.8391986Z Reading package lists...
+2026-11-12T10:38:38.8906591Z Reading package lists...
+2026-11-12T10:38:39.1682625Z Building dependency tree...
+2026-11-12T10:38:39.1689216Z Reading state information...
+2026-11-12T10:38:39.4232919Z binutils is already the newest version (2.42-4ubuntu2.10).
+2026-11-12T10:38:39.4233632Z gcc is already the newest version (4:13.2.0-7ubuntu1).
+2026-11-12T10:38:39.4234049Z strace is already the newest version (6.8-0ubuntu2).
+2026-11-12T10:38:39.4234411Z strace set to manually installed.
+2026-11-12T10:38:39.4234760Z The following additional packages will be installed:
+2026-11-12T10:38:39.4243189Z   clang-tools-20 libclang-common-20-dev libclang-cpp20 libclang1-20 libllvm20
+2026-11-12T10:38:39.4248416Z   llvm-20 llvm-20-dev llvm-20-linker-tools llvm-20-runtime llvm-20-tools
+2026-11-12T10:38:39.4262522Z Suggested packages:
+2026-11-12T10:38:39.4262800Z   clang-20-doc wasi-libc llvm-20-doc
+2026-11-12T10:38:39.4527085Z The following NEW packages will be installed:
+2026-11-12T10:38:39.4530291Z   clang-20 clang-tools-20 libclang-common-20-dev libclang-cpp20
+2026-11-12T10:38:39.4539928Z   libclang-rt-20-dev libclang1-20 llvm-20 llvm-20-dev llvm-20-linker-tools
+2026-11-12T10:38:39.4547369Z   llvm-20-runtime llvm-20-tools
+2026-11-12T10:38:39.4558835Z The following packages will be upgraded:
+2026-11-12T10:38:39.4568507Z   libllvm20
+2026-11-12T10:38:39.5411248Z 1 upgraded, 11 newly installed, 0 to remove and 48 not upgraded.
+2026-11-12T10:38:39.5411595Z Need to get 142 MB of archives.
+2026-11-12T10:38:39.5411892Z After this operation, 703 MB of additional disk space will be used.
+2026-11-12T10:38:39.5412502Z Get:1 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libllvm20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [30.6 MB]
+2026-11-12T10:38:39.9632256Z Get:2 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-cpp20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [14.3 MB]
+2026-11-12T10:38:40.0559771Z Get:3 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-common-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [780 kB]
+2026-11-12T10:38:40.0710689Z Get:4 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-linker-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [1381 kB]
+2026-11-12T10:38:40.0987706Z Get:5 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang1-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [8379 kB]
+2026-11-12T10:38:40.1559347Z Get:6 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [121 kB]
+2026-11-12T10:38:40.1724275Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-tools-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [9631 kB]
+2026-11-12T10:38:40.2427922Z Get:8 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-rt-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [4740 kB]
+2026-11-12T10:38:40.2800131Z Get:9 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-runtime amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [601 kB]
+2026-11-12T10:38:40.3091886Z Get:10 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [19.8 MB]
+2026-11-12T10:38:40.4257729Z Get:11 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [558 kB]
+2026-11-12T10:38:40.4357025Z Get:12 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [51.0 MB]
+2026-11-12T10:38:41.4379030Z Fetched 142 MB in 2s (86.8 MB/s)
+2026-11-12T10:38:41.7039381Z (Reading database ... 
+2026-11-12T10:38:41.7039630Z (Reading database ... 5%
+2026-11-12T10:38:41.7039868Z (Reading database ... 10%
+2026-11-12T10:38:41.7040073Z (Reading database ... 15%
+2026-11-12T10:38:41.7040259Z (Reading database ... 20%
+2026-11-12T10:38:41.7040457Z (Reading database ... 25%
+2026-11-12T10:38:41.7041022Z (Reading database ... 30%
+2026-11-12T10:38:41.7041373Z (Reading database ... 35%
+2026-11-12T10:38:41.7041627Z (Reading database ... 40%
+2026-11-12T10:38:41.7041898Z (Reading database ... 45%
+2026-11-12T10:38:41.7042082Z (Reading database ... 50%
+2026-11-12T10:38:41.7078948Z (Reading database ... 55%
+2026-11-12T10:38:41.8947624Z (Reading database ... 60%
+2026-11-12T10:38:42.0628675Z (Reading database ... 65%
+2026-11-12T10:38:42.2883800Z (Reading database ... 70%
+2026-11-12T10:38:42.4520851Z (Reading database ... 75%
+2026-11-12T10:38:42.5892010Z (Reading database ... 80%
+2026-11-12T10:38:42.8205881Z (Reading database ... 85%
+2026-11-12T10:38:43.0039592Z (Reading database ... 90%
+2026-11-12T10:38:43.1079483Z (Reading database ... 95%
+2026-11-12T10:38:43.1079766Z (Reading database ... 100%
+2026-11-12T10:38:43.1080368Z (Reading database ... 215960 files and directories currently installed.)
+2026-11-12T10:38:43.1132466Z Preparing to unpack .../00-libllvm20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:43.3146962Z Unpacking libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) over (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-12T10:38:44.9825449Z Selecting previously unselected package libclang-cpp20.
+2026-11-12T10:38:44.9958863Z Preparing to unpack .../01-libclang-cpp20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:45.0813678Z Unpacking libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:45.7906389Z Selecting previously unselected package libclang-common-20-dev:amd64.
+2026-11-12T10:38:45.8036808Z Preparing to unpack .../02-libclang-common-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:45.8224216Z Unpacking libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:47.0846669Z Selecting previously unselected package llvm-20-linker-tools.
+2026-11-12T10:38:47.0983315Z Preparing to unpack .../03-llvm-20-linker-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:47.1111692Z Unpacking llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:47.8906790Z Selecting previously unselected package libclang1-20.
+2026-11-12T10:38:47.9035681Z Preparing to unpack .../04-libclang1-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:47.9044979Z Unpacking libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:48.2732911Z Selecting previously unselected package clang-20.
+2026-11-12T10:38:48.2861370Z Preparing to unpack .../05-clang-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:48.3150367Z Unpacking clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:48.3427452Z Selecting previously unselected package clang-tools-20.
+2026-11-12T10:38:48.3556221Z Preparing to unpack .../06-clang-tools-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:48.3563778Z Unpacking clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:48.7393247Z Selecting previously unselected package libclang-rt-20-dev.
+2026-11-12T10:38:48.7523011Z Preparing to unpack .../07-libclang-rt-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:48.7540675Z Unpacking libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:49.1648916Z Selecting previously unselected package llvm-20-runtime.
+2026-11-12T10:38:49.1780151Z Preparing to unpack .../08-llvm-20-runtime_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:49.1787447Z Unpacking llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:49.3100089Z Selecting previously unselected package llvm-20.
+2026-11-12T10:38:49.3230525Z Preparing to unpack .../09-llvm-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:49.3268236Z Unpacking llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:50.2104085Z Selecting previously unselected package llvm-20-tools.
+2026-11-12T10:38:50.2234409Z Preparing to unpack .../10-llvm-20-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:50.2242040Z Unpacking llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:50.3864680Z Selecting previously unselected package llvm-20-dev.
+2026-11-12T10:38:50.4002905Z Preparing to unpack .../11-llvm-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-12T10:38:50.4012091Z Unpacking llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9687321Z Setting up libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9721566Z Setting up libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9739894Z Setting up libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9757205Z Setting up libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9774472Z Setting up llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9805417Z Setting up llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9824929Z Setting up llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9841931Z Setting up libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9859141Z Setting up llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9877147Z Setting up llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9895006Z Setting up clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9911551Z Setting up clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-12T10:38:52.9934310Z Processing triggers for systemd (255.4-1ubuntu8.18) ...
+2026-11-12T10:38:53.0300564Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-11-12T10:38:53.0326098Z Not building database; man-db/auto-update is not 'true'.
+2026-11-12T10:38:53.0340512Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-11-12T10:38:54.0135979Z 
+2026-11-12T10:38:54.0136560Z Running kernel seems to be up-to-date.
+2026-11-12T10:38:54.0136855Z 
+2026-11-12T10:38:54.0136990Z No services need to be restarted.
+2026-11-12T10:38:54.0137254Z 
+2026-11-12T10:38:54.0137374Z No containers need to be restarted.
+2026-11-12T10:38:54.0137591Z 
+2026-11-12T10:38:54.0137730Z No user sessions are running outdated binaries.
+2026-11-12T10:38:54.0137990Z 
+2026-11-12T10:38:54.0138223Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-11-12T10:38:55.3077610Z ##[group]Run python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+2026-11-12T10:38:55.3078214Z [36;1mpython -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0[0m
+2026-11-12T10:38:55.3096567Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:38:55.3096779Z env:
+2026-11-12T10:38:55.3097018Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:55.3097364Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:38:55.3097708Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:55.3098033Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:55.3098339Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:55.3098644Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:38:55.3098915Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:38:55.3099113Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:38:55.3099343Z ##[endgroup]
+2026-11-12T10:38:55.7619601Z Collecting setuptools==78.1.1
+2026-11-12T10:38:55.8104617Z   Downloading setuptools-78.1.1-py3-none-any.whl.metadata (6.5 kB)
+2026-11-12T10:38:55.8351810Z Collecting wheel==0.46.3
+2026-11-12T10:38:55.8424444Z   Downloading wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+2026-11-12T10:38:55.8677547Z Collecting z3-solver==4.15.4.0
+2026-11-12T10:38:55.8748118Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-12T10:38:55.8946531Z Collecting jsonschema==4.26.0
+2026-11-12T10:38:55.9016989Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+2026-11-12T10:38:55.9198785Z Collecting packaging>=24.0 (from wheel==0.46.3)
+2026-11-12T10:38:55.9267997Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+2026-11-12T10:38:55.9572364Z Collecting attrs>=22.2.0 (from jsonschema==4.26.0)
+2026-11-12T10:38:55.9644562Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-11-12T10:38:55.9799022Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema==4.26.0)
+2026-11-12T10:38:55.9866959Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-11-12T10:38:56.0068897Z Collecting referencing>=0.28.4 (from jsonschema==4.26.0)
+2026-11-12T10:38:56.0139664Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-11-12T10:38:56.2315515Z Collecting rpds-py>=0.25.0 (from jsonschema==4.26.0)
+2026-11-12T10:38:56.2386421Z   Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-11-12T10:38:56.2513918Z Downloading setuptools-78.1.1-py3-none-any.whl (1.3 MB)
+2026-11-12T10:38:56.2867541Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 55.5 MB/s  0:00:00
+2026-11-12T10:38:56.2936327Z Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+2026-11-12T10:38:56.3132539Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-12T10:38:56.5482470Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 124.6 MB/s  0:00:00
+2026-11-12T10:38:56.5554289Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+2026-11-12T10:38:56.5643086Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-12T10:38:56.5731532Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-11-12T10:38:56.5816378Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-11-12T10:38:56.5901783Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-11-12T10:38:56.5987251Z Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+2026-11-12T10:38:56.7185516Z Installing collected packages: z3-solver, setuptools, rpds-py, packaging, attrs, wheel, referencing, jsonschema-specifications, jsonschema
+2026-11-12T10:38:58.4320776Z 
+2026-11-12T10:38:58.4334697Z Successfully installed attrs-26.1.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 packaging-26.3 referencing-0.37.0 rpds-py-2026.9.1 setuptools-78.1.1 wheel-0.46.3 z3-solver-4.15.4.0
+2026-11-12T10:38:58.5581295Z ##[group]Run python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+2026-11-12T10:38:58.5582156Z [36;1mpython -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"[0m
+2026-11-12T10:38:58.5607647Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:38:58.5607985Z env:
+2026-11-12T10:38:58.5608328Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:58.5608892Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:38:58.5609426Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:58.5609903Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:58.5610396Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:38:58.5610870Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:38:58.5611291Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:38:58.5611580Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:38:58.5611934Z ##[endgroup]
+2026-11-12T10:41:09.4774154Z {"checks_passed": 11, "checks_total": 11, "generation_sha256": ["81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109", "81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109", "81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109"], "modified_generation_sha256": ["b6b7bef7304ccd3fdf92388e8947095bd36be8d764cadad27ded7fc4135a2585", "285ab2a2e427fbd24cdea521b8d6aafb9cd1b6ff8e62a9dce3c6ce78b795aa0d", "285ab2a2e427fbd24cdea521b8d6aafb9cd1b6ff8e62a9dce3c6ce78b795aa0d"], "output": "/home/runner/work/_temp/hia-cold.json", "status": "COLD_SELFHOST_REPLAY_PASS"}
+2026-11-12T10:41:09.4911855Z ##[group]Run python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
+2026-11-12T10:41:09.4912459Z [36;1mpython -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"[0m
+2026-11-12T10:41:09.4930674Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:41:09.4930883Z env:
+2026-11-12T10:41:09.4931102Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:41:09.4931449Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:41:09.4931788Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:41:09.4932081Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:41:09.4932389Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:41:09.4932696Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:41:09.4932956Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:41:09.4933182Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:41:09.4933924Z ##[endgroup]
+2026-11-12T10:42:41.5184357Z test_all_generations_and_raw_evidence_are_retained (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_all_generations_and_raw_evidence_are_retained) ... ok
+2026-11-12T10:42:41.5185975Z test_boolean_equality_reads_all_truth_table_inputs (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_boolean_equality_reads_all_truth_table_inputs) ... ok
+2026-11-12T10:42:41.5192819Z test_checked_arithmetic_traps_before_later_writes_and_preserves_prior_writes (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_checked_arithmetic_traps_before_later_writes_and_preserves_prior_writes) ... ok
+2026-11-12T10:42:41.5196674Z test_checked_casts_read_runtime_values_and_preserve_trap_write_order (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_checked_casts_read_runtime_values_and_preserve_trap_write_order) ... ok
+2026-11-12T10:42:41.5210479Z test_every_positive_program_runs_under_both_hia_compilers (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_every_positive_program_runs_under_both_hia_compilers) ... ok
+2026-11-12T10:42:41.5212408Z test_invalid_checked_shifts_trap_with_native_output_preserved (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_invalid_checked_shifts_trap_with_native_output_preserved) ... ok
+2026-11-12T10:42:41.5214635Z test_negative_inputs_are_transactionally_rejected_by_both_compilers (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_negative_inputs_are_transactionally_rejected_by_both_compilers) ... ok
+2026-11-12T10:42:41.5216726Z test_new_integer_operations_use_runtime_input_under_both_compilers (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_new_integer_operations_use_runtime_input_under_both_compilers) ... ok
+2026-11-12T10:42:41.5218592Z test_original_and_modified_compilers_are_real_fixed_points (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_original_and_modified_compilers_are_real_fixed_points) ... ok
+2026-11-12T10:42:41.5220849Z test_select_uses_changing_inputs_and_full_width_output_under_both_compilers (__main__.check_native_report_assertions.<locals>.CurrentInvocationAssertions.test_select_uses_changing_inputs_and_full_width_output_under_both_compilers) ... ok
+2026-11-12T10:42:41.5222062Z 
+2026-11-12T10:42:41.5222436Z ----------------------------------------------------------------------
+2026-11-12T10:42:41.5222880Z Ran 10 tests in 0.004s
+2026-11-12T10:42:41.5223047Z 
+2026-11-12T10:42:41.5223146Z OK
+2026-11-12T10:42:41.5249946Z {"counts": {"checked_arithmetic_traps_per_compiler": 150, "checked_cast_traps_per_compiler": 36, "checks_passed": 1242, "checks_total": 1242, "compilers": 2, "positive_programs_per_compiler": 138, "rejections_per_compiler": 274, "scalar_witnesses": 1183, "shift_traps_per_compiler": 20, "traps_per_compiler": 206}, "error": null, "output": "/home/runner/work/_temp/hia-language.json", "status": "SELFHOST_LANGUAGE_COVERAGE_PASS"}
+2026-11-12T10:42:41.5610954Z ##[group]Run python -B - <<'PYHEAP'
+2026-11-12T10:42:41.5611241Z [36;1mpython -B - <<'PYHEAP'[0m
+2026-11-12T10:42:41.5611452Z [36;1mimport unittest[0m
+2026-11-12T10:42:41.5611719Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromNames(([0m
+2026-11-12T10:42:41.5612028Z [36;1m    'tests.test_hia_heap_bound_native',[0m
+2026-11-12T10:42:41.5612287Z [36;1m    'tests.test_hia_heap_bound_integration',[0m
+2026-11-12T10:42:41.5612553Z [36;1m    'tests.test_hia_heap_live_engine_native',[0m
+2026-11-12T10:42:41.5612779Z [36;1m))[0m
+2026-11-12T10:42:41.5613028Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-12T10:42:41.5613637Z [36;1mraise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)[0m
+2026-11-12T10:42:41.5614052Z [36;1mPYHEAP[0m
+2026-11-12T10:42:41.5631838Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:42:41.5632046Z env:
+2026-11-12T10:42:41.5632299Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:42:41.5632641Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:42:41.5632971Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:42:41.5633256Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:42:41.5633758Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:42:41.5634210Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:42:41.5634561Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:42:41.5634757Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:42:41.5635044Z   HEPTA_HIA_HEAP_BOUND_COLD_REPORT: /home/runner/work/_temp/hia-cold.json
+2026-11-12T10:42:41.5635408Z   HEPTA_HIA_HEAP_BOUND_EVIDENCE: /home/runner/work/_temp/hia-heap-bound
+2026-11-12T10:42:41.5635785Z   HEPTA_HIA_HEAP_LIVE_ENGINE_EVIDENCE: /home/runner/work/_temp/hia-heap-live-engine
+2026-11-12T10:42:41.5636093Z ##[endgroup]
+2026-11-12T10:42:41.8806422Z test_cleanup_revokes_before_buffer_error_and_can_finish_without_authority (tests.test_hia_heap_bound_native.HeapBoundAdapterTests.test_cleanup_revokes_before_buffer_error_and_can_finish_without_authority) ... ok
+2026-11-12T10:42:41.8807850Z test_exact_private_frame_admission_does_not_invoke_metaclass_equality (tests.test_hia_heap_bound_native.HeapBoundAdapterTests.test_exact_private_frame_admission_does_not_invoke_metaclass_equality) ... ok
+2026-11-12T10:42:41.8809412Z test_opaque_policy_is_not_inspected_or_decimalized_before_native_admission (tests.test_hia_heap_bound_native.HeapBoundAdapterTests.test_opaque_policy_is_not_inspected_or_decimalized_before_native_admission) ... ok
+2026-11-12T10:42:41.8810652Z test_partial_arena_construction_closes_first_mapping_with_original_error (tests.test_hia_heap_bound_native.HeapBoundAdapterTests.test_partial_arena_construction_closes_first_mapping_with_original_error) ... ok
+2026-11-12T10:42:41.8856281Z test_worker_incomplete_heap_group_refuses_before_import_or_mapping (tests.test_hia_heap_bound_native.HeapBoundAdapterTests.test_worker_incomplete_heap_group_refuses_before_import_or_mapping) ... ok
+2026-11-12T10:42:44.8836674Z {"name": "public_0", "started": 1794480164.8678539, "status": "PASS", "finished": 1794480164.8832593}
+2026-11-12T10:42:44.9001942Z {"name": "public_1", "started": 1794480164.8834848, "status": "PASS", "finished": 1794480164.8997834}
+2026-11-12T10:42:44.9141097Z {"name": "public_2", "started": 1794480164.8999794, "status": "PASS", "finished": 1794480164.9136791}
+2026-11-12T10:42:44.9311157Z {"name": "public_3", "started": 1794480164.9138808, "status": "PASS", "finished": 1794480164.930721}
+2026-11-12T10:42:44.9481531Z {"name": "public_4", "started": 1794480164.9309351, "status": "PASS", "finished": 1794480164.9477577}
+2026-11-12T10:42:44.9657797Z {"name": "public_5", "started": 1794480164.9479735, "status": "PASS", "finished": 1794480164.965376}
+2026-11-12T10:42:44.9797661Z {"name": "public_6", "started": 1794480164.9656076, "status": "PASS", "finished": 1794480164.9793658}
+2026-11-12T10:42:45.0189280Z {"name": "exact_policy_range", "started": 1794480164.9795914, "status": "PASS", "finished": 1794480165.0185118}
+2026-11-12T10:42:45.0309147Z {"name": "verify_document_order", "started": 1794480165.0186975, "status": "PASS", "finished": 1794480165.030526}
+2026-11-12T10:42:45.0424531Z {"name": "payload_alias_single", "started": 1794480165.0307348, "status": "PASS", "finished": 1794480165.0421433}
+2026-11-12T10:42:45.0554114Z {"name": "payload_alias_call", "started": 1794480165.0422435, "status": "PASS", "finished": 1794480165.0551238}
+2026-11-12T10:42:45.1960705Z {"name": "source_and_generated_scalar_identities", "started": 1794480165.0552373, "status": "PASS", "finished": 1794480165.1957848}
+2026-11-12T10:42:45.2096545Z {"name": "public_vs_private_arguments_lifetime", "started": 1794480165.1958873, "status": "PASS", "finished": 1794480165.2093832}
+2026-11-12T10:42:45.2105915Z test_all_public_reports_errors_aliases_and_original_container_lifetimes (tests.test_hia_heap_bound_native.HeapBoundNativeTests.test_all_public_reports_errors_aliases_and_original_container_lifetimes) ... ok
+2026-11-12T10:42:45.2151818Z test_changed_manifest_source_and_image_refuse_before_native_entry (tests.test_hia_heap_bound_native.HeapBoundNativeTests.test_changed_manifest_source_and_image_refuse_before_native_entry) ... ok
+2026-11-12T10:43:55.3325092Z test_full_original_public_heap_groups_and_real_unmodified_analysis_limits (tests.test_hia_heap_bound_native.HeapBoundNativeTests.test_full_original_public_heap_groups_and_real_unmodified_analysis_limits) ... ok
+2026-11-12T10:43:58.5138624Z test_independent_original_vm_matches_complete_controller_frames (tests.test_hia_heap_bound_native.HeapBoundNativeTests.test_independent_original_vm_matches_complete_controller_frames) ... ok
+2026-11-12T10:43:58.5277898Z {"name": "legacy_static_heap_pin_once", "started": 1794480238.5138872, "status": "PASS", "finished": 1794480238.5273945}
+2026-11-12T10:43:58.5466350Z {"name": "v8_static_heap_static_same_image", "started": 1794480238.5275745, "status": "PASS", "finished": 1794480238.546232}
+2026-11-12T10:43:58.5953548Z {"name": "all_four_static_entry_methods", "started": 1794480238.546429, "status": "PASS", "finished": 1794480238.5949812}
+2026-11-12T10:43:58.6024029Z {"name": "missing_or_bad_composed_configuration", "started": 1794480238.5951524, "status": "PASS", "finished": 1794480238.6020837}
+2026-11-12T10:43:58.6069328Z {"name": "nested_foreign_exception_closes_both_scopes", "started": 1794480238.6022236, "status": "PASS", "finished": 1794480238.6066422}
+2026-11-12T10:43:58.6099065Z {"name": "forged_frame", "started": 1794480238.609329, "status": "PASS", "finished": 1794480238.6096709}
+2026-11-12T10:43:58.6106589Z {"name": "lost_foreign_ack", "started": 1794480238.609788, "status": "PASS", "finished": 1794480238.610467}
+2026-11-12T10:43:58.6109491Z {"name": "lost_native_ack", "started": 1794480238.6105707, "status": "PASS", "finished": 1794480238.6107554}
+2026-11-12T10:43:58.6152669Z {"name": "changed_terminal", "started": 1794480238.6108713, "status": "PASS", "finished": 1794480238.6150482}
+2026-11-12T10:43:58.6172816Z {"name": "changed_held_document", "started": 1794480238.6151624, "status": "PASS", "finished": 1794480238.6170783}
+2026-11-12T10:43:58.6175748Z test_pinned_composition_scope_revocation_and_unknown_outcomes (tests.test_hia_heap_bound_native.HeapBoundNativeTests.test_pinned_composition_scope_revocation_and_unknown_outcomes) ... ok
+2026-11-12T10:43:58.6982100Z test_cold_and_development_conflict_refuses_before_any_input_io (tests.test_hia_heap_bound_native.HeapBoundSourceTests.test_cold_and_development_conflict_refuses_before_any_input_io) ... ok
+2026-11-12T10:44:04.0909775Z test_generators_exactly_match_owned_hia_and_original_compiler_limits (tests.test_hia_heap_bound_native.HeapBoundSourceTests.test_generators_exactly_match_owned_hia_and_original_compiler_limits) ... ok
+2026-11-12T10:44:04.1081550Z test_packaging_worker_checker_and_builder_name_the_same_three_resources (tests.test_hia_heap_bound_native.HeapBoundSourceTests.test_packaging_worker_checker_and_builder_name_the_same_three_resources) ... ok
+2026-11-12T10:44:04.1085073Z test_runtime_has_no_authoring_or_retained_heap_policy_callback (tests.test_hia_heap_bound_native.HeapBoundSourceTests.test_runtime_has_no_authoring_or_retained_heap_policy_callback) ... ok
+2026-11-12T10:44:04.1334920Z test_seven_original_policy_bodies_and_public_signatures_are_preserved (tests.test_hia_heap_bound_native.HeapBoundSourceTests.test_seven_original_policy_bodies_and_public_signatures_are_preserved) ... ok
+2026-11-12T10:44:12.8690293Z test_changed_installed_heap_source_refuses_before_any_execution (tests.test_hia_heap_bound_integration.InstalledHeapBoundTests.test_changed_installed_heap_source_refuses_before_any_execution) ... ok
+2026-11-12T10:44:13.5597684Z test_each_missing_heap_dependency_refuses_before_any_selected_mapping (tests.test_hia_heap_bound_integration.InstalledHeapBoundTests.test_each_missing_heap_dependency_refuses_before_any_selected_mapping) ... ok
+2026-11-12T10:44:13.8752392Z test_installed_all_seven_public_apis_and_nested_static_composition (tests.test_hia_heap_bound_integration.InstalledHeapBoundTests.test_installed_all_seven_public_apis_and_nested_static_composition) ... ok
+2026-11-12T10:44:14.1681685Z test_worker_receipt_binds_the_same_complete_four_image_group (tests.test_hia_heap_bound_integration.InstalledHeapBoundTests.test_worker_receipt_binds_the_same_complete_four_image_group) ... ok
+2026-11-12T10:44:17.6141611Z test_all_scalar_ids_types_and_exact_exception_order_through_finite_engine (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_all_scalar_ids_types_and_exact_exception_order_through_finite_engine) ... ok
+2026-11-12T10:44:17.6678962Z test_allocation_guard_and_no_return_callee_keep_exact_prior_prefix (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_allocation_guard_and_no_return_callee_keep_exact_prior_prefix) ... ok
+2026-11-12T10:44:17.9568781Z test_borrowed_extent_memo_keys_reordering_aliases_and_unknown_predecessors (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_borrowed_extent_memo_keys_reordering_aliases_and_unknown_predecessors) ... ok
+2026-11-12T10:44:18.0439879Z test_borrowed_local_all_function_summaries_match_original_public_reports (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_borrowed_local_all_function_summaries_match_original_public_reports) ... ok
+2026-11-12T10:44:37.5640662Z test_const_ssa_fresh_insert_preserves_call_cursor_and_empty_block_forwarding (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_const_ssa_fresh_insert_preserves_call_cursor_and_empty_block_forwarding) ... ok
+2026-11-12T10:44:39.6559197Z test_finite_none_empty_unit_unknown_bool_and_owned_returns_are_distinct (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_finite_none_empty_unit_unknown_bool_and_owned_returns_are_distinct) ... ok
+2026-11-12T10:44:51.8362262Z test_finite_owned_transfers_multiple_returns_and_shared_borrowed_actuals (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_finite_owned_transfers_multiple_returns_and_shared_borrowed_actuals) ... ok
+2026-11-12T10:44:51.9746151Z test_finite_returned_loans_preserve_all_caller_roots_and_modes (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_finite_returned_loans_preserve_all_caller_roots_and_modes) ... ok
+2026-11-12T10:44:51.9939382Z test_full_width_public_argument_and_return_inventories_are_not_kernel_caps (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_full_width_public_argument_and_return_inventories_are_not_kernel_caps) ... ok
+2026-11-12T10:44:52.0005776Z test_large_mathematical_payload_totals_do_not_wrap_u64 (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_large_mathematical_payload_totals_do_not_wrap_u64) ... ok
+2026-11-12T10:44:57.4904193Z test_legacy_complete_function_summaries_owner_moves_and_cfg_joins (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_legacy_complete_function_summaries_owner_moves_and_cfg_joins) ... ok
+2026-11-12T10:44:57.5063336Z test_legacy_cycles_keep_zero_scoped_and_dag_rejection_distinct (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_legacy_cycles_keep_zero_scoped_and_dag_rejection_distinct) ... ok
+2026-11-12T10:45:00.1967946Z test_legacy_unknown_and_exact_errors_preserve_code_detail_and_context (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_legacy_unknown_and_exact_errors_preserve_code_detail_and_context) ... ok
+2026-11-12T10:45:15.7919134Z test_original_fixed_context_depth_and_transfer_boundaries (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_original_fixed_context_depth_and_transfer_boundaries) ... ok
+2026-11-12T10:45:15.7967104Z test_repeated_identical_calls_reuse_full_memo_result_without_work (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_repeated_identical_calls_reuse_full_memo_result_without_work) ... ok
+2026-11-12T10:45:15.8030230Z test_selected_machine_has_no_original_policy_dependency (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_selected_machine_has_no_original_policy_dependency) ... ok
+2026-11-12T10:45:16.1179371Z test_storage_growth_is_not_an_empty_bound_or_a_semantic_refusal (tests.test_hia_heap_live_engine_native.HeapLiveEngineNativeTests.test_storage_growth_is_not_an_empty_bound_or_a_semantic_refusal) ... ok
+2026-11-12T10:45:16.1610046Z test_cold_and_development_conflict_before_input_read (tests.test_hia_heap_live_engine_native.HeapLiveEngineSourceTests.test_cold_and_development_conflict_before_input_read) ... ok
+2026-11-12T10:45:16.1632491Z test_cold_contract_binds_every_actual_input_before_compile (tests.test_hia_heap_live_engine_native.HeapLiveEngineSourceTests.test_cold_contract_binds_every_actual_input_before_compile) ... ok
+2026-11-12T10:45:16.1983595Z test_every_actual_input_is_in_fresh_cold_source_closure (tests.test_hia_heap_live_engine_native.HeapLiveEngineSourceTests.test_every_actual_input_is_in_fresh_cold_source_closure) ... ok
+2026-11-12T10:45:17.8925258Z test_original_fixed_analysis_limits_and_status_dictionary (tests.test_hia_heap_live_engine_native.HeapLiveEngineSourceTests.test_original_fixed_analysis_limits_and_status_dictionary) ... ok
+2026-11-12T10:45:17.8926863Z test_typed_source_has_complete_definitions_and_original_limits (tests.test_hia_heap_live_engine_native.HeapLiveEngineSourceTests.test_typed_source_has_complete_definitions_and_original_limits) ... ok
+2026-11-12T10:45:17.8927710Z 
+2026-11-12T10:45:17.8927892Z ----------------------------------------------------------------------
+2026-11-12T10:45:17.8928289Z Ran 41 tests in 156.012s
+2026-11-12T10:45:17.8928503Z 
+2026-11-12T10:45:17.8928602Z OK
+2026-11-12T10:45:17.9788033Z ##[group]Run python -B - <<'PYCLI75'
+2026-11-12T10:45:17.9788464Z [36;1mpython -B - <<'PYCLI75'[0m
+2026-11-12T10:45:17.9788801Z [36;1mimport unittest[0m
+2026-11-12T10:45:17.9789122Z [36;1mnames = ([0m
+2026-11-12T10:45:17.9789406Z [36;1m    'tests.test_hia_cli_native',[0m
+2026-11-12T10:45:17.9789782Z [36;1m    'tests.test_hia_cli_continuation_native',[0m
+2026-11-12T10:45:17.9790142Z [36;1m)[0m
+2026-11-12T10:45:17.9790530Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromNames(names)[0m
+2026-11-12T10:45:17.9791011Z [36;1mif suite.countTestCases() != 38:[0m
+2026-11-12T10:45:17.9791534Z [36;1m    raise AssertionError('complete native component test inventory changed')[0m
+2026-11-12T10:45:17.9792149Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-12T10:45:17.9792711Z [36;1mpassed = (result.wasSuccessful() and result.testsRun == 38[0m
+2026-11-12T10:45:17.9794113Z [36;1m          and not result.skipped and not result.expectedFailures[0m
+2026-11-12T10:45:17.9794615Z [36;1m          and not result.unexpectedSuccesses)[0m
+2026-11-12T10:45:17.9795031Z [36;1mraise SystemExit(0 if passed else 1)[0m
+2026-11-12T10:45:17.9795385Z [36;1mPYCLI75[0m
+2026-11-12T10:45:17.9820278Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:45:17.9820587Z env:
+2026-11-12T10:45:17.9820919Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:17.9821488Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:45:17.9822029Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:17.9822521Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:17.9823003Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:17.9823722Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:45:17.9824146Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:45:17.9824450Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:45:17.9824910Z   HEPTA_HIA_CLI_COLD_REPORT: /home/runner/work/_temp/hia-cold.json
+2026-11-12T10:45:17.9825493Z   HEPTA_HIA_CLI_FIXTURE_EVIDENCE: /home/runner/work/_temp/hia-cli-native
+2026-11-12T10:45:17.9825962Z ##[endgroup]
+2026-11-12T10:45:22.3914014Z test_actual_installed_wheel_without_retained_cli_or_checkout_resources (tests.test_hia_cli_native.CliNativeTests.test_actual_installed_wheel_without_retained_cli_or_checkout_resources) ... ok
+2026-11-12T10:45:22.9751706Z test_all_fifteen_real_actions_and_publication_branches (tests.test_hia_cli_native.CliNativeTests.test_all_fifteen_real_actions_and_publication_branches) ... ok
+2026-11-12T10:45:23.3551557Z test_argparse_order_abbreviation_clusters_repetition_and_sentinel (tests.test_hia_cli_native.CliNativeTests.test_argparse_order_abbreviation_clusters_repetition_and_sentinel) ... ok
+2026-11-12T10:45:23.3827310Z test_error_json_is_native_and_keeps_active_exception_context (tests.test_hia_cli_native.CliNativeTests.test_error_json_is_native_and_keeps_active_exception_context) ... ok
+2026-11-12T10:45:23.3842239Z test_error_str_baseexception_preserves_object_context_and_closes (tests.test_hia_cli_native.CliNativeTests.test_error_str_baseexception_preserves_object_context_and_closes) ... ok
+2026-11-12T10:45:23.4307870Z test_existing_read_ceilings_and_unicode_error_publication (tests.test_hia_cli_native.CliNativeTests.test_existing_read_ceilings_and_unicode_error_publication) ... ok
+2026-11-12T10:45:23.4333996Z test_external_baseexception_after_native_return_closes_permission (tests.test_hia_cli_native.CliNativeTests.test_external_baseexception_after_native_return_closes_permission) ... ok
+2026-11-12T10:45:23.8596818Z test_help_wrapping_columns_and_exact_unicode_repr (tests.test_hia_cli_native.CliNativeTests.test_help_wrapping_columns_and_exact_unicode_repr) ... ok
+2026-11-12T10:45:23.8665717Z test_native_ack_refusal_and_no_replay_after_consumed_effect (tests.test_hia_cli_native.CliNativeTests.test_native_ack_refusal_and_no_replay_after_consumed_effect) ... ok
+2026-11-12T10:45:23.8991960Z test_output_precedes_result_truth_and_query_read_errors (tests.test_hia_cli_native.CliNativeTests.test_output_precedes_result_truth_and_query_read_errors) ... ok
+2026-11-12T10:45:23.9902470Z test_parser_stream_write_failures_and_missing_stdout_match (tests.test_hia_cli_native.CliNativeTests.test_parser_stream_write_failures_and_missing_stdout_match) ... ok
+2026-11-12T10:45:24.0811188Z test_python_color_environment_precedence_and_colored_wrapping (tests.test_hia_cli_native.CliNativeTests.test_python_color_environment_precedence_and_colored_wrapping) ... ok
+2026-11-12T10:45:24.0893269Z test_source_bundle_binding_and_selected_fail_closed (tests.test_hia_cli_native.CliNativeTests.test_source_bundle_binding_and_selected_fail_closed) ... ok
+2026-11-12T10:45:26.5612185Z test_unchanged_original_agent_entry_suite_with_native_selected (tests.test_hia_cli_native.CliNativeTests.test_unchanged_original_agent_entry_suite_with_native_selected) ... ok
+2026-11-12T10:45:28.9102583Z test_complete_regeneration_and_unchanged_native_profile (tests.test_hia_cli_native.CliSourceTests.test_complete_regeneration_and_unchanged_native_profile) ... ok
+2026-11-12T10:45:32.3412817Z test_independent_core_vm_argument_and_error_formatter (tests.test_hia_cli_native.CliSourceTests.test_independent_core_vm_argument_and_error_formatter) ... ok
+2026-11-12T10:45:32.3419321Z test_matching_cold_build_rejects_before_output_creation (tests.test_hia_cli_native.CliSourceTests.test_matching_cold_build_rejects_before_output_creation) ... ok
+2026-11-12T10:45:33.7979875Z test_apply_edit_stack_argument_and_named_local_destruction_order (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_apply_edit_stack_argument_and_named_local_destruction_order) ... FAIL
+2026-11-12T10:45:33.8042029Z test_as_dict_temporary_releases_after_output_before_program (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_as_dict_temporary_releases_after_output_before_program) ... ok
+2026-11-12T10:45:33.8109172Z test_assembly_named_raw_program_text_are_retained_in_original_order (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_assembly_named_raw_program_text_are_retained_in_original_order) ... FAIL
+2026-11-12T10:45:33.8215780Z test_closed_instance_nonces_never_reuse_and_old_claim_cannot_move (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_closed_instance_nonces_never_reuse_and_old_claim_cannot_move) ... ok
+2026-11-12T10:45:33.8238524Z test_cross_session_claim_and_repeated_claim_are_native_refusals (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_cross_session_claim_and_repeated_claim_are_native_refusals) ... ok
+2026-11-12T10:45:33.8308374Z test_foreign_result_ack_loss_keeps_owner_and_forbids_replay (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_foreign_result_ack_loss_keeps_owner_and_forbids_replay) ... ok
+2026-11-12T10:45:35.3344476Z test_independent_vm_matches_complete_claim_and_selfhost_continuation_bytes (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_independent_vm_matches_complete_claim_and_selfhost_continuation_bytes) ... ok
+2026-11-12T10:45:35.3409772Z test_native_temporary_read_releases_before_program_report (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_native_temporary_read_releases_before_program_report) ... ok
+2026-11-12T10:45:35.3424567Z test_nonce_exhaustion_refuses_before_control_entry_without_wrap (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_nonce_exhaustion_refuses_before_control_entry_without_wrap) ... ok
+2026-11-12T10:45:35.3438711Z test_normal_terminal_releases_owned_locals_without_gc_or_retained_pool (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_normal_terminal_releases_owned_locals_without_gc_or_retained_pool) ... ok
+2026-11-12T10:45:35.3504482Z test_pending_query_releases_during_read_unwind_before_handler_context (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_pending_query_releases_during_read_unwind_before_handler_context) ... ok
+2026-11-12T10:45:35.3529944Z test_preclaim_ack_loss_never_launches_a_foreign_effect (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_preclaim_ack_loss_never_launches_a_foreign_effect) ... ok
+2026-11-12T10:45:35.3621375Z test_query_argument_release_can_modify_returned_query_before_output (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_query_argument_release_can_modify_returned_query_before_output) ... ok
+2026-11-12T10:45:35.3684405Z test_report_unpack_temporary_releases_before_output_mutation (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_report_unpack_temporary_releases_before_output_mutation) ... ok
+2026-11-12T10:45:35.3712399Z test_same_session_reentry_fences_but_independent_nested_call_is_allowed (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_same_session_reentry_fences_but_independent_nested_call_is_allowed) ... ok
+2026-11-12T10:45:35.3897422Z test_selfhost_and_native_dispatch_preserve_input_output_pin_objects (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_selfhost_and_native_dispatch_preserve_input_output_pin_objects) ... ok
+2026-11-12T10:45:35.4700342Z test_selfhost_parser_pair_errors_precede_all_file_or_build_effects (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_selfhost_parser_pair_errors_precede_all_file_or_build_effects) ... ok
+2026-11-12T10:45:35.4889838Z test_warm_disk_image_drift_or_missing_is_rejected_before_entry (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_warm_disk_image_drift_or_missing_is_rejected_before_entry) ... ok
+2026-11-12T10:45:35.4903217Z test_default_keeps_arbitrary_argv_object_reference_route (tests.test_hia_cli_continuation_native.CliContinuationSourceTests.test_default_keeps_arbitrary_argv_object_reference_route) ... ok
+2026-11-12T10:45:35.4929832Z test_hia_owns_new_backend_and_one_use_claim_protocol (tests.test_hia_cli_continuation_native.CliContinuationSourceTests.test_hia_owns_new_backend_and_one_use_claim_protocol) ... ok
+2026-11-12T10:45:35.4945832Z test_v74_original_reference_body_is_byte_exact (tests.test_hia_cli_continuation_native.CliContinuationSourceTests.test_v74_original_reference_body_is_byte_exact) ... ok
+2026-11-12T10:45:35.4946677Z 
+2026-11-12T10:45:35.4946839Z ======================================================================
+2026-11-12T10:45:35.4947882Z FAIL: test_apply_edit_stack_argument_and_named_local_destruction_order (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_apply_edit_stack_argument_and_named_local_destruction_order)
+2026-11-12T10:45:35.4948907Z ----------------------------------------------------------------------
+2026-11-12T10:45:35.4949291Z Traceback (most recent call last):
+2026-11-12T10:45:35.4955745Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_cli_continuation_native.py", line 282, in test_apply_edit_stack_argument_and_named_local_destruction_order
+2026-11-12T10:45:35.4956719Z     rows = self.compare(["edit-apply", "program-input", "--query", "query-input",
+2026-11-12T10:45:35.4957201Z                          "--response", "response-input"], install)
+2026-11-12T10:45:35.4957815Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_cli_continuation_native.py", line 89, in compare
+2026-11-12T10:45:35.4958357Z     self.assertEqual(rows[1], rows[0])
+2026-11-12T10:45:35.4958640Z     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+2026-11-12T10:45:35.4959413Z AssertionError: Tuples differ: ((('r[192 chars]ed', 'output', 'drop-program', 'drop-receipt', 'drop-revised']) != ((('r[192 chars]ed', 'output', 'drop-revised', 'drop-receipt', 'drop-program'])
+2026-11-12T10:45:35.4960110Z 
+2026-11-12T10:45:35.4960234Z First differing element 1:
+2026-11-12T10:45:35.4960632Z ['rea[165 chars]ded', 'output', 'drop-program', 'drop-receipt', 'drop-revised']
+2026-11-12T10:45:35.4961205Z ['rea[165 chars]ded', 'output', 'drop-revised', 'drop-receipt', 'drop-program']
+2026-11-12T10:45:35.4961534Z 
+2026-11-12T10:45:35.4961643Z   ((('return', 0), '', ''),
+2026-11-12T10:45:35.4962166Z    ['read-program-input',
+2026-11-12T10:45:35.4962417Z     'verify',
+2026-11-12T10:45:35.4962638Z     'drop-program-input',
+2026-11-12T10:45:35.4962892Z     'read-query-input',
+2026-11-12T10:45:35.4963135Z     'decode',
+2026-11-12T10:45:35.4963510Z     'drop-query-input',
+2026-11-12T10:45:35.4963779Z     'read-response-input',
+2026-11-12T10:45:35.4964030Z     'apply',
+2026-11-12T10:45:35.4964249Z     'drop-response-input',
+2026-11-12T10:45:35.4964500Z     'drop-decoded',
+2026-11-12T10:45:35.4964718Z     'output',
+2026-11-12T10:45:35.4964934Z -   'drop-program',
+2026-11-12T10:45:35.4965156Z +   'drop-revised',
+2026-11-12T10:45:35.4965400Z     'drop-receipt',
+2026-11-12T10:45:35.4965628Z -   'drop-revised'])
+2026-11-12T10:45:35.4965858Z +   'drop-program'])
+2026-11-12T10:45:35.4965994Z 
+2026-11-12T10:45:35.4966128Z ======================================================================
+2026-11-12T10:45:35.4967189Z FAIL: test_assembly_named_raw_program_text_are_retained_in_original_order (tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_assembly_named_raw_program_text_are_retained_in_original_order)
+2026-11-12T10:45:35.4968450Z ----------------------------------------------------------------------
+2026-11-12T10:45:35.4968829Z Traceback (most recent call last):
+2026-11-12T10:45:35.4969672Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_cli_continuation_native.py", line 303, in test_assembly_named_raw_program_text_are_retained_in_original_order
+2026-11-12T10:45:35.4970510Z     rows = self.compare(["render-assembly", "unused"], install)
+2026-11-12T10:45:35.4971162Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_cli_continuation_native.py", line 89, in compare
+2026-11-12T10:45:35.4971721Z     self.assertEqual(rows[1], rows[0])
+2026-11-12T10:45:35.4972025Z     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+2026-11-12T10:45:35.4972803Z AssertionError: Tuples differ: ((('r[20 chars]y\n', ''), ['render', 'raw-drop', 'program-drop', 'text-drop']) != ((('r[20 chars]y\n', ''), ['render', 'text-drop', 'program-drop', 'raw-drop'])
+2026-11-12T10:45:35.4973634Z 
+2026-11-12T10:45:35.4973742Z First differing element 1:
+2026-11-12T10:45:35.4974047Z ['render', 'raw-drop', 'program-drop', 'text-drop']
+2026-11-12T10:45:35.4974426Z ['render', 'text-drop', 'program-drop', 'raw-drop']
+2026-11-12T10:45:35.4974647Z 
+2026-11-12T10:45:35.4974761Z   ((('return', 0), 'assembly\n', ''),
+2026-11-12T10:45:35.4975082Z -  ['render', 'raw-drop', 'program-drop', 'text-drop'])
+2026-11-12T10:45:35.4975430Z ?              ^^^                         ^^^^
+2026-11-12T10:45:35.4975640Z 
+2026-11-12T10:45:35.4975776Z +  ['render', 'text-drop', 'program-drop', 'raw-drop'])
+2026-11-12T10:45:35.4976099Z ?              ^^^^                         ^^^
+2026-11-12T10:45:35.4976295Z 
+2026-11-12T10:45:35.4976299Z 
+2026-11-12T10:45:35.4976464Z ----------------------------------------------------------------------
+2026-11-12T10:45:35.4976943Z Ran 38 tests in 17.279s
+2026-11-12T10:45:35.4977143Z 
+2026-11-12T10:45:35.4977246Z FAILED (failures=2)
+2026-11-12T10:45:35.5278309Z ##[error]Process completed with exit code 1.
+2026-11-12T10:45:35.5325692Z ##[group]Run python -B - <<'PYCODE75'
+2026-11-12T10:45:35.5326001Z [36;1mpython -B - <<'PYCODE75'[0m
+2026-11-12T10:45:35.5326221Z [36;1mimport unittest[0m
+2026-11-12T10:45:35.5326413Z [36;1mnames = ([0m
+2026-11-12T10:45:35.5326616Z [36;1m    'tests.test_hia_machine_encoding_native',[0m
+2026-11-12T10:45:35.5326886Z [36;1m    'tests.test_hia_machine_state_native',[0m
+2026-11-12T10:45:35.5327150Z [36;1m    'tests.test_hia_machine_instructions_native',[0m
+2026-11-12T10:45:35.5327431Z [36;1m    'tests.test_hia_machine_code_composition',[0m
+2026-11-12T10:45:35.5327660Z [36;1m)[0m
+2026-11-12T10:45:35.5327911Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromNames(names)[0m
+2026-11-12T10:45:35.5328218Z [36;1mif suite.countTestCases() != 44:[0m
+2026-11-12T10:45:35.5328540Z [36;1m    raise AssertionError('complete native component test inventory changed')[0m
+2026-11-12T10:45:35.5328959Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-12T10:45:35.5329336Z [36;1mpassed = (result.wasSuccessful() and result.testsRun == 44[0m
+2026-11-12T10:45:35.5329789Z [36;1m          and not result.skipped and not result.expectedFailures[0m
+2026-11-12T10:45:35.5330099Z [36;1m          and not result.unexpectedSuccesses)[0m
+2026-11-12T10:45:35.5330355Z [36;1mraise SystemExit(0 if passed else 1)[0m
+2026-11-12T10:45:35.5330576Z [36;1mPYCODE75[0m
+2026-11-12T10:45:35.5348534Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:45:35.5348741Z env:
+2026-11-12T10:45:35.5348956Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:35.5349294Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:45:35.5349622Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:35.5349919Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:35.5350378Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:35.5350675Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:45:35.5350937Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:45:35.5351134Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:45:35.5351428Z   HEPTA_HIA_MACHINE_ENCODING_COLD_REPORT: /home/runner/work/_temp/hia-cold.json
+2026-11-12T10:45:35.5351817Z   HEPTA_HIA_MACHINE_STATE_COLD_REPORT: /home/runner/work/_temp/hia-cold.json
+2026-11-12T10:45:35.5352211Z   HEPTA_HIA_MACHINE_INSTRUCTIONS_COLD_REPORT: /home/runner/work/_temp/hia-cold.json
+2026-11-12T10:45:35.5352659Z   HEPTA_HIA_MACHINE_ENCODING_FIXTURE_EVIDENCE: /home/runner/work/_temp/hia-machine-encoding
+2026-11-12T10:45:35.5353098Z   HEPTA_HIA_MACHINE_STATE_FIXTURE_EVIDENCE: /home/runner/work/_temp/hia-machine-state
+2026-11-12T10:45:35.5353670Z   HEPTA_HIA_MACHINE_INSTRUCTIONS_FIXTURE_EVIDENCE: /home/runner/work/_temp/hia-machine-instructions
+2026-11-12T10:45:35.5354194Z   HEPTA_HIA_MACHINE_CODE_COMPOSITION_EVIDENCE: /home/runner/work/_temp/hia-machine-code-composition
+2026-11-12T10:45:35.5354553Z ##[endgroup]
+2026-11-12T10:45:38.9654746Z test_actual_installed_wheel_without_authoring_or_source_fallback (tests.test_hia_machine_encoding_native.MachineEncodingNativeTests.test_actual_installed_wheel_without_authoring_or_source_fallback) ... ok
+2026-11-12T10:45:39.0068603Z test_backend_identity_binds_actual_pinned_selection (tests.test_hia_machine_encoding_native.MachineEncodingNativeTests.test_backend_identity_binds_actual_pinned_selection) ... ok
+2026-11-12T10:45:39.0083316Z test_cached_image_rebinds_package_source_and_rejects_forged_source (tests.test_hia_machine_encoding_native.MachineEncodingNativeTests.test_cached_image_rebinds_package_source_and_rejects_forged_source) ... ok
+2026-11-12T10:45:39.0154220Z test_foreign_ALU_truth_error_and_emit_binding_order (tests.test_hia_machine_encoding_native.MachineEncodingNativeTests.test_foreign_ALU_truth_error_and_emit_binding_order) ... ok
+2026-11-12T10:45:39.0368354Z test_ordinary_Code_constructor_enters_all_commands_without_retained_encoding (tests.test_hia_machine_encoding_native.MachineEncodingNativeTests.test_ordinary_Code_constructor_enters_all_commands_without_retained_encoding) ... ok
+2026-11-12T10:45:39.0373193Z test_cold_admission_precedes_build_output (tests.test_hia_machine_encoding_native.MachineEncodingSourceTests.test_cold_admission_precedes_build_output) ... ok
+2026-11-12T10:45:40.4561714Z test_generated_HIA_and_independent_Core_observations (tests.test_hia_machine_encoding_native.MachineEncodingSourceTests.test_generated_HIA_and_independent_Core_observations) ... ok
+2026-11-12T10:45:40.4684995Z test_retained_reference_methods_are_unchanged (tests.test_hia_machine_encoding_native.MachineEncodingSourceTests.test_retained_reference_methods_are_unchanged) ... ok
+2026-11-12T10:45:40.4695866Z test_unselected_identity_and_subclasses_remain_original (tests.test_hia_machine_encoding_native.MachineEncodingSourceTests.test_unselected_identity_and_subclasses_remain_original) ... ok
+2026-11-12T10:45:41.4378610Z test_actual_64MiB_and_signed_rel32_boundaries (tests.test_hia_machine_state_native.MachineStateNativeTests.test_actual_64MiB_and_signed_rel32_boundaries) ... ok
+2026-11-12T10:45:44.0828487Z test_actual_installed_wheel_uses_HIA_state_without_authoring_or_old_state (tests.test_hia_machine_state_native.MachineStateNativeTests.test_actual_installed_wheel_uses_HIA_state_without_authoring_or_old_state) ... ok
+2026-11-12T10:45:44.3095147Z test_all_original_instruction_cases_with_every_retained_state_owner_forbidden (tests.test_hia_machine_state_native.MachineStateNativeTests.test_all_original_instruction_cases_with_every_retained_state_owner_forbidden) ... ok
+2026-11-12T10:45:44.3959683Z test_backend_identity_and_both_selectors_are_pinned_across_emit (tests.test_hia_machine_state_native.MachineStateNativeTests.test_backend_identity_and_both_selectors_are_pinned_across_emit) ... ok
+2026-11-12T10:45:44.4001577Z test_foreign_metaclass_membership_uses_no_hash_and_keeps_original_truth_order (tests.test_hia_machine_state_native.MachineStateNativeTests.test_foreign_metaclass_membership_uses_no_hash_and_keeps_original_truth_order) ... ok
+2026-11-12T10:45:44.4009388Z test_malformed_ack_and_failed_effect_cannot_be_replayed (tests.test_hia_machine_state_native.MachineStateNativeTests.test_malformed_ack_and_failed_effect_cannot_be_replayed) ... ok
+2026-11-12T10:45:44.4218276Z test_public_mutation_foreign_binding_arithmetic_and_copy_order (tests.test_hia_machine_state_native.MachineStateNativeTests.test_public_mutation_foreign_binding_arithmetic_and_copy_order) ... ok
+2026-11-12T10:45:44.4230446Z test_warm_image_rechecks_package_source (tests.test_hia_machine_state_native.MachineStateNativeTests.test_warm_image_rechecks_package_source) ... ok
+2026-11-12T10:45:44.4236622Z test_cold_admission_refuses_before_output (tests.test_hia_machine_state_native.MachineStateSourceTests.test_cold_admission_refuses_before_output) ... ok
+2026-11-12T10:45:44.4358727Z test_complete_original_Code_AST_and_fixture_bytes_are_retained (tests.test_hia_machine_state_native.MachineStateSourceTests.test_complete_original_Code_AST_and_fixture_bytes_are_retained) ... ok
+2026-11-12T10:45:45.3424603Z test_generated_source_and_original_compiler_limits (tests.test_hia_machine_state_native.MachineStateSourceTests.test_generated_source_and_original_compiler_limits) ... ok
+2026-11-12T10:45:45.3436321Z test_unselected_and_subclasses_preserve_existing_owner (tests.test_hia_machine_state_native.MachineStateSourceTests.test_unselected_and_subclasses_preserve_existing_owner) ... ok
+2026-11-12T10:45:46.7037029Z test_actual_64MiB_and_original_mutable_state_boundaries (tests.test_hia_machine_instructions_native.MachineInstructionsNativeTests.test_actual_64MiB_and_original_mutable_state_boundaries) ... ok
+2026-11-12T10:45:49.2637843Z test_actual_installed_wheel_uses_three_HIA_owners_without_authoring (tests.test_hia_machine_instructions_native.MachineInstructionsNativeTests.test_actual_installed_wheel_uses_three_HIA_owners_without_authoring) ... ok
+2026-11-12T10:45:49.5598508Z test_all_original_instruction_cases_with_every_old_instruction_owner_forbidden (tests.test_hia_machine_instructions_native.MachineInstructionsNativeTests.test_all_original_instruction_cases_with_every_old_instruction_owner_forbidden) ... ok
+2026-11-12T10:45:49.6755997Z test_backend_identity_and_three_selectors_are_pinned_across_emit (tests.test_hia_machine_instructions_native.MachineInstructionsNativeTests.test_backend_identity_and_three_selectors_are_pinned_across_emit) ... ok
+2026-11-12T10:45:49.7007303Z test_foreign_operand_truth_method_binding_and_append_order (tests.test_hia_machine_instructions_native.MachineInstructionsNativeTests.test_foreign_operand_truth_method_binding_and_append_order) ... ok
+2026-11-12T10:45:49.7014492Z test_malformed_ack_and_failed_append_cannot_be_replayed (tests.test_hia_machine_instructions_native.MachineInstructionsNativeTests.test_malformed_ack_and_failed_append_cannot_be_replayed) ... ok
+2026-11-12T10:45:49.8556961Z test_original_word_displacement_condition_symbol_and_refusal_priority (tests.test_hia_machine_instructions_native.MachineInstructionsNativeTests.test_original_word_displacement_condition_symbol_and_refusal_priority) ... ok
+2026-11-12T10:45:49.8569055Z test_warm_image_rechecks_package_source (tests.test_hia_machine_instructions_native.MachineInstructionsNativeTests.test_warm_image_rechecks_package_source) ... ok
+2026-11-12T10:45:49.8573132Z test_cold_admission_refuses_before_output (tests.test_hia_machine_instructions_native.MachineInstructionsSourceTests.test_cold_admission_refuses_before_output) ... ok
+2026-11-12T10:45:49.8796105Z test_complete_original_classes_and_fixture_bytes_are_retained (tests.test_hia_machine_instructions_native.MachineInstructionsSourceTests.test_complete_original_classes_and_fixture_bytes_are_retained) ... ok
+2026-11-12T10:45:50.9892161Z test_generated_source_and_original_compiler_limits (tests.test_hia_machine_instructions_native.MachineInstructionsSourceTests.test_generated_source_and_original_compiler_limits) ... ok
+2026-11-12T10:45:50.9904697Z test_unselected_and_subclasses_preserve_existing_owner (tests.test_hia_machine_instructions_native.MachineInstructionsSourceTests.test_unselected_and_subclasses_preserve_existing_owner) ... ok
+2026-11-12T10:45:52.1574526Z test_actual_acknowledgement_store_interruption_cannot_resume_effects (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_actual_acknowledgement_store_interruption_cannot_resume_effects) ... ok
+2026-11-12T10:45:52.1576567Z test_actual_issued_request_cannot_be_changed_into_another_effect (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_actual_issued_request_cannot_be_changed_into_another_effect) ... ok
+2026-11-12T10:45:52.1691929Z test_aliases_preserve_separate_owning_operand_slots (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_aliases_preserve_separate_owning_operand_slots) ... ok
+2026-11-12T10:45:52.1751313Z test_constant_byte_identity_preserves_dynamic_byte_independence (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_constant_byte_identity_preserves_dynamic_byte_independence) ... ok
+2026-11-12T10:45:52.1797341Z test_error_operand_retirement_keeps_original_handled_exception (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_error_operand_retirement_keeps_original_handled_exception) ... ok
+2026-11-12T10:45:52.1820546Z test_foreign_StopIteration_is_delivered_without_generator_conversion (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_foreign_StopIteration_is_delivered_without_generator_conversion) ... ok
+2026-11-12T10:45:52.1865596Z test_interrupted_context_pin_publication_restores_all_three_owners (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_interrupted_context_pin_publication_restores_all_three_owners) ... ok
+2026-11-12T10:45:52.1942923Z test_public_python_call_binding_errors_match_complete_original (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_public_python_call_binding_errors_match_complete_original) ... ok
+2026-11-12T10:45:52.2065301Z test_temporary_reference_release_and_reentry_match_complete_original (tests.test_hia_machine_code_composition.MachineCodeCompositionNativeTests.test_temporary_reference_release_and_reentry_match_complete_original) ... ok
+2026-11-12T10:45:52.2067268Z test_admitted_source_identity_is_read_only_and_cannot_be_rebound (tests.test_hia_machine_code_composition.MachineCodeCompositionSourceTests.test_admitted_source_identity_is_read_only_and_cannot_be_rebound) ... ok
+2026-11-12T10:45:52.2068859Z test_complete_reference_fixture_is_immutable (tests.test_hia_machine_code_composition.MachineCodeCompositionSourceTests.test_complete_reference_fixture_is_immutable) ... ok
+2026-11-12T10:45:52.2069614Z 
+2026-11-12T10:45:52.2069790Z ----------------------------------------------------------------------
+2026-11-12T10:45:52.2070167Z Ran 44 tests in 16.389s
+2026-11-12T10:45:52.2070320Z 
+2026-11-12T10:45:52.2070433Z OK
+2026-11-12T10:45:52.2402215Z ##[group]Run python -B tools/qualify_hia_machine_instructions_callers.py \
+2026-11-12T10:45:52.2402927Z [36;1mpython -B tools/qualify_hia_machine_instructions_callers.py \[0m
+2026-11-12T10:45:52.2403630Z [36;1m  --cold-report "$RUNNER_TEMP/hia-cold.json" \[0m
+2026-11-12T10:45:52.2404136Z [36;1m  --evidence "$RUNNER_TEMP/hia-machine-instructions-callers"[0m
+2026-11-12T10:45:52.2429820Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:45:52.2430141Z env:
+2026-11-12T10:45:52.2430475Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:52.2431036Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:45:52.2431586Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:52.2432061Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:52.2432573Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:45:52.2433122Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:45:52.2434015Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:45:52.2434324Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:45:52.2434629Z ##[endgroup]
+2026-11-12T10:46:56.6795705Z {"schema": "hepta.hia.machine-instructions-selected-callers.v1", "scope": "MATCHING_SOURCE_COLD_SELECTED_CALLERS", "status": "PASS", "source_stable": true, "manifest_images_bundle_stable": true, "seconds": 64.13975900199995, "groups": [{"label": "component", "tests_run": 12, "strict_pass": true}, {"label": "original-callers", "tests_run": 51, "strict_pass": true}], "exception": null}
+2026-11-12T10:46:56.7333958Z ##[group]Run python -B - <<'PYELF76'
+2026-11-12T10:46:56.7334281Z [36;1mpython -B - <<'PYELF76'[0m
+2026-11-12T10:46:56.7334509Z [36;1mimport unittest[0m
+2026-11-12T10:46:56.7334693Z [36;1mnames = ([0m
+2026-11-12T10:46:56.7334888Z [36;1m    'tests.test_hia_machine_elf_native',[0m
+2026-11-12T10:46:56.7335147Z [36;1m    'tests.test_hia_machine_elf_protocol',[0m
+2026-11-12T10:46:56.7335386Z [36;1m)[0m
+2026-11-12T10:46:56.7335637Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromNames(names)[0m
+2026-11-12T10:46:56.7335949Z [36;1mif suite.countTestCases() != 37:[0m
+2026-11-12T10:46:56.7336272Z [36;1m    raise AssertionError('complete native component test inventory changed')[0m
+2026-11-12T10:46:56.7336652Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-12T10:46:56.7336998Z [36;1mpassed = (result.wasSuccessful() and result.testsRun == 37[0m
+2026-11-12T10:46:56.7337376Z [36;1m          and not result.skipped and not result.expectedFailures[0m
+2026-11-12T10:46:56.7337682Z [36;1m          and not result.unexpectedSuccesses)[0m
+2026-11-12T10:46:56.7337941Z [36;1mraise SystemExit(0 if passed else 1)[0m
+2026-11-12T10:46:56.7338160Z [36;1mPYELF76[0m
+2026-11-12T10:46:56.7356081Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:46:56.7356290Z env:
+2026-11-12T10:46:56.7356509Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:46:56.7356863Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:46:56.7357204Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:46:56.7357505Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:46:56.7357796Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:46:56.7358084Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:46:56.7358345Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:46:56.7358576Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:46:56.7358863Z   HEPTA_HIA_MACHINE_ELF_COLD_REPORT: /home/runner/work/_temp/hia-cold.json
+2026-11-12T10:46:56.7359254Z   HEPTA_HIA_MACHINE_ELF_FIXTURE_EVIDENCE: /home/runner/work/_temp/hia-machine-elf
+2026-11-12T10:46:56.7359558Z ##[endgroup]
+2026-11-12T10:46:59.1538371Z test_actual_64mib_code_and_final_object_boundary (tests.test_hia_machine_elf_native.MachineElfBoundaryTests.test_actual_64mib_code_and_final_object_boundary) ... ok
+2026-11-12T10:47:49.1243801Z test_actual_65536_symbol_inventory_boundary (tests.test_hia_machine_elf_native.MachineElfBoundaryTests.test_actual_65536_symbol_inventory_boundary) ... ok
+2026-11-12T10:48:39.0413955Z test_actual_imported_symbol_inventory_boundary (tests.test_hia_machine_elf_native.MachineElfBoundaryTests.test_actual_imported_symbol_inventory_boundary) ... ok
+2026-11-12T10:48:39.0566275Z test_full_name_and_alignment_with_adjacent_calls (tests.test_hia_machine_elf_native.MachineElfBoundaryTests.test_full_name_and_alignment_with_adjacent_calls) ... ok
+2026-11-12T10:48:40.0400000Z test_backend_full_return_identity_and_mid_emit_selection (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_backend_full_return_identity_and_mid_emit_selection) ... ok
+2026-11-12T10:48:40.0479650Z test_cached_image_rebinds_installed_source_and_forged_manifest (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_cached_image_rebinds_installed_source_and_forged_manifest) ... ok
+2026-11-12T10:48:40.2322324Z test_complete_reconstructed_55_input_denominator (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_complete_reconstructed_55_input_denominator) ... ok
+2026-11-12T10:48:40.3033755Z test_exact_worker_bundle_pins_same_image_and_refuses_warm_drift (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_exact_worker_bundle_pins_same_image_and_refuses_warm_drift) ... ok
+2026-11-12T10:48:40.3042620Z test_foreign_baseexception_retains_object_traceback_and_context (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_foreign_baseexception_retains_object_traceback_and_context) ... ok
+2026-11-12T10:48:40.3050889Z test_malformed_ack_reaches_real_native_refusal_then_closes (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_malformed_ack_reaches_real_native_refusal_then_closes) ... ok
+2026-11-12T10:48:40.3059287Z test_pending_step_refusal_permanently_revokes_real_effect (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_pending_step_refusal_permanently_revokes_real_effect) ... ok
+2026-11-12T10:48:40.3111004Z test_pinned_owner_refuses_source_drift_before_first_identity (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_pinned_owner_refuses_source_drift_before_first_identity) ... ok
+2026-11-12T10:48:40.3120383Z test_post_native_entry_and_counter_baseexceptions_are_terminal (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_post_native_entry_and_counter_baseexceptions_are_terminal) ... ok
+2026-11-12T10:48:42.8588699Z test_real_installed_wheel_isolated_empty_path_without_old_writer (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_real_installed_wheel_isolated_empty_path_without_old_writer) ... ok
+2026-11-12T10:48:42.8598000Z test_repeated_observe_and_unissued_observe_are_terminal (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_repeated_observe_and_unissued_observe_are_terminal) ... ok
+2026-11-12T10:48:42.8624119Z test_success_and_explicit_close_cannot_replay_effects (tests.test_hia_machine_elf_native.MachineElfNativeTests.test_success_and_explicit_close_cannot_replay_effects) ... ok
+2026-11-12T10:48:42.8628064Z test_complete_original_writer_prefix_and_reconstructed_inputs (tests.test_hia_machine_elf_native.MachineElfSourceTests.test_complete_original_writer_prefix_and_reconstructed_inputs) ... ok
+2026-11-12T10:48:42.8629333Z test_declared_installed_source_resource (tests.test_hia_machine_elf_native.MachineElfSourceTests.test_declared_installed_source_resource) ... ok
+2026-11-12T10:48:44.3683764Z test_generated_hia_roundtrips_with_original_limits (tests.test_hia_machine_elf_native.MachineElfSourceTests.test_generated_hia_roundtrips_with_original_limits) ... ok
+2026-11-12T10:48:44.3692452Z test_incomplete_cold_report_refuses_before_creating_output (tests.test_hia_machine_elf_native.MachineElfSourceTests.test_incomplete_cold_report_refuses_before_creating_output) ... ok
+2026-11-12T10:48:44.3704050Z test_original_api_unselected_and_explicit_missing_refuses (tests.test_hia_machine_elf_native.MachineElfSourceTests.test_original_api_unselected_and_explicit_missing_refuses) ... ok
+2026-11-12T10:48:45.3046460Z test_business_payload_and_exception_emitter_domains_do_not_collide (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_business_payload_and_exception_emitter_domains_do_not_collide) ... ok
+2026-11-12T10:48:45.3053264Z test_changed_issued_field_cannot_authorize_another_lookup (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_changed_issued_field_cannot_authorize_another_lookup) ... ok
+2026-11-12T10:48:45.3244633Z test_comparison_result_release_with_original_ambient_exception (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_comparison_result_release_with_original_ambient_exception) ... ok
+2026-11-12T10:48:47.7862940Z test_complete_foreign_comparison_sequences (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_complete_foreign_comparison_sequences) ... ok
+2026-11-12T10:48:47.7885341Z test_consumed_temporary_set_releases_before_next_field_lookup (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_consumed_temporary_set_releases_before_next_field_lookup) ... ok
+2026-11-12T10:48:47.8094490Z test_direct_comparison_truth_release_precedes_caller_catch (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_direct_comparison_truth_release_precedes_caller_catch) ... ok
+2026-11-12T10:48:47.8096549Z test_explicit_close_retires_only_still_open_actual_mappings (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_explicit_close_retires_only_still_open_actual_mappings) ... ok
+2026-11-12T10:48:47.8113880Z test_foreign_claim_nonce_and_repeat_are_native_refusals (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_foreign_claim_nonce_and_repeat_are_native_refusals) ... ok
+2026-11-12T10:48:47.8122456Z test_foreign_error_outcome_is_native_terminal_before_delivery (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_foreign_error_outcome_is_native_terminal_before_delivery) ... ok
+2026-11-12T10:48:48.2154988Z test_full_vm_and_native_protocol_buffers (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_full_vm_and_native_protocol_buffers) ... ok
+2026-11-12T10:48:48.4873953Z test_inconsistent_and_raising_comparisons (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_inconsistent_and_raising_comparisons) ... ok
+2026-11-12T10:48:48.4884434Z test_lost_preclaim_return_permanently_revokes (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_lost_preclaim_return_permanently_revokes) ... ok
+2026-11-12T10:48:48.6527016Z test_original_55 (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_original_55) ... ok
+2026-11-12T10:48:48.6528839Z test_partial_constructor_closes_first_actual_mapping (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_partial_constructor_closes_first_actual_mapping) ... ok
+2026-11-12T10:48:48.6539328Z test_transport_packing_failure_cannot_acknowledge_callback_error (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_transport_packing_failure_cannot_acknowledge_callback_error) ... ok
+2026-11-12T10:48:48.6555715Z test_unknown_error_outcome_retains_original_without_retry (tests.test_hia_machine_elf_protocol.MachineElfProtocolTests.test_unknown_error_outcome_retains_original_without_retry) ... ok
+2026-11-12T10:48:48.9043230Z 
+2026-11-12T10:48:48.9044165Z ----------------------------------------------------------------------
+2026-11-12T10:48:48.9044799Z Ran 37 tests in 111.942s
+2026-11-12T10:48:48.9044995Z 
+2026-11-12T10:48:48.9045314Z OK
+2026-11-12T10:48:48.9393961Z ##[group]Run python -B tools/qualify_hia_machine_elf.py \
+2026-11-12T10:48:48.9394320Z [36;1mpython -B tools/qualify_hia_machine_elf.py \[0m
+2026-11-12T10:48:48.9394609Z [36;1m  --cold-report "$RUNNER_TEMP/hia-cold.json" \[0m
+2026-11-12T10:48:48.9394923Z [36;1m  --output "$RUNNER_TEMP/hia-machine-elf-callers"[0m
+2026-11-12T10:48:48.9412738Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:48:48.9412941Z env:
+2026-11-12T10:48:48.9413158Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:48:48.9413701Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:48:48.9414046Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:48:48.9414333Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:48:48.9414628Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:48:48.9414927Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:48:48.9415216Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:48:48.9415419Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:48:48.9415616Z ##[endgroup]
+2026-11-12T10:48:51.7914238Z test_all_general_registers_rex_arithmetic_shifts_conditions_and_internal_calls (tests.test_hia_machine_x64.EncoderExecutionTests.test_all_general_registers_rex_arithmetic_shifts_conditions_and_internal_calls) ... ok
+2026-11-12T10:48:51.8055545Z test_external_allocator_relocations_resolve_with_only_ld (tests.test_hia_machine_x64.EncoderExecutionTests.test_external_allocator_relocations_resolve_with_only_ld) ... ok
+2026-11-12T10:48:51.8497095Z test_independent_elf_and_isa_tools_accept_output (tests.test_hia_machine_x64.EncoderExecutionTests.test_independent_elf_and_isa_tools_accept_output) ... ok
+2026-11-12T10:48:51.8497977Z test_memory_sib_displacements_lea_and_low_byte_rex (tests.test_hia_machine_x64.EncoderExecutionTests.test_memory_sib_displacements_lea_and_low_byte_rex) ... ok
+2026-11-12T10:48:51.8728147Z test_elf_symbol_order_and_stack_flags (tests.test_hia_machine_x64.EncoderStructuralTests.test_elf_symbol_order_and_stack_flags) ... ok
+2026-11-12T10:48:51.8730342Z test_invalid_registers_immediates_labels_and_relocations_reject (tests.test_hia_machine_x64.EncoderStructuralTests.test_invalid_registers_immediates_labels_and_relocations_reject) ... ok
+2026-11-12T10:48:51.8731438Z test_relocation_and_local_branches_are_deterministic (tests.test_hia_machine_x64.EncoderStructuralTests.test_relocation_and_local_branches_are_deterministic) ... ok
+2026-11-12T10:48:51.9102508Z test_immediate_boundaries_and_live_flags_on_real_machine (tests.test_hia_machine_plan.MachinePlanExecutionTests.test_immediate_boundaries_and_live_flags_on_real_machine) ... ok
+2026-11-12T10:48:52.2113786Z test_independent_scratch_selection_and_layout_observations (tests.test_hia_machine_plan.MachinePlanExecutionTests.test_independent_scratch_selection_and_layout_observations) ... ok
+2026-11-12T10:48:52.3819180Z test_requested_alignment_survives_elf_linking_and_loading (tests.test_hia_machine_plan.MachinePlanExecutionTests.test_requested_alignment_survives_elf_linking_and_loading) ... ok
+2026-11-12T10:48:52.4201482Z test_default_plan_is_byte_identical_and_plan_changes_are_sealed (tests.test_hia_machine_plan.MachinePlanValidationTests.test_default_plan_is_byte_identical_and_plan_changes_are_sealed) ... ok
+2026-11-12T10:48:52.4218815Z test_each_choice_is_explicit_and_core_bound (tests.test_hia_machine_plan.MachinePlanValidationTests.test_each_choice_is_explicit_and_core_bound) ... ok
+2026-11-12T10:48:52.4223267Z test_encoder_rejects_unreviewed_registers_and_choices (tests.test_hia_machine_plan.MachinePlanValidationTests.test_encoder_rejects_unreviewed_registers_and_choices) ... ok
+2026-11-12T10:48:55.0151853Z test_all_integer_widths_wrapping_bits_shifts_and_signed_division (tests.test_hia_program_native.DirectExecutionTests.test_all_integer_widths_wrapping_bits_shifts_and_signed_division) ... ok
+2026-11-12T10:48:55.5735027Z test_allocator_observer_checks_actual_frees_and_failed_allocation (tests.test_hia_program_native.DirectExecutionTests.test_allocator_observer_checks_actual_frees_and_failed_allocation) ... ok
+2026-11-12T10:48:56.2399782Z test_bulk_operations_v2_through_v6_match_vm (tests.test_hia_program_native.DirectExecutionTests.test_bulk_operations_v2_through_v6_match_vm) ... ok
+2026-11-12T10:48:56.6303550Z test_checked_arithmetic_comparisons_casts_and_unary (tests.test_hia_program_native.DirectExecutionTests.test_checked_arithmetic_comparisons_casts_and_unary) ... ok
+2026-11-12T10:49:05.0753010Z test_checked_failures_abort_in_isolated_native_processes (tests.test_hia_program_native.DirectExecutionTests.test_checked_failures_abort_in_isolated_native_processes) ... ok
+2026-11-12T10:49:05.5279039Z test_owned_memory_zero_initialization_and_ordinary_error_cleanup (tests.test_hia_program_native.DirectExecutionTests.test_owned_memory_zero_initialization_and_ordinary_error_cleanup) ... ok
+2026-11-12T10:49:05.5736458Z test_real_loops_calls_multiple_returns_and_parallel_block_moves (tests.test_hia_program_native.DirectExecutionTests.test_real_loops_calls_multiple_returns_and_parallel_block_moves) ... ok
+2026-11-12T10:49:06.5319330Z test_recursive_chain_and_composite_v7_have_real_dynamic_execution (tests.test_hia_program_native.DirectExecutionTests.test_recursive_chain_and_composite_v7_have_real_dynamic_execution) ... ok
+2026-11-12T10:49:06.5423722Z test_scalar_c_abi_register_and_stack_arguments (tests.test_hia_program_native.DirectExecutionTests.test_scalar_c_abi_register_and_stack_arguments) ... ok
+2026-11-12T10:49:06.9255968Z test_v8_chain_head_returned_loans_and_pop (tests.test_hia_program_native.DirectExecutionTests.test_v8_chain_head_returned_loans_and_pop) ... ok
+2026-11-12T10:49:08.2822431Z test_v8_parameter_loans_calls_cfg_recursion_and_aliases (tests.test_hia_program_native.DirectExecutionTests.test_v8_parameter_loans_calls_cfg_recursion_and_aliases) ... ok
+2026-11-12T10:49:08.6044442Z test_all_versioned_agent_core_examples_are_emitted_without_llvm (tests.test_hia_program_native.DirectObjectTests.test_all_versioned_agent_core_examples_are_emitted_without_llvm) ... ok
+2026-11-12T10:49:08.6223593Z test_artifact_mutation_rejected_even_with_recomputed_object_digest (tests.test_hia_program_native.DirectObjectTests.test_artifact_mutation_rejected_even_with_recomputed_object_digest) ... ok
+2026-11-12T10:49:08.8258399Z test_cli_native_object_and_explicit_target_rejection (tests.test_hia_program_native.DirectObjectTests.test_cli_native_object_and_explicit_target_rejection) ... ok
+2026-11-12T10:49:08.8442060Z test_existing_output_is_preserved (tests.test_hia_program_native.DirectObjectTests.test_existing_output_is_preserved) ... ok
+2026-11-12T10:49:08.8448988Z test_foreign_target_is_explicitly_rejected (tests.test_hia_program_native.DirectObjectTests.test_foreign_target_is_explicitly_rejected) ... ok
+2026-11-12T10:49:08.8482294Z test_forged_verified_core_is_reverified_before_emission (tests.test_hia_program_native.DirectObjectTests.test_forged_verified_core_is_reverified_before_emission) ... ok
+2026-11-12T10:49:09.0016045Z test_object_build_in_fresh_process_prohibits_llvm_import_and_process_launch (tests.test_hia_program_native.DirectObjectTests.test_object_build_in_fresh_process_prohibits_llvm_import_and_process_launch) ... ok
+2026-11-12T10:49:09.0201013Z test_object_generation_is_deterministic_and_bound_to_exact_core (tests.test_hia_program_native.DirectObjectTests.test_object_generation_is_deterministic_and_bound_to_exact_core) ... ok
+2026-11-12T10:49:09.0208300Z test_route_inventory_names_explicit_direct_machine_selection (tests.test_hia_program_native.DirectObjectTests.test_route_inventory_names_explicit_direct_machine_selection) ... ok
+2026-11-12T10:49:09.1529450Z test_cli_native_shared_library_is_callable_with_ld (tests.test_hia_program_native.DirectSystemLinkerTests.test_cli_native_shared_library_is_callable_with_ld) ... ok
+2026-11-12T10:49:09.6709437Z test_system_linker_alone_produces_callable_shared_library (tests.test_hia_program_native.DirectSystemLinkerTests.test_system_linker_alone_produces_callable_shared_library) ... ok
+2026-11-12T10:49:09.7868094Z test_alternate_core_is_not_qualified_by_matching_producer_metadata (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_alternate_core_is_not_qualified_by_matching_producer_metadata) ... ok
+2026-11-12T10:49:09.8424745Z test_emission_and_linking_can_be_disabled_during_consumer_validation (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_emission_and_linking_can_be_disabled_during_consumer_validation) ... ok
+2026-11-12T10:49:09.9540614Z test_equivalent_noncanonical_instruction_bytes_are_independently_accepted (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_equivalent_noncanonical_instruction_bytes_are_independently_accepted) ... ok
+2026-11-12T10:49:10.0177526Z test_exact_supplied_bytes_and_scoped_checker_identity_are_bound (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_exact_supplied_bytes_and_scoped_checker_identity_are_bound) ... ok
+2026-11-12T10:49:10.0201643Z test_final_bytes_cannot_disagree_with_the_supplied_object (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_final_bytes_cannot_disagree_with_the_supplied_object) ... ok
+2026-11-12T10:49:10.1957958Z test_fresh_consumer_does_not_import_native_producers (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_fresh_consumer_does_not_import_native_producers) ... ok
+2026-11-12T10:49:10.6636830Z test_imul_carry_matches_signed_not_unsigned_truncation (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_imul_carry_matches_signed_not_unsigned_truncation) ... ok
+2026-11-12T10:49:10.7154409Z test_imul_zero_flag_is_arbitrary_after_a_known_zero_flag (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_imul_zero_flag_is_arbitrary_after_a_known_zero_flag) ... ok
+2026-11-12T10:49:10.7464589Z test_joint_object_and_final_arithmetic_mutation_produces_a_counterexample (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_joint_object_and_final_arithmetic_mutation_produces_a_counterexample) ... ok
+2026-11-12T10:49:10.8399264Z test_joint_product_to_sum_mutation_is_refuted (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_joint_product_to_sum_mutation_is_refuted) ... ok
+2026-11-12T10:49:10.8941643Z test_last_identity_check_cannot_publish_a_proof_after_the_deadline (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_last_identity_check_cannot_publish_a_proof_after_the_deadline) ... ok
+2026-11-12T10:49:10.8949094Z test_pinned_input_mismatch_rejects_before_any_solver_query (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_pinned_input_mismatch_rejects_before_any_solver_query) ... ok
+2026-11-12T10:49:10.9296311Z test_rejected_command_retains_original_bytes_queries_and_counterexample (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_rejected_command_retains_original_bytes_queries_and_counterexample) ... ok
+2026-11-12T10:49:11.3904679Z test_wrapping_multiplication_is_proved_and_executed_at_all_unsigned_widths (tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_wrapping_multiplication_is_proved_and_executed_at_all_unsigned_widths) ... ok
+2026-11-12T10:49:11.3974406Z test_imul_register_fields_and_unreviewed_encodings (tests.test_hia_safe_core_artifact.SafeCoreImmutableInputTests.test_imul_register_fields_and_unreviewed_encodings) ... ok
+2026-11-12T10:49:11.3984382Z test_mutable_buffers_and_bytes_subclasses_are_rejected_before_parsing (tests.test_hia_safe_core_artifact.SafeCoreImmutableInputTests.test_mutable_buffers_and_bytes_subclasses_are_rejected_before_parsing) ... ok
+2026-11-12T10:49:11.3985463Z 
+2026-11-12T10:49:11.3994072Z ----------------------------------------------------------------------
+2026-11-12T10:49:11.3994552Z Ran 51 tests in 21.155s
+2026-11-12T10:49:11.3994744Z 
+2026-11-12T10:49:11.3994840Z OK
+2026-11-12T10:49:11.4369361Z {"status": "SELECTED_NATIVE_ELF_CALLERS_PASS", "tests_run": 51}
+2026-11-12T10:49:11.5799840Z ##[group]Run python -B - <<'PYPLAN76'
+2026-11-12T10:49:11.5800134Z [36;1mpython -B - <<'PYPLAN76'[0m
+2026-11-12T10:49:11.5800360Z [36;1mimport unittest[0m
+2026-11-12T10:49:11.5800548Z [36;1mnames = ([0m
+2026-11-12T10:49:11.5800748Z [36;1m    'tests.test_hia_machine_plan_native',[0m
+2026-11-12T10:49:11.5801030Z [36;1m    'tests.test_hia_machine_plan_control_lifecycle',[0m
+2026-11-12T10:49:11.5801283Z [36;1m)[0m
+2026-11-12T10:49:11.5801529Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromNames(names)[0m
+2026-11-12T10:49:11.5801838Z [36;1mif suite.countTestCases() != 21:[0m
+2026-11-12T10:49:11.5802173Z [36;1m    raise AssertionError('complete native component test inventory changed')[0m
+2026-11-12T10:49:11.5802574Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-12T10:49:11.5802903Z [36;1mpassed = (result.wasSuccessful() and result.testsRun == 21[0m
+2026-11-12T10:49:11.5803281Z [36;1m          and not result.skipped and not result.expectedFailures[0m
+2026-11-12T10:49:11.5803832Z [36;1m          and not result.unexpectedSuccesses)[0m
+2026-11-12T10:49:11.5804096Z [36;1mraise SystemExit(0 if passed else 1)[0m
+2026-11-12T10:49:11.5804318Z [36;1mPYPLAN76[0m
+2026-11-12T10:49:11.5822199Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:49:11.5822427Z env:
+2026-11-12T10:49:11.5822650Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:49:11.5822997Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:49:11.5823342Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:49:11.5823826Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:49:11.5824124Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:49:11.5824584Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:49:11.5824847Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:49:11.5825040Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:49:11.5825330Z   HEPTA_HIA_MACHINE_PLAN_COLD_REPORT: /home/runner/work/_temp/hia-cold.json
+2026-11-12T10:49:11.5825726Z   HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE: /home/runner/work/_temp/hia-machine-plan
+2026-11-12T10:49:11.5826035Z ##[endgroup]
+2026-11-12T10:49:15.9875213Z test_actual_wheel_native_calls_without_authoring_or_checkout_fallback (tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_actual_wheel_native_calls_without_authoring_or_checkout_fallback) ... ok
+2026-11-12T10:49:15.9990348Z test_backend_custody_binds_selected_native_owner (tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner) ... ok
+2026-11-12T10:49:16.5551434Z test_differential_schema_and_first_refusal_priority (tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_differential_schema_and_first_refusal_priority) ... ok
+2026-11-12T10:49:16.8187484Z test_foreign_truthiness_key_equality_and_mutation_order (tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_foreign_truthiness_key_equality_and_mutation_order) ... ok
+2026-11-12T10:49:17.0946061Z test_public_witness_hook_observes_frozen_plan_and_captured_owner (tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_public_witness_hook_observes_frozen_plan_and_captured_owner) ... ok
+2026-11-12T10:49:28.4109378Z test_seeded_register_lifetimes_and_opaque_foreign_refusals (tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_seeded_register_lifetimes_and_opaque_foreign_refusals) ... ok
+2026-11-12T10:49:28.4253699Z test_selected_failure_has_no_fallback_and_context_is_released (tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_selected_failure_has_no_fallback_and_context_is_released) ... ok
+2026-11-12T10:49:28.4266892Z test_warm_code_still_rechecks_manifest_and_source (tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_warm_code_still_rechecks_manifest_and_source) ... ok
+2026-11-12T10:49:28.4292194Z test_caller_gate_requires_every_loaded_test_without_anomalies (tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_caller_gate_requires_every_loaded_test_without_anomalies) ... ok
+2026-11-12T10:49:28.4299086Z test_current_cold_admission_precedes_artifacts (tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_current_cold_admission_precedes_artifacts) ... ok
+2026-11-12T10:49:29.4794129Z test_generated_source_and_retained_oracles (tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_generated_source_and_retained_oracles) ... ok
+2026-11-12T10:53:10.3581983Z test_independent_vm_runs_complete_witness_and_refusal (tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_independent_vm_runs_complete_witness_and_refusal) ... ok
+2026-11-12T10:53:11.1329695Z test_actual_reply_store_interruption_cannot_replay_the_callback (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_actual_reply_store_interruption_cannot_replay_the_callback) ... ok
+2026-11-12T10:53:11.1352139Z test_closed_session_nonce_and_pending_retirement_do_not_authorize_an_effect (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_closed_session_nonce_and_pending_retirement_do_not_authorize_an_effect) ... ok
+2026-11-12T10:54:10.7012063Z test_complete_native_frames_and_canaries_equal_independent_Core_VM (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_complete_native_frames_and_canaries_equal_independent_Core_VM) ... ok
+2026-11-12T10:54:10.7018357Z test_exact_issued_identity_and_native_claim_prevent_duplicate_effects (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_exact_issued_identity_and_native_claim_prevent_duplicate_effects) ... ok
+2026-11-12T10:54:10.7917532Z test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) ... 
+2026-11-12T10:54:10.7919866Z   test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) (case='generator-short', outer=False) ... FAIL
+2026-11-12T10:54:10.7928838Z   test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) (case='generator-short', outer=True) ... FAIL
+2026-11-12T10:54:10.7934922Z   test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) (case='generator-error', outer=False) ... FAIL
+2026-11-12T10:54:10.7940623Z   test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) (case='generator-error', outer=True) ... FAIL
+2026-11-12T10:54:10.7953851Z test_identifier_literals_preserve_original_python_key_identity (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_identifier_literals_preserve_original_python_key_identity) ... ok
+2026-11-12T10:54:10.8736280Z test_original_peer_failures_keep_complete_foreign_observation_tapes (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_original_peer_failures_keep_complete_foreign_observation_tapes) ... ok
+2026-11-12T10:54:10.8738490Z test_partial_constructor_releases_only_its_real_owned_arenas (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_partial_constructor_releases_only_its_real_owned_arenas) ... ok
+2026-11-12T10:54:10.8761646Z test_wrong_handled_exception_delivery_cannot_execute_the_claimed_effect (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_wrong_handled_exception_delivery_cannot_execute_the_claimed_effect) ... ok
+2026-11-12T10:54:10.8762705Z 
+2026-11-12T10:54:10.8763322Z ======================================================================
+2026-11-12T10:54:10.8764797Z FAIL: test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) (case='generator-short', outer=False)
+2026-11-12T10:54:10.8766144Z ----------------------------------------------------------------------
+2026-11-12T10:54:10.8766599Z Traceback (most recent call last):
+2026-11-12T10:54:10.8767733Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_machine_plan_control_lifecycle.py", line 280, in test_generator_and_operand_lifetimes_match_with_held_original_errors
+2026-11-12T10:54:10.8768698Z     self.assertEqual(row['actual'], row['expected'])
+2026-11-12T10:54:10.8769111Z     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T10:54:10.8769960Z AssertionError: {'res[207 chars]), ('iterator-del', None), ('parameter-del', N[209 chars]lse]} != {'res[207 chars]), ('parameter-del', None), ('iterator-del', N[209 chars]lse]}
+2026-11-12T10:54:10.8770877Z Diff is 1065 characters long. Set self.maxDiff to None to see it.
+2026-11-12T10:54:10.8771206Z 
+2026-11-12T10:54:10.8771342Z ======================================================================
+2026-11-12T10:54:10.8772670Z FAIL: test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) (case='generator-short', outer=True)
+2026-11-12T10:54:10.8774211Z ----------------------------------------------------------------------
+2026-11-12T10:54:10.8774643Z Traceback (most recent call last):
+2026-11-12T10:54:10.8775601Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_machine_plan_control_lifecycle.py", line 280, in test_generator_and_operand_lifetimes_match_with_held_original_errors
+2026-11-12T10:54:10.8776687Z     self.assertEqual(row['actual'], row['expected'])
+2026-11-12T10:54:10.8776952Z     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T10:54:10.8777471Z AssertionError: {'res[225 chars]), ('iterator-del', 'LookupError'), ('paramete[263 chars]lse]} != {'res[225 chars]), ('parameter-del', 'LookupError'), ('iterato[263 chars]lse]}
+2026-11-12T10:54:10.8778044Z Diff is 1200 characters long. Set self.maxDiff to None to see it.
+2026-11-12T10:54:10.8778246Z 
+2026-11-12T10:54:10.8778345Z ======================================================================
+2026-11-12T10:54:10.8779129Z FAIL: test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) (case='generator-error', outer=False)
+2026-11-12T10:54:10.8779928Z ----------------------------------------------------------------------
+2026-11-12T10:54:10.8780202Z Traceback (most recent call last):
+2026-11-12T10:54:10.8780795Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_machine_plan_control_lifecycle.py", line 280, in test_generator_and_operand_lifetimes_match_with_held_original_errors
+2026-11-12T10:54:10.8781360Z     self.assertEqual(row['actual'], row['expected'])
+2026-11-12T10:54:10.8781622Z     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T10:54:10.8782150Z AssertionError: {'res[262 chars]), ('iterator-del', None), ('parameter-del', N[39 chars]lse]} != {'res[262 chars]), ('parameter-del', None), ('iterator-del', N[39 chars]lse]}
+2026-11-12T10:54:10.8782696Z   {'after_traceback_release': [('parameters-iter', None),
+2026-11-12T10:54:10.8782967Z                                ('parameter-read', None),
+2026-11-12T10:54:10.8783212Z -                              ('iterator-del', None),
+2026-11-12T10:54:10.8783835Z -                              ('parameter-del', None)],
+2026-11-12T10:54:10.8784139Z ?                                                     -
+2026-11-12T10:54:10.8784303Z 
+2026-11-12T10:54:10.8784404Z +                              ('parameter-del', None),
+2026-11-12T10:54:10.8784833Z +                              ('iterator-del', None)],
+2026-11-12T10:54:10.8785064Z    'live_after_release': [False, False],
+2026-11-12T10:54:10.8785287Z    'live_with_traceback': [True, True],
+2026-11-12T10:54:10.8785586Z    'result': ('error', 'TypeError', 'actual generator parameter refusal', None),
+2026-11-12T10:54:10.8785961Z    'with_traceback': [('parameters-iter', None), ('parameter-read', None)]}
+2026-11-12T10:54:10.8786184Z 
+2026-11-12T10:54:10.8786275Z ======================================================================
+2026-11-12T10:54:10.8787069Z FAIL: test_generator_and_operand_lifetimes_match_with_held_original_errors (tests.test_hia_machine_plan_control_lifecycle.MachinePlanControlTests.test_generator_and_operand_lifetimes_match_with_held_original_errors) (case='generator-error', outer=True)
+2026-11-12T10:54:10.8787866Z ----------------------------------------------------------------------
+2026-11-12T10:54:10.8788147Z Traceback (most recent call last):
+2026-11-12T10:54:10.8788766Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_machine_plan_control_lifecycle.py", line 280, in test_generator_and_operand_lifetimes_match_with_held_original_errors
+2026-11-12T10:54:10.8789348Z     self.assertEqual(row['actual'], row['expected'])
+2026-11-12T10:54:10.8789596Z     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T10:54:10.8790108Z AssertionError: {'res[298 chars]), ('iterator-del', None), ('parameter-del', N[39 chars]lse]} != {'res[298 chars]), ('parameter-del', None), ('iterator-del', N[39 chars]lse]}
+2026-11-12T10:54:10.8790650Z Diff is 692 characters long. Set self.maxDiff to None to see it.
+2026-11-12T10:54:10.8790848Z 
+2026-11-12T10:54:10.8790972Z ----------------------------------------------------------------------
+2026-11-12T10:54:10.8791381Z Ran 21 tests in 299.021s
+2026-11-12T10:54:10.8791518Z 
+2026-11-12T10:54:10.8791591Z FAILED (failures=4)
+2026-11-12T10:54:10.9082540Z ##[error]Process completed with exit code 1.
+2026-11-12T10:54:10.9115987Z ##[group]Run python -B tools/qualify_hia_machine_plan_native_callers.py \
+2026-11-12T10:54:10.9116449Z [36;1mpython -B tools/qualify_hia_machine_plan_native_callers.py \[0m
+2026-11-12T10:54:10.9116779Z [36;1m  --cold-report "$RUNNER_TEMP/hia-cold.json" \[0m
+2026-11-12T10:54:10.9117116Z [36;1m  --output "$RUNNER_TEMP/hia-machine-plan-callers.json" \[0m
+2026-11-12T10:54:10.9117461Z [36;1m  --evidence-dir "$RUNNER_TEMP/hia-machine-plan-callers"[0m
+2026-11-12T10:54:10.9135623Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:54:10.9135821Z env:
+2026-11-12T10:54:10.9136034Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:54:10.9136380Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:54:10.9136710Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:54:10.9137016Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:54:10.9137355Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:54:10.9137658Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:54:10.9137917Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:54:10.9138105Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:54:10.9138300Z ##[endgroup]
+2026-11-12T10:54:12.1507213Z test_immediate_boundaries_and_live_flags_on_real_machine (tests.test_hia_machine_plan.MachinePlanExecutionTests.test_immediate_boundaries_and_live_flags_on_real_machine) ... ok
+2026-11-12T10:54:12.5564067Z test_independent_scratch_selection_and_layout_observations (tests.test_hia_machine_plan.MachinePlanExecutionTests.test_independent_scratch_selection_and_layout_observations) ... ok
+2026-11-12T10:54:12.8261999Z test_requested_alignment_survives_elf_linking_and_loading (tests.test_hia_machine_plan.MachinePlanExecutionTests.test_requested_alignment_survives_elf_linking_and_loading) ... ok
+2026-11-12T10:54:12.8932962Z test_default_plan_is_byte_identical_and_plan_changes_are_sealed (tests.test_hia_machine_plan.MachinePlanValidationTests.test_default_plan_is_byte_identical_and_plan_changes_are_sealed) ... ok
+2026-11-12T10:54:13.1452588Z test_each_choice_is_explicit_and_core_bound (tests.test_hia_machine_plan.MachinePlanValidationTests.test_each_choice_is_explicit_and_core_bound) ... ok
+2026-11-12T10:54:13.1459855Z test_encoder_rejects_unreviewed_registers_and_choices (tests.test_hia_machine_plan.MachinePlanValidationTests.test_encoder_rejects_unreviewed_registers_and_choices) ... ok
+2026-11-12T10:54:16.6302913Z test_assigned_arithmetic_retains_overflow_abort (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_assigned_arithmetic_retains_overflow_abort) ... ok
+2026-11-12T10:54:17.0104485Z test_assigned_indices_retain_trap_before_partial_memory_write (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_assigned_indices_retain_trap_before_partial_memory_write) ... ok
+2026-11-12T10:54:17.0110372Z test_assigned_scalars_and_disjoint_register_reuse (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_assigned_scalars_and_disjoint_register_reuse) ... ok
+2026-11-12T10:54:17.2697000Z test_caller_mutation_after_lifetime_check_cannot_change_emitted_registers (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_caller_mutation_after_lifetime_check_cannot_change_emitted_registers) ... ok
+2026-11-12T10:54:17.2698918Z test_changed_plans_preserve_requested_loaded_symbol_alignment (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_changed_plans_preserve_requested_loaded_symbol_alignment) ... ok
+2026-11-12T10:54:18.0513765Z test_cmov_preserves_signed_unsigned_boolean_and_unit_value_representations (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_cmov_preserves_signed_unsigned_boolean_and_unit_value_representations) ... ok
+2026-11-12T10:54:18.0522759Z test_cmov_selects_both_full_width_values_under_all_plans (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_cmov_selects_both_full_width_values_under_all_plans) ... ok
+2026-11-12T10:54:22.6887449Z test_failed_campaign_arm_retains_all_attempts_and_costs (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_failed_campaign_arm_retains_all_attempts_and_costs) ... ok
+2026-11-12T10:54:24.4793249Z test_independent_sysv_witness_preserves_all_callee_saved_registers_and_stack_arguments (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_independent_sysv_witness_preserves_all_callee_saved_registers_and_stack_arguments) ... ok
+2026-11-12T10:54:24.4797409Z test_permuted_backedges_and_reordered_blocks_preserve_staged_inputs (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_permuted_backedges_and_reordered_blocks_preserve_staged_inputs) ... ok
+2026-11-12T10:54:24.4801579Z test_register_values_survive_calloc_memset_and_free (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_register_values_survive_calloc_memset_and_free) ... ok
+2026-11-12T10:54:24.4806864Z test_register_values_survive_internal_calls_multiple_results_and_recursion (tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_register_values_survive_internal_calls_multiple_results_and_recursion) ... ok
+2026-11-12T10:54:24.5967008Z test_dead_parameter_and_dead_definition_writes_cannot_clobber_live_values (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_dead_parameter_and_dead_definition_writes_cannot_clobber_live_values) ... ok
+2026-11-12T10:54:24.7318416Z test_default_v3_preserves_canonical_bytes_and_needs_every_explicit_field (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_default_v3_preserves_canonical_bytes_and_needs_every_explicit_field) ... ok
+2026-11-12T10:54:25.0175267Z test_disjoint_lifetimes_and_separate_blocks_have_independent_witnesses (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_disjoint_lifetimes_and_separate_blocks_have_independent_witnesses) ... ok
+2026-11-12T10:54:25.3289548Z test_live_inputs_outputs_and_branch_condition_interfere (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_live_inputs_outputs_and_branch_condition_interfere) ... ok
+2026-11-12T10:54:25.5592533Z test_plain_json_v1_v2_v3_plans_keep_their_machine_bytes (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_plain_json_v1_v2_v3_plans_keep_their_machine_bytes) ... ok
+2026-11-12T10:54:25.6202234Z test_plan_snapshot_bounds_cycles_depth_fanout_and_bytes_before_semantic_checks (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_plan_snapshot_bounds_cycles_depth_fanout_and_bytes_before_semantic_checks) ... ok
+2026-11-12T10:54:25.7264416Z test_plan_snapshot_rejects_copy_and_equality_hooks_before_running_them (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_plan_snapshot_rejects_copy_and_equality_hooks_before_running_them) ... ok
+2026-11-12T10:54:26.1773161Z test_unreviewed_locations_types_and_unknown_values_fail_closed (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_unreviewed_locations_types_and_unknown_values_fail_closed) ... ok
+2026-11-12T10:54:27.1348856Z test_validated_assignments_are_immutable_and_sealed_in_native_images (tests.test_hia_machine_registers.ScalarRegisterValidationTests.test_validated_assignments_are_immutable_and_sealed_in_native_images) ... ok
+2026-11-12T10:54:27.4119188Z test_borrowed_byte_addresses_lengths_returns_and_prewrite_traps (tests.test_hia_machine_leaf_registers.LeafRegisterExecutionTests.test_borrowed_byte_addresses_lengths_returns_and_prewrite_traps) ... ok
+2026-11-12T10:54:27.7686877Z test_checked_arithmetic_traps_after_placing_inputs_in_new_registers (tests.test_hia_machine_leaf_registers.LeafRegisterExecutionTests.test_checked_arithmetic_traps_after_placing_inputs_in_new_registers) ... ok
+2026-11-12T10:54:29.6736596Z test_dirty_register_inputs_stack_arguments_page_probe_and_callee_saves (tests.test_hia_machine_leaf_registers.LeafRegisterExecutionTests.test_dirty_register_inputs_stack_arguments_page_probe_and_callee_saves) ... ok
+2026-11-12T10:54:38.6112713Z test_every_leaf_scalar_opcode_keeps_live_r8_r9_against_vm (tests.test_hia_machine_leaf_registers.LeafRegisterExecutionTests.test_every_leaf_scalar_opcode_keeps_live_r8_r9_against_vm) ... ok
+2026-11-12T10:54:39.1734802Z test_parallel_loop_edges_multi_result_and_unassigned_stack_values (tests.test_hia_machine_leaf_registers.LeafRegisterExecutionTests.test_parallel_loop_edges_multi_result_and_unassigned_stack_values) ... ok
+2026-11-12T10:54:39.4184848Z test_entire_function_gate_rejects_calls_allocations_and_recursive_calls (tests.test_hia_machine_leaf_registers.LeafRegisterValidationTests.test_entire_function_gate_rejects_calls_allocations_and_recursive_calls) ... ok
+2026-11-12T10:54:39.5813779Z test_r8_swap_scratch_resources_and_overlapping_lifetimes_are_refused (tests.test_hia_machine_leaf_registers.LeafRegisterValidationTests.test_r8_swap_scratch_resources_and_overlapping_lifetimes_are_refused) ... ok
+2026-11-12T10:54:39.7621959Z test_v4_is_opt_in_and_v3_keeps_its_register_boundary (tests.test_hia_machine_leaf_registers.LeafRegisterValidationTests.test_v4_is_opt_in_and_v3_keeps_its_register_boundary) ... ok
+2026-11-12T10:54:42.0557738Z test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor (tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor) ... ok
+2026-11-12T10:54:43.7755456Z test_one_plan_receipt_cannot_authorize_different_layout (tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout) ... ok
+2026-11-12T10:54:46.0372626Z test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused (tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused) ... ok
+2026-11-12T10:54:46.9571566Z test_separate_checks_and_assumptions_remain_in_verification_receipt (tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt) ... ok
+2026-11-12T10:54:49.5623261Z test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor (tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor) ... ok
+2026-11-12T10:54:51.9622434Z test_one_plan_receipt_cannot_authorize_different_layout (tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout) ... ok
+2026-11-12T10:54:54.0018295Z test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused (tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused) ... ok
+2026-11-12T10:54:55.1308805Z test_register_lifetimes_are_retained_without_claiming_identical_slots (tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots) ... ok
+2026-11-12T10:54:55.9271168Z test_unknown_value_register_assignment_is_refused_through_domain_tools (tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools) ... ok
+2026-11-12T10:54:55.9279989Z 
+2026-11-12T10:54:55.9280210Z ----------------------------------------------------------------------
+2026-11-12T10:54:55.9280646Z Ran 44 tests in 43.782s
+2026-11-12T10:54:55.9280820Z 
+2026-11-12T10:54:55.9280917Z OK
+2026-11-12T10:54:55.9798024Z {"status": "PASS", "scope": "MATCHING_SOURCE_COLD_SELECTED_CALLERS", "tests_run": 44, "report": "/home/runner/work/_temp/hia-machine-plan-callers.json"}
+2026-11-12T10:54:56.0571085Z ##[group]Run python -B - <<'PYCONTEXT76'
+2026-11-12T10:54:56.0571394Z [36;1mpython -B - <<'PYCONTEXT76'[0m
+2026-11-12T10:54:56.0571622Z [36;1mimport unittest[0m
+2026-11-12T10:54:56.0571970Z [36;1mnames = ([0m
+2026-11-12T10:54:56.0572178Z [36;1m    'tests.test_hia_service_context_native',[0m
+2026-11-12T10:54:56.0572450Z [36;1m    'tests.test_hia_service_context_builder',[0m
+2026-11-12T10:54:56.0572674Z [36;1m)[0m
+2026-11-12T10:54:56.0572923Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromNames(names)[0m
+2026-11-12T10:54:56.0573233Z [36;1mif suite.countTestCases() != 52:[0m
+2026-11-12T10:54:56.0573840Z [36;1m    raise AssertionError('complete native component test inventory changed')[0m
+2026-11-12T10:54:56.0574222Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-12T10:54:56.0574558Z [36;1mpassed = (result.wasSuccessful() and result.testsRun == 52[0m
+2026-11-12T10:54:56.0574949Z [36;1m          and not result.skipped and not result.expectedFailures[0m
+2026-11-12T10:54:56.0575266Z [36;1m          and not result.unexpectedSuccesses)[0m
+2026-11-12T10:54:56.0575526Z [36;1mraise SystemExit(0 if passed else 1)[0m
+2026-11-12T10:54:56.0575757Z [36;1mPYCONTEXT76[0m
+2026-11-12T10:54:56.0593603Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:54:56.0593808Z env:
+2026-11-12T10:54:56.0594024Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:54:56.0594358Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:54:56.0594686Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:54:56.0594979Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:54:56.0595263Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:54:56.0595550Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:54:56.0595809Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:54:56.0595998Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:54:56.0596304Z   HEPTA_HIA_SERVICE_CONTEXT_COLD_REPORT: /home/runner/work/_temp/hia-cold.json
+2026-11-12T10:54:56.0596729Z   HEPTA_HIA_SERVICE_CONTEXT_EVIDENCE: /home/runner/work/_temp/hia-service-context
+2026-11-12T10:54:56.0597045Z ##[endgroup]
+2026-11-12T10:54:57.2391123Z test_actual_arbitrary_precision_negative_clock_and_sqlite_identity_domain (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_arbitrary_precision_negative_clock_and_sqlite_identity_domain) ... ok
+2026-11-12T10:54:57.2480522Z test_actual_baseline_and_live_args_are_read_at_original_times (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_baseline_and_live_args_are_read_at_original_times) ... ok
+2026-11-12T10:54:57.2984526Z test_actual_budget_exact_deadline_and_conditional_attempts (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_budget_exact_deadline_and_conditional_attempts) ... ok
+2026-11-12T10:54:57.3059847Z test_actual_cached_mapping_retains_separate_admission_manifest_bytes (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_cached_mapping_retains_separate_admission_manifest_bytes) ... ok
+2026-11-12T10:54:57.3121882Z test_actual_capture_is_one_sql_read_remaining_requeries_each_call (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_capture_is_one_sql_read_remaining_requeries_each_call) ... ok
+2026-11-12T10:54:57.3146924Z test_actual_cleanup_claim_ack_and_delivery_ack_loss_keep_unknown_custody (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_cleanup_claim_ack_and_delivery_ack_loss_keep_unknown_custody) ... ok
+2026-11-12T10:54:57.3182648Z test_actual_delivery_result_store_interruption_does_not_terminalize_original_error (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_delivery_result_store_interruption_does_not_terminalize_original_error) ... ok
+2026-11-12T10:54:58.3012996Z test_actual_error_cleanup_full_vm_native_frames_and_terminal_refusal (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_error_cleanup_full_vm_native_frames_and_terminal_refusal) ... ok
+2026-11-12T10:54:58.3048355Z test_actual_error_clock_temporary_retires_outside_original_handler (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_error_clock_temporary_retires_outside_original_handler) ... ok
+2026-11-12T10:54:58.3051119Z test_actual_fake_or_mutated_result_cannot_authorize_callback (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_fake_or_mutated_result_cannot_authorize_callback) ... ok
+2026-11-12T10:54:58.3055039Z test_actual_foreign_context_unknown_remains_explicit_nonterminal_boundary (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_foreign_context_unknown_remains_explicit_nonterminal_boundary) ... ok
+2026-11-12T10:54:58.3340859Z test_actual_foreign_numeric_operator_and_temporary_lifetimes (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_foreign_numeric_operator_and_temporary_lifetimes) ... ok
+2026-11-12T10:54:58.3394941Z test_actual_freeze_original_write_order_and_float_integer_conversions (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_freeze_original_write_order_and_float_integer_conversions) ... ok
+2026-11-12T10:54:58.3481835Z test_actual_held_checker_capability_rejects_mismatched_bytes_and_duplicate_owner (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_held_checker_capability_rejects_mismatched_bytes_and_duplicate_owner) ... ok
+2026-11-12T10:54:58.3514711Z test_actual_int_conversion_partial_mutation_and_exception_identity (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_int_conversion_partial_mutation_and_exception_identity) ... ok
+2026-11-12T10:54:58.6150330Z test_actual_integer_arithmetic_all_actions_original_python_oracle (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_integer_arithmetic_all_actions_original_python_oracle) ... ok
+2026-11-12T10:54:59.1989012Z test_actual_integer_full_workspace_matches_independent_vm_and_refusals (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_integer_full_workspace_matches_independent_vm_and_refusals) ... ok
+2026-11-12T10:54:59.1993632Z test_actual_integer_interop_never_observes_foreign_numeric_methods (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_integer_interop_never_observes_foreign_numeric_methods) ... ok
+2026-11-12T10:54:59.8153867Z test_actual_integer_storage_extends_beyond_the_prior_corpus_width (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_integer_storage_extends_beyond_the_prior_corpus_width) ... ok
+2026-11-12T10:54:59.8159032Z test_actual_known_exception_identity_and_terminal_error_no_replay (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_known_exception_identity_and_terminal_error_no_replay) ... ok
+2026-11-12T10:54:59.8460616Z test_actual_lookup_identity_stale_profile_and_explicit_connection (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_lookup_identity_stale_profile_and_explicit_connection) ... ok
+2026-11-12T10:54:59.8468921Z test_actual_lost_preclaim_and_post_effect_ack_never_repeat (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_lost_preclaim_and_post_effect_ack_never_repeat) ... ok
+2026-11-12T10:55:07.7103296Z test_actual_native_all_state_bytes_match_independent_vm (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_native_all_state_bytes_match_independent_vm) ... ok
+2026-11-12T10:55:08.6243892Z test_actual_ordinary_proof_consumer_rejects_other_held_image_after_restart (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_ordinary_proof_consumer_rejects_other_held_image_after_restart) ... ok
+2026-11-12T10:55:08.6595037Z test_actual_partial_effects_never_reordered_or_rolled_back (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_partial_effects_never_reordered_or_rolled_back) ... ok
+2026-11-12T10:55:08.6677223Z test_actual_partial_record_operand_release_order_and_handler_context (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_partial_record_operand_release_order_and_handler_context) ... ok
+2026-11-12T10:55:10.8308064Z test_actual_proof_records_held_image_after_selector_replacement_and_clear (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_proof_records_held_image_after_selector_replacement_and_clear) ... ok
+2026-11-12T10:55:10.8379312Z test_actual_public_routes_pin_selected_owner_and_disable_reference (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_public_routes_pin_selected_owner_and_disable_reference) ... ok
+2026-11-12T10:55:10.8439710Z test_actual_rich_compare_truth_destructor_runs_before_next_field (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_rich_compare_truth_destructor_runs_before_next_field) ... ok
+2026-11-12T10:55:10.8441499Z test_actual_same_size_business_and_delivery_requests_have_distinct_magic (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_same_size_business_and_delivery_requests_have_distinct_magic) ... ok
+2026-11-12T10:55:10.8459438Z test_actual_sql_parameter_protocol_and_clock_exception_order (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_sql_parameter_protocol_and_clock_exception_order) ... ok
+2026-11-12T10:55:10.8755084Z test_actual_validation_and_error_order_before_publication (tests.test_hia_service_context_native.ServiceContextNativeTests.test_actual_validation_and_error_order_before_publication) ... ok
+2026-11-12T10:55:14.0267986Z test_installed_wheel_real_service_without_authoring_or_reference (tests.test_hia_service_context_native.ServiceContextNativeTests.test_installed_wheel_real_service_without_authoring_or_reference) ... ok
+2026-11-12T10:55:14.1259608Z test_arithmetic_reuses_exact_shared_hia_bigint_function_bodies (tests.test_hia_service_context_native.ServiceContextSourceTests.test_arithmetic_reuses_exact_shared_hia_bigint_function_bodies) ... ok
+2026-11-12T10:55:14.8982062Z test_generated_source_is_exact (tests.test_hia_service_context_native.ServiceContextSourceTests.test_generated_source_is_exact) ... ok
+2026-11-12T10:55:14.9048649Z test_original_four_methods_are_frozen (tests.test_hia_service_context_native.ServiceContextSourceTests.test_original_four_methods_are_frozen) ... ok
+2026-11-12T10:55:14.9058695Z test_selection_failure_is_not_reference_fallback (tests.test_hia_service_context_native.ServiceContextSourceTests.test_selection_failure_is_not_reference_fallback) ... ok
+2026-11-12T10:55:15.0288362Z test_all_consumed_inputs_rechecked_after_compile (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_all_consumed_inputs_rechecked_after_compile) ... ok
+2026-11-12T10:55:15.1058671Z test_component_and_full_source_readback_precede_output (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_component_and_full_source_readback_precede_output) ... ok
+2026-11-12T10:55:15.1156852Z test_development_and_controlled_cold_reports_have_separate_scope (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_development_and_controlled_cold_reports_have_separate_scope) ... ok
+2026-11-12T10:55:15.1238256Z test_duplicate_receipt_or_foreign_output_path_cannot_publish (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_duplicate_receipt_or_foreign_output_path_cannot_publish) ... ok
+2026-11-12T10:55:15.2045471Z test_exact_compile_and_disk_receipt_fields_are_both_required (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_exact_compile_and_disk_receipt_fields_are_both_required) ... ok
+2026-11-12T10:55:15.2581712Z test_fifo_source_refuses_in_a_bounded_real_child (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_fifo_source_refuses_in_a_bounded_real_child) ... ok
+2026-11-12T10:55:15.2607792Z test_fixture_selection_refuses_ambiguity_and_invalid_cold_before_output (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_fixture_selection_refuses_ambiguity_and_invalid_cold_before_output) ... ok
+2026-11-12T10:55:15.2616466Z test_held_service_selection_does_not_change_default_core_checker_scope (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_held_service_selection_does_not_change_default_core_checker_scope) ... ok
+2026-11-12T10:55:15.2622730Z test_invalid_real_cold_gate_refuses_before_output_or_compiler (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_invalid_real_cold_gate_refuses_before_output_or_compiler) ... ok
+2026-11-12T10:55:15.2688367Z test_malformed_selection_and_active_bundle_refuse_before_mapping (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_malformed_selection_and_active_bundle_refuse_before_mapping) ... ok
+2026-11-12T10:55:15.2903147Z test_original_cold_limits_are_exact_integers (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_original_cold_limits_are_exact_integers) ... ok
+2026-11-12T10:55:15.2938280Z test_post_mapping_source_image_and_manifest_drift_refuse (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_post_mapping_source_image_and_manifest_drift_refuse) ... ok
+2026-11-12T10:55:15.3719748Z test_published_receipt_image_manifest_and_report_are_read_back (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_published_receipt_image_manifest_and_report_are_read_back) ... ok
+2026-11-12T10:55:15.3726911Z test_serialized_or_duplicate_scope_cannot_select_a_held_executable (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_serialized_or_duplicate_scope_cannot_select_a_held_executable) ... ok
+2026-11-12T10:55:15.3770247Z test_warm_selection_reads_actual_source_and_image_again (tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_warm_selection_reads_actual_source_and_image_again) ... ok
+2026-11-12T10:55:15.3771145Z 
+2026-11-12T10:55:15.3771330Z ----------------------------------------------------------------------
+2026-11-12T10:55:15.3771769Z Ran 52 tests in 19.001s
+2026-11-12T10:55:15.3771932Z 
+2026-11-12T10:55:15.3772027Z OK
+2026-11-12T10:55:15.4203938Z ##[group]Run python -B -m tools.qualify_hia_service_context \
+2026-11-12T10:55:15.4204357Z [36;1mpython -B -m tools.qualify_hia_service_context \[0m
+2026-11-12T10:55:15.4204672Z [36;1m  --cold-report "$RUNNER_TEMP/hia-cold.json" \[0m
+2026-11-12T10:55:15.4204991Z [36;1m  --evidence "$RUNNER_TEMP/hia-service-context-callers"[0m
+2026-11-12T10:55:15.4222911Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:55:15.4223106Z env:
+2026-11-12T10:55:15.4223316Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:55:15.4223862Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:55:15.4224183Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:55:15.4224479Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:55:15.4238274Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:55:15.4238757Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:55:15.4239192Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:55:15.4239443Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:55:15.4239716Z ##[endgroup]
+2026-11-12T10:56:52.8780112Z {"status": "MATCHING_SOURCE_COLD_CALLERS_PASS", "scope": "MATCHING_SOURCE_COLD_SELECTED_CALLERS", "expected_count": 48, "source_and_inputs_unchanged": true}
+2026-11-12T10:56:52.9085908Z ##[group]Run python -B - <<'PYRESULT'
+2026-11-12T10:56:52.9086216Z [36;1mpython -B - <<'PYRESULT'[0m
+2026-11-12T10:56:52.9086449Z [36;1mimport json, os, pathlib, subprocess[0m
+2026-11-12T10:56:52.9086773Z [36;1mout=pathlib.Path(os.environ['RUNNER_TEMP'])/'hia-native-owners-v76'[0m
+2026-11-12T10:56:52.9087138Z [36;1mout.mkdir(mode=0o700,parents=True,exist_ok=True)[0m
+2026-11-12T10:56:52.9087396Z [36;1mdef git(*args):[0m
+2026-11-12T10:56:52.9087667Z [36;1m    return subprocess.check_output(['git',*args],text=True).strip()[0m
+2026-11-12T10:56:52.9088027Z [36;1moutcomes=json.loads(os.environ['HIA_ORIGINAL_STEP_OUTCOMES'])[0m
+2026-11-12T10:56:52.9088782Z [36;1mexpected=['original_0', 'original_1', 'original_2', 'original_3', 'original_4', 'original_5', 'original_23', 'original_31', 'original_32', 'original_33', 'original_34', 'original_35', 'original_36', 'original_37', 'original_38', 'original_39', 'source_admission'][0m
+2026-11-12T10:56:52.9089721Z [36;1mrecord={'schema':'hia.v76.current-owner-selected-gates.v1',[0m
+2026-11-12T10:56:52.9090089Z [36;1m        'scope':'CURRENT_SOURCE_COLD_AND_COMPLETE_SELECTED_OWNER_GROUPS',[0m
+2026-11-12T10:56:52.9090501Z [36;1m        'source_head':git('rev-parse','HEAD'),'source_tree':git('rev-parse','HEAD^{tree}'),[0m
+2026-11-12T10:56:52.9090942Z [36;1m        'status_porcelain':git('status','--porcelain=v1','--untracked-files=all'),[0m
+2026-11-12T10:56:52.9091297Z [36;1m        'harness_commit':os.environ['GITHUB_SHA'],[0m
+2026-11-12T10:56:52.9091639Z [36;1m        'expected_step_ids':expected,'actual_step_outcomes':outcomes,[0m
+2026-11-12T10:56:52.9092019Z [36;1m        'original_selected_step_bodies_env_tests_and_limits_unchanged':True,[0m
+2026-11-12T10:56:52.9092357Z [36;1m        'full_original_core_workflow_executed':False,[0m
+2026-11-12T10:56:52.9092639Z [36;1m        'full_5400_second_regression_executed':False,[0m
+2026-11-12T10:56:52.9092914Z [36;1m        'whole_native_delivery_qualified':False,[0m
+2026-11-12T10:56:52.9093215Z [36;1m        'native_defaults_changed':False,'legacy_deleted':False}[0m
+2026-11-12T10:56:52.9094027Z [36;1mpassed=(record['source_head']=='4b19af89a766593f7d5f1cc2db256e81aba7afcb' and record['source_tree']=='1bc7c90996e1910ad66ba771b0bfee1d5bfa655c'[0m
+2026-11-12T10:56:52.9094524Z [36;1m        and not record['status_porcelain'][0m
+2026-11-12T10:56:52.9094864Z [36;1m        and all(outcomes.get(name,{}).get('outcome')=='success' for name in expected))[0m
+2026-11-12T10:56:52.9095322Z [36;1mrecord['status']='ALL_SELECTED_STEPS_PASS' if passed else 'SELECTED_GATES_FAIL_OR_INCOMPLETE'[0m
+2026-11-12T10:56:52.9095787Z [36;1m(out/'RESULT.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')[0m
+2026-11-12T10:56:52.9096151Z [36;1mprint(json.dumps(record,sort_keys=True),flush=True)[0m
+2026-11-12T10:56:52.9096437Z [36;1mraise SystemExit(0 if passed else 1)[0m
+2026-11-12T10:56:52.9096661Z [36;1mPYRESULT[0m
+2026-11-12T10:56:52.9115445Z shell: /usr/bin/bash -e {0}
+2026-11-12T10:56:52.9115700Z env:
+2026-11-12T10:56:52.9115993Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:56:52.9116474Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:56:52.9116960Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:56:52.9117401Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:56:52.9117811Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:56:52.9118227Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:56:52.9118634Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:56:52.9118838Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:56:52.9123545Z   HIA_ORIGINAL_STEP_OUTCOMES: {
+  "original_0": {
+    "outputs": {
+      "commit": "4b19af89a766593f7d5f1cc2db256e81aba7afcb",
+      "ref": ""
+    },
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_1": {
+    "outputs": {
+      "python-version": "3.14.4",
+      "python-path": "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python"
+    },
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "source_admission": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_2": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_3": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_4": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_5": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_23": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_31": {
+    "outputs": {},
+    "outcome": "failure",
+    "conclusion": "failure"
+  },
+  "original_32": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_33": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_34": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_35": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_36": {
+    "outputs": {},
+    "outcome": "failure",
+    "conclusion": "failure"
+  },
+  "original_37": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_38": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  },
+  "original_39": {
+    "outputs": {},
+    "outcome": "success",
+    "conclusion": "success"
+  }
+}
+2026-11-12T10:56:52.9127951Z ##[endgroup]
+2026-11-12T10:56:52.9572959Z {"actual_step_outcomes": {"original_0": {"conclusion": "success", "outcome": "success", "outputs": {"commit": "4b19af89a766593f7d5f1cc2db256e81aba7afcb", "ref": ""}}, "original_1": {"conclusion": "success", "outcome": "success", "outputs": {"python-path": "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python", "python-version": "3.14.4"}}, "original_2": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_23": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_3": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_31": {"conclusion": "failure", "outcome": "failure", "outputs": {}}, "original_32": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_33": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_34": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_35": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_36": {"conclusion": "failure", "outcome": "failure", "outputs": {}}, "original_37": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_38": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_39": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_4": {"conclusion": "success", "outcome": "success", "outputs": {}}, "original_5": {"conclusion": "success", "outcome": "success", "outputs": {}}, "source_admission": {"conclusion": "success", "outcome": "success", "outputs": {}}}, "expected_step_ids": ["original_0", "original_1", "original_2", "original_3", "original_4", "original_5", "original_23", "original_31", "original_32", "original_33", "original_34", "original_35", "original_36", "original_37", "original_38", "original_39", "source_admission"], "full_5400_second_regression_executed": false, "full_original_core_workflow_executed": false, "harness_commit": "b5f7bc6a649236ba830185288d1d454a463fd1d3", "legacy_deleted": false, "native_defaults_changed": false, "original_selected_step_bodies_env_tests_and_limits_unchanged": true, "schema": "hia.v76.current-owner-selected-gates.v1", "scope": "CURRENT_SOURCE_COLD_AND_COMPLETE_SELECTED_OWNER_GROUPS", "source_head": "4b19af89a766593f7d5f1cc2db256e81aba7afcb", "source_tree": "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c", "status": "SELECTED_GATES_FAIL_OR_INCOMPLETE", "status_porcelain": "", "whole_native_delivery_qualified": false}
+2026-11-12T10:56:52.9617507Z ##[error]Process completed with exit code 1.
+2026-11-12T10:56:52.9665629Z ##[group]Run actions/upload-artifact@v4
+2026-11-12T10:56:52.9665861Z with:
+2026-11-12T10:56:52.9666050Z   name: hia-current-owners-v76-43201886047-1
+2026-11-12T10:56:52.9666290Z   if-no-files-found: error
+2026-11-12T10:56:52.9666488Z   retention-days: 7
+2026-11-12T10:56:52.9666668Z   include-hidden-files: true
+2026-11-12T10:56:52.9670951Z   path: /home/runner/work/_temp/hia-cold.json
+/home/runner/work/_temp/hia-cold.cold/
+/home/runner/work/_temp/hia-language.json
+/home/runner/work/_temp/hia-language.assertions.json
+/home/runner/work/_temp/hia-language.evidence/
+/home/runner/work/_temp/hia-nominal-fixture/
+/home/runner/work/_temp/hia-module-projects/
+/home/runner/work/_temp/hia-slot-ledger/
+/home/runner/work/_temp/hia-program-execution/
+/home/runner/work/_temp/hia-program-execution-scalars/
+/home/runner/work/_temp/hia-static-budget/
+/home/runner/work/_temp/hia-static-bigints/
+/home/runner/work/_temp/hia-static-graphs/
+/home/runner/work/_temp/hia-heap-bound/
+/home/runner/work/_temp/hia-heap-live-engine/
+/home/runner/work/_temp/hia-linked-observer/
+/home/runner/work/_temp/hia-compile-receipts/
+/home/runner/work/_temp/hia-release-install/
+/home/runner/work/_temp/hia-release-selection/
+/home/runner/work/_temp/hia-source-build/
+/home/runner/work/_temp/hia-selfhost-build/
+/home/runner/work/_temp/hia-source-admission/
+/home/runner/work/_temp/hia-cli-native/
+/home/runner/work/_temp/hia-machine-encoding/
+/home/runner/work/_temp/hia-machine-state/
+/home/runner/work/_temp/hia-machine-instructions/
+/home/runner/work/_temp/hia-machine-code-composition/
+/home/runner/work/_temp/hia-machine-instructions-callers/
+/home/runner/work/_temp/hia-machine-elf/
+/home/runner/work/_temp/hia-machine-elf-callers/
+/home/runner/work/_temp/hia-machine-plan/
+/home/runner/work/_temp/hia-machine-plan-callers.json
+/home/runner/work/_temp/hia-machine-plan-callers/
+/home/runner/work/_temp/hia-service-context/
+/home/runner/work/_temp/hia-service-context-callers/
+
+/home/runner/work/_temp/hia-native-owners-v76/
+
+2026-11-12T10:56:52.9675847Z   compression-level: 6
+2026-11-12T10:56:52.9676036Z   overwrite: false
+2026-11-12T10:56:52.9676202Z env:
+2026-11-12T10:56:52.9676410Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:56:52.9676743Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T10:56:52.9677066Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:56:52.9677357Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:56:52.9677642Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T10:56:52.9677950Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T10:56:52.9678206Z   CLANG: /usr/bin/clang-20
+2026-11-12T10:56:52.9678400Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-12T10:56:52.9678595Z ##[endgroup]
+2026-11-12T10:56:53.1116429Z (node:15220) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T10:56:53.1117413Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T10:56:54.7584280Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-12T10:56:54.7590979Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-12T10:56:54.7591652Z With the provided path, there will be 12933 files uploaded
+2026-11-12T10:56:54.7592252Z Artifact name is valid!
+2026-11-12T10:56:54.7592544Z Root directory input is valid!
+2026-11-12T10:56:55.2106606Z Beginning upload of artifact content to blob storage
+2026-11-12T10:56:56.6093591Z (node:15220) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-12T10:56:57.5765540Z Uploaded bytes 8388608
+2026-11-12T10:56:57.9761103Z Uploaded bytes 16777216
+2026-11-12T10:56:58.1084484Z Uploaded bytes 25165824
+2026-11-12T10:56:58.3203985Z Uploaded bytes 33554432
+2026-11-12T10:56:58.9763314Z Uploaded bytes 41943040
+2026-11-12T10:56:59.3251077Z Uploaded bytes 50331648
+2026-11-12T10:57:00.4227298Z Uploaded bytes 58720256
+2026-11-12T10:57:01.1504896Z Uploaded bytes 67108864
+2026-11-12T10:57:02.3366928Z Uploaded bytes 75497472
+2026-11-12T10:57:03.0195392Z Uploaded bytes 83886080
+2026-11-12T10:57:04.1947921Z Uploaded bytes 92274688
+2026-11-12T10:57:05.2977277Z Uploaded bytes 100663296
+2026-11-12T10:57:05.9543208Z Uploaded bytes 109051904
+2026-11-12T10:57:07.2981376Z Uploaded bytes 117440512
+2026-11-12T10:57:07.8744676Z Uploaded bytes 125829120
+2026-11-12T10:57:09.1547001Z Uploaded bytes 134217728
+2026-11-12T10:57:09.6975971Z Uploaded bytes 142606336
+2026-11-12T10:57:11.0460129Z Uploaded bytes 150994944
+2026-11-12T10:57:11.6108606Z Uploaded bytes 159383552
+2026-11-12T10:57:12.8815885Z Uploaded bytes 167772160
+2026-11-12T10:57:13.4849410Z Uploaded bytes 176160768
+2026-11-12T10:57:14.7269066Z Uploaded bytes 184549376
+2026-11-12T10:57:15.4521359Z Uploaded bytes 192937984
+2026-11-12T10:57:16.5877953Z Uploaded bytes 201326592
+2026-11-12T10:57:17.2630281Z Uploaded bytes 209715200
+2026-11-12T10:57:18.3882361Z Uploaded bytes 218103808
+2026-11-12T10:57:19.1588157Z Uploaded bytes 226492416
+2026-11-12T10:57:19.3451920Z Uploaded bytes 229337241
+2026-11-12T10:57:19.4258570Z Finished uploading artifact content to blob storage!
+2026-11-12T10:57:19.4261668Z SHA256 digest of uploaded artifact zip is eefe08ff66dace4ff7a087073e312df6aff25e0ee72d8cfd408a23e67b28e9ee
+2026-11-12T10:57:19.4263830Z Finalizing artifact upload
+2026-11-12T10:57:20.1347105Z Artifact hia-current-owners-v76-43201886047-1.zip successfully finalized. Artifact ID 13937765203
+2026-11-12T10:57:20.1348219Z Artifact hia-current-owners-v76-43201886047-1 has been successfully uploaded! Final size is 229337241 bytes. Artifact ID is 13937765203
+2026-11-12T10:57:20.1355639Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43201886047/artifacts/13937765203
+2026-11-12T10:57:20.1829118Z Post job cleanup.
+2026-11-12T10:57:20.2516640Z [command]/usr/bin/git version
+2026-11-12T10:57:20.2583683Z git version 2.56.0
+2026-11-12T10:57:20.2614148Z Temporarily overriding HOME='/home/runner/work/_temp/ac616473-39b1-447b-b575-855cfcf24951' before making global git config changes
+2026-11-12T10:57:20.2615165Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T10:57:20.2618157Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T10:57:20.2651893Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T10:57:20.2682119Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T10:57:20.2917841Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T10:57:20.2967879Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T10:57:20.3202601Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T10:57:20.3244811Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T10:57:20.3614458Z Cleaning up orphan processes
+2026-11-12T10:57:20.3929299Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

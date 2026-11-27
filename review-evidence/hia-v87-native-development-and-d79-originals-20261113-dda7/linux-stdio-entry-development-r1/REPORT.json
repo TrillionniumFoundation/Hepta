@@ -1,0 +1,1640 @@
+{
+  "W_X": "RX text, RW/NX BSS and stack; no interpreter/dynamic segment; complete fields and bytes independently checked",
+  "author_supervisor_and_reference_still_python": true,
+  "base_readback": {
+    "bytes": 329,
+    "git_blob": "0629271cc421b2cc95d6d9b60d55d09cfc5da1d8",
+    "local_path": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-entry-r1/handoff/BASE-READBACK.json",
+    "path": "BASE-READBACK.json",
+    "sha256": "15bd897563cdb38436c0d7209f51df01f1cef12a50a1e78521ae5cb09c9e061e"
+  },
+  "cpython314": false,
+  "existing_S_port_replaced": false,
+  "frozen_inputs": {
+    "PREDECESSOR-RECIPE.json": {
+      "bytes": 6261,
+      "git_blob": "09553a95cdce3f0ec09013cf015ee26e0976dc33",
+      "sha256": "77d75f7c3f8142a562fa552442887e41aa1acb2ead6ef6846f1b24e7b1a714e5",
+      "source": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-primitive-r1/handoff/AUDIT-RECIPE.json"
+    },
+    "PREDECESSOR-REPORT.json": {
+      "bytes": 10130,
+      "git_blob": "fe4ca30584b2d74a2135eb6669b3914680be9fe5",
+      "sha256": "53bf84e1a0b58e1db4dd8f2b24410ce697f3c27b63609a677bdba0bc3f847691",
+      "source": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-primitive-r1/handoff/REPORT.json"
+    },
+    "linux-L3.image.bin": {
+      "bytes": 674949,
+      "git_blob": "5a2f70d6c7bd96f1027db5f7db8ceb2161930aac",
+      "sha256": "ba30a37d0c4ab6e17757c49a392c3feb9a2118f9d57836a141f5381803ecf6c8",
+      "source": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-primitive-r1/evidence/compile-r1/linux-L3.image.bin"
+    },
+    "linux-stdio.hepta": {
+      "bytes": 468075,
+      "git_blob": "c8767914a462a5e2b5fa40987b28bf056656ad1a",
+      "sha256": "a4436d20c9bdb6876f30cb2babb7ad67a4be91ce48c3870ecdd5aec28b1cded0",
+      "source": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-primitive-r1/generated/linux-stdio.hepta"
+    },
+    "linux_stdio_reference.py": {
+      "bytes": 7165,
+      "git_blob": "71d6babe728cffd70883718ad55040c367be6eb5",
+      "sha256": "7f274a207c2ac8be89842f77956dca1b993d0540587d34e4a70604c5a1ce1bbc",
+      "source": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-primitive-r1/authored/linux_stdio_reference.py"
+    }
+  },
+  "groups": {
+    "build-r1": {
+      "bytes": 52892,
+      "fixed_point_and_old_B3": true,
+      "git_blob": "2a61d960a6018cb0bcfd806724d51cf307c757b9",
+      "inputs_unchanged": true,
+      "packed_programs": {
+        "bounded-copy": {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_source": true,
+            "full_workspace": true,
+            "no_build_stdout": true,
+            "no_project_modules_in_observer": true,
+            "normal_return": true
+          },
+          "elf": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-entry-r1/evidence/build-r1/bounded-copy.elf",
+          "elf_inspection": {
+            "W_X_disjoint": true,
+            "elf_type": "ET_EXEC",
+            "entire_elf_bytes_equal_reference": true,
+            "entry": 4194536,
+            "file_bytes": 8192,
+            "fixed_buffer_extents": [
+              0,
+              1048576,
+              1048576
+            ],
+            "machine": "x86-64",
+            "no_interp_or_dynamic": true,
+            "nonexecuting_stack": true,
+            "program_headers": [
+              [
+                1,
+                5,
+                0,
+                4194304,
+                4194304,
+                8192,
+                8192,
+                4096
+              ],
+              [
+                1,
+                6,
+                8192,
+                6291456,
+                6291456,
+                0,
+                2097152,
+                4096
+              ],
+              [
+                1685382481,
+                6,
+                0,
+                0,
+                0,
+                0,
+                0,
+                16
+              ]
+            ],
+            "program_offset": 384,
+            "startup_instructions": [
+              {
+                "at": 232,
+                "hex": "31ed",
+                "name": "xor ebp,ebp"
+              },
+              {
+                "at": 234,
+                "hex": "fc",
+                "name": "cld"
+              },
+              {
+                "at": 235,
+                "hex": "4883e4f0",
+                "name": "and rsp,-16"
+              },
+              {
+                "at": 239,
+                "hex": "bf04000000",
+                "name": "PR_SET_DUMPABLE argument"
+              },
+              {
+                "at": 244,
+                "hex": "be00000000",
+                "name": "nondumpable argument"
+              },
+              {
+                "at": 249,
+                "hex": "31d2",
+                "name": "xor edx,edx"
+              },
+              {
+                "at": 251,
+                "hex": "4531d2",
+                "name": "xor r10d,r10d"
+              },
+              {
+                "at": 254,
+                "hex": "4531c0",
+                "name": "xor r8d,r8d"
+              },
+              {
+                "at": 257,
+                "hex": "b89d000000",
+                "name": "SYS_prctl"
+              },
+              {
+                "at": 262,
+                "hex": "0f05",
+                "name": "syscall prctl"
+              },
+              {
+                "at": 264,
+                "hex": "85c0",
+                "name": "test eax,eax"
+              },
+              {
+                "at": 266,
+                "hex": "0f8530000000",
+                "name": "jne startup_failure"
+              },
+              {
+                "at": 272,
+                "hex": "bf00004000",
+                "name": "empty readbuf pointer"
+              },
+              {
+                "at": 277,
+                "hex": "be00000000",
+                "name": "empty readbuf extent"
+              },
+              {
+                "at": 282,
+                "hex": "ba00006000",
+                "name": "output pointer"
+              },
+              {
+                "at": 287,
+                "hex": "b900001000",
+                "name": "output extent"
+              },
+              {
+                "at": 292,
+                "hex": "41b800007000",
+                "name": "workspace pointer"
+              },
+              {
+                "at": 298,
+                "hex": "41b900001000",
+                "name": "workspace extent"
+              },
+              {
+                "at": 304,
+                "hex": "e84b000000",
+                "name": "call compiled HIA entry"
+              },
+              {
+                "at": 309,
+                "hex": "89c7",
+                "name": "mov edi,eax"
+              },
+              {
+                "at": 311,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 316,
+                "hex": "0f05",
+                "name": "syscall exit"
+              },
+              {
+                "at": 318,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              },
+              {
+                "at": 320,
+                "hex": "bf7e000000",
+                "name": "startup failure status"
+              },
+              {
+                "at": 325,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 330,
+                "hex": "0f05",
+                "name": "syscall startup failure exit"
+              },
+              {
+                "at": 332,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              }
+            ]
+          },
+          "elf_sha256": "4f9e6fed0723e4248c37b4b338b6051bb08cfcb007cb498c41bd6e6b867c95fe"
+        },
+        "out-of-bounds": {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_source": true,
+            "full_workspace": true,
+            "no_build_stdout": true,
+            "no_project_modules_in_observer": true,
+            "normal_return": true
+          },
+          "elf": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-entry-r1/evidence/build-r1/out-of-bounds.elf",
+          "elf_inspection": {
+            "W_X_disjoint": true,
+            "elf_type": "ET_EXEC",
+            "entire_elf_bytes_equal_reference": true,
+            "entry": 4194536,
+            "file_bytes": 4096,
+            "fixed_buffer_extents": [
+              0,
+              1048576,
+              1048576
+            ],
+            "machine": "x86-64",
+            "no_interp_or_dynamic": true,
+            "nonexecuting_stack": true,
+            "program_headers": [
+              [
+                1,
+                5,
+                0,
+                4194304,
+                4194304,
+                4096,
+                4096,
+                4096
+              ],
+              [
+                1,
+                6,
+                4096,
+                6291456,
+                6291456,
+                0,
+                2097152,
+                4096
+              ],
+              [
+                1685382481,
+                6,
+                0,
+                0,
+                0,
+                0,
+                0,
+                16
+              ]
+            ],
+            "program_offset": 384,
+            "startup_instructions": [
+              {
+                "at": 232,
+                "hex": "31ed",
+                "name": "xor ebp,ebp"
+              },
+              {
+                "at": 234,
+                "hex": "fc",
+                "name": "cld"
+              },
+              {
+                "at": 235,
+                "hex": "4883e4f0",
+                "name": "and rsp,-16"
+              },
+              {
+                "at": 239,
+                "hex": "bf04000000",
+                "name": "PR_SET_DUMPABLE argument"
+              },
+              {
+                "at": 244,
+                "hex": "be00000000",
+                "name": "nondumpable argument"
+              },
+              {
+                "at": 249,
+                "hex": "31d2",
+                "name": "xor edx,edx"
+              },
+              {
+                "at": 251,
+                "hex": "4531d2",
+                "name": "xor r10d,r10d"
+              },
+              {
+                "at": 254,
+                "hex": "4531c0",
+                "name": "xor r8d,r8d"
+              },
+              {
+                "at": 257,
+                "hex": "b89d000000",
+                "name": "SYS_prctl"
+              },
+              {
+                "at": 262,
+                "hex": "0f05",
+                "name": "syscall prctl"
+              },
+              {
+                "at": 264,
+                "hex": "85c0",
+                "name": "test eax,eax"
+              },
+              {
+                "at": 266,
+                "hex": "0f8530000000",
+                "name": "jne startup_failure"
+              },
+              {
+                "at": 272,
+                "hex": "bf00004000",
+                "name": "empty readbuf pointer"
+              },
+              {
+                "at": 277,
+                "hex": "be00000000",
+                "name": "empty readbuf extent"
+              },
+              {
+                "at": 282,
+                "hex": "ba00006000",
+                "name": "output pointer"
+              },
+              {
+                "at": 287,
+                "hex": "b900001000",
+                "name": "output extent"
+              },
+              {
+                "at": 292,
+                "hex": "41b800007000",
+                "name": "workspace pointer"
+              },
+              {
+                "at": 298,
+                "hex": "41b900001000",
+                "name": "workspace extent"
+              },
+              {
+                "at": 304,
+                "hex": "e84b000000",
+                "name": "call compiled HIA entry"
+              },
+              {
+                "at": 309,
+                "hex": "89c7",
+                "name": "mov edi,eax"
+              },
+              {
+                "at": 311,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 316,
+                "hex": "0f05",
+                "name": "syscall exit"
+              },
+              {
+                "at": 318,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              },
+              {
+                "at": 320,
+                "hex": "bf7e000000",
+                "name": "startup failure status"
+              },
+              {
+                "at": 325,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 330,
+                "hex": "0f05",
+                "name": "syscall startup failure exit"
+              },
+              {
+                "at": 332,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              }
+            ]
+          },
+          "elf_sha256": "17cc53d0f2c3840fbb569c343f214f074f70221a1ef54eb97b2e129ec5026fa1"
+        },
+        "read-ebadf-exact": {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_source": true,
+            "full_workspace": true,
+            "no_build_stdout": true,
+            "no_project_modules_in_observer": true,
+            "normal_return": true
+          },
+          "elf": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-entry-r1/evidence/build-r1/read-ebadf-exact.elf",
+          "elf_inspection": {
+            "W_X_disjoint": true,
+            "elf_type": "ET_EXEC",
+            "entire_elf_bytes_equal_reference": true,
+            "entry": 4194536,
+            "file_bytes": 4096,
+            "fixed_buffer_extents": [
+              0,
+              1048576,
+              1048576
+            ],
+            "machine": "x86-64",
+            "no_interp_or_dynamic": true,
+            "nonexecuting_stack": true,
+            "program_headers": [
+              [
+                1,
+                5,
+                0,
+                4194304,
+                4194304,
+                4096,
+                4096,
+                4096
+              ],
+              [
+                1,
+                6,
+                4096,
+                6291456,
+                6291456,
+                0,
+                2097152,
+                4096
+              ],
+              [
+                1685382481,
+                6,
+                0,
+                0,
+                0,
+                0,
+                0,
+                16
+              ]
+            ],
+            "program_offset": 384,
+            "startup_instructions": [
+              {
+                "at": 232,
+                "hex": "31ed",
+                "name": "xor ebp,ebp"
+              },
+              {
+                "at": 234,
+                "hex": "fc",
+                "name": "cld"
+              },
+              {
+                "at": 235,
+                "hex": "4883e4f0",
+                "name": "and rsp,-16"
+              },
+              {
+                "at": 239,
+                "hex": "bf04000000",
+                "name": "PR_SET_DUMPABLE argument"
+              },
+              {
+                "at": 244,
+                "hex": "be00000000",
+                "name": "nondumpable argument"
+              },
+              {
+                "at": 249,
+                "hex": "31d2",
+                "name": "xor edx,edx"
+              },
+              {
+                "at": 251,
+                "hex": "4531d2",
+                "name": "xor r10d,r10d"
+              },
+              {
+                "at": 254,
+                "hex": "4531c0",
+                "name": "xor r8d,r8d"
+              },
+              {
+                "at": 257,
+                "hex": "b89d000000",
+                "name": "SYS_prctl"
+              },
+              {
+                "at": 262,
+                "hex": "0f05",
+                "name": "syscall prctl"
+              },
+              {
+                "at": 264,
+                "hex": "85c0",
+                "name": "test eax,eax"
+              },
+              {
+                "at": 266,
+                "hex": "0f8530000000",
+                "name": "jne startup_failure"
+              },
+              {
+                "at": 272,
+                "hex": "bf00004000",
+                "name": "empty readbuf pointer"
+              },
+              {
+                "at": 277,
+                "hex": "be00000000",
+                "name": "empty readbuf extent"
+              },
+              {
+                "at": 282,
+                "hex": "ba00006000",
+                "name": "output pointer"
+              },
+              {
+                "at": 287,
+                "hex": "b900001000",
+                "name": "output extent"
+              },
+              {
+                "at": 292,
+                "hex": "41b800007000",
+                "name": "workspace pointer"
+              },
+              {
+                "at": 298,
+                "hex": "41b900001000",
+                "name": "workspace extent"
+              },
+              {
+                "at": 304,
+                "hex": "e84b000000",
+                "name": "call compiled HIA entry"
+              },
+              {
+                "at": 309,
+                "hex": "89c7",
+                "name": "mov edi,eax"
+              },
+              {
+                "at": 311,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 316,
+                "hex": "0f05",
+                "name": "syscall exit"
+              },
+              {
+                "at": 318,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              },
+              {
+                "at": 320,
+                "hex": "bf7e000000",
+                "name": "startup failure status"
+              },
+              {
+                "at": 325,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 330,
+                "hex": "0f05",
+                "name": "syscall startup failure exit"
+              },
+              {
+                "at": 332,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              }
+            ]
+          },
+          "elf_sha256": "550e466efa39dab143989eb9e493fa89361421466caa846c55a82c755d4b98e0"
+        },
+        "write-ebadf-exact": {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_source": true,
+            "full_workspace": true,
+            "no_build_stdout": true,
+            "no_project_modules_in_observer": true,
+            "normal_return": true
+          },
+          "elf": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-entry-r1/evidence/build-r1/write-ebadf-exact.elf",
+          "elf_inspection": {
+            "W_X_disjoint": true,
+            "elf_type": "ET_EXEC",
+            "entire_elf_bytes_equal_reference": true,
+            "entry": 4194536,
+            "file_bytes": 4096,
+            "fixed_buffer_extents": [
+              0,
+              1048576,
+              1048576
+            ],
+            "machine": "x86-64",
+            "no_interp_or_dynamic": true,
+            "nonexecuting_stack": true,
+            "program_headers": [
+              [
+                1,
+                5,
+                0,
+                4194304,
+                4194304,
+                4096,
+                4096,
+                4096
+              ],
+              [
+                1,
+                6,
+                4096,
+                6291456,
+                6291456,
+                0,
+                2097152,
+                4096
+              ],
+              [
+                1685382481,
+                6,
+                0,
+                0,
+                0,
+                0,
+                0,
+                16
+              ]
+            ],
+            "program_offset": 384,
+            "startup_instructions": [
+              {
+                "at": 232,
+                "hex": "31ed",
+                "name": "xor ebp,ebp"
+              },
+              {
+                "at": 234,
+                "hex": "fc",
+                "name": "cld"
+              },
+              {
+                "at": 235,
+                "hex": "4883e4f0",
+                "name": "and rsp,-16"
+              },
+              {
+                "at": 239,
+                "hex": "bf04000000",
+                "name": "PR_SET_DUMPABLE argument"
+              },
+              {
+                "at": 244,
+                "hex": "be00000000",
+                "name": "nondumpable argument"
+              },
+              {
+                "at": 249,
+                "hex": "31d2",
+                "name": "xor edx,edx"
+              },
+              {
+                "at": 251,
+                "hex": "4531d2",
+                "name": "xor r10d,r10d"
+              },
+              {
+                "at": 254,
+                "hex": "4531c0",
+                "name": "xor r8d,r8d"
+              },
+              {
+                "at": 257,
+                "hex": "b89d000000",
+                "name": "SYS_prctl"
+              },
+              {
+                "at": 262,
+                "hex": "0f05",
+                "name": "syscall prctl"
+              },
+              {
+                "at": 264,
+                "hex": "85c0",
+                "name": "test eax,eax"
+              },
+              {
+                "at": 266,
+                "hex": "0f8530000000",
+                "name": "jne startup_failure"
+              },
+              {
+                "at": 272,
+                "hex": "bf00004000",
+                "name": "empty readbuf pointer"
+              },
+              {
+                "at": 277,
+                "hex": "be00000000",
+                "name": "empty readbuf extent"
+              },
+              {
+                "at": 282,
+                "hex": "ba00006000",
+                "name": "output pointer"
+              },
+              {
+                "at": 287,
+                "hex": "b900001000",
+                "name": "output extent"
+              },
+              {
+                "at": 292,
+                "hex": "41b800007000",
+                "name": "workspace pointer"
+              },
+              {
+                "at": 298,
+                "hex": "41b900001000",
+                "name": "workspace extent"
+              },
+              {
+                "at": 304,
+                "hex": "e84b000000",
+                "name": "call compiled HIA entry"
+              },
+              {
+                "at": 309,
+                "hex": "89c7",
+                "name": "mov edi,eax"
+              },
+              {
+                "at": 311,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 316,
+                "hex": "0f05",
+                "name": "syscall exit"
+              },
+              {
+                "at": 318,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              },
+              {
+                "at": 320,
+                "hex": "bf7e000000",
+                "name": "startup failure status"
+              },
+              {
+                "at": 325,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 330,
+                "hex": "0f05",
+                "name": "syscall startup failure exit"
+              },
+              {
+                "at": 332,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              }
+            ]
+          },
+          "elf_sha256": "11dbe645d0501aff6aef1adfcc2fe85087765d48152ef97d6e91a931cd863eb4"
+        },
+        "zero-transfer": {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_source": true,
+            "full_workspace": true,
+            "no_build_stdout": true,
+            "no_project_modules_in_observer": true,
+            "normal_return": true
+          },
+          "elf": "/workspace/scratch/dda74a4fae35/v87-linux-stdio-entry-r1/evidence/build-r1/zero-transfer.elf",
+          "elf_inspection": {
+            "W_X_disjoint": true,
+            "elf_type": "ET_EXEC",
+            "entire_elf_bytes_equal_reference": true,
+            "entry": 4194536,
+            "file_bytes": 4096,
+            "fixed_buffer_extents": [
+              0,
+              1048576,
+              1048576
+            ],
+            "machine": "x86-64",
+            "no_interp_or_dynamic": true,
+            "nonexecuting_stack": true,
+            "program_headers": [
+              [
+                1,
+                5,
+                0,
+                4194304,
+                4194304,
+                4096,
+                4096,
+                4096
+              ],
+              [
+                1,
+                6,
+                4096,
+                6291456,
+                6291456,
+                0,
+                2097152,
+                4096
+              ],
+              [
+                1685382481,
+                6,
+                0,
+                0,
+                0,
+                0,
+                0,
+                16
+              ]
+            ],
+            "program_offset": 384,
+            "startup_instructions": [
+              {
+                "at": 232,
+                "hex": "31ed",
+                "name": "xor ebp,ebp"
+              },
+              {
+                "at": 234,
+                "hex": "fc",
+                "name": "cld"
+              },
+              {
+                "at": 235,
+                "hex": "4883e4f0",
+                "name": "and rsp,-16"
+              },
+              {
+                "at": 239,
+                "hex": "bf04000000",
+                "name": "PR_SET_DUMPABLE argument"
+              },
+              {
+                "at": 244,
+                "hex": "be00000000",
+                "name": "nondumpable argument"
+              },
+              {
+                "at": 249,
+                "hex": "31d2",
+                "name": "xor edx,edx"
+              },
+              {
+                "at": 251,
+                "hex": "4531d2",
+                "name": "xor r10d,r10d"
+              },
+              {
+                "at": 254,
+                "hex": "4531c0",
+                "name": "xor r8d,r8d"
+              },
+              {
+                "at": 257,
+                "hex": "b89d000000",
+                "name": "SYS_prctl"
+              },
+              {
+                "at": 262,
+                "hex": "0f05",
+                "name": "syscall prctl"
+              },
+              {
+                "at": 264,
+                "hex": "85c0",
+                "name": "test eax,eax"
+              },
+              {
+                "at": 266,
+                "hex": "0f8530000000",
+                "name": "jne startup_failure"
+              },
+              {
+                "at": 272,
+                "hex": "bf00004000",
+                "name": "empty readbuf pointer"
+              },
+              {
+                "at": 277,
+                "hex": "be00000000",
+                "name": "empty readbuf extent"
+              },
+              {
+                "at": 282,
+                "hex": "ba00006000",
+                "name": "output pointer"
+              },
+              {
+                "at": 287,
+                "hex": "b900001000",
+                "name": "output extent"
+              },
+              {
+                "at": 292,
+                "hex": "41b800007000",
+                "name": "workspace pointer"
+              },
+              {
+                "at": 298,
+                "hex": "41b900001000",
+                "name": "workspace extent"
+              },
+              {
+                "at": 304,
+                "hex": "e84b000000",
+                "name": "call compiled HIA entry"
+              },
+              {
+                "at": 309,
+                "hex": "89c7",
+                "name": "mov edi,eax"
+              },
+              {
+                "at": 311,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 316,
+                "hex": "0f05",
+                "name": "syscall exit"
+              },
+              {
+                "at": 318,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              },
+              {
+                "at": 320,
+                "hex": "bf7e000000",
+                "name": "startup failure status"
+              },
+              {
+                "at": 325,
+                "hex": "b83c000000",
+                "name": "SYS_exit"
+              },
+              {
+                "at": 330,
+                "hex": "0f05",
+                "name": "syscall startup failure exit"
+              },
+              {
+                "at": 332,
+                "hex": "0f0b",
+                "name": "unreachable ud2"
+              }
+            ]
+          },
+          "elf_sha256": "32837f9d011ea5b939ff64e83baa5de1b443245d9a00e47787fee43f56fafb8f"
+        }
+      },
+      "report": "evidence/build-r1/REPORT.json",
+      "sha256": "0c4708940afc8e314be141cf623b7c63205b73d2dcdfeb3b3eccc087c28d90b0",
+      "smoke": {
+        "smoke-copy": {
+          "checks": {
+            "input_consumed": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "reaped": true,
+            "status": true,
+            "stdout": true
+          },
+          "observation": {
+            "SIGPIPE": "restored default by supervisor before exec",
+            "child_reaped_ECHILD": true,
+            "command": [
+              "/workspace/scratch/dda74a4fae35/v87-linux-stdio-entry-r1/evidence/build-r1/bounded-copy.elf"
+            ],
+            "executable_after_sha256": "4f9e6fed0723e4248c37b4b338b6051bb08cfcb007cb498c41bd6e6b867c95fe",
+            "executable_sha256": "4f9e6fed0723e4248c37b4b338b6051bb08cfcb007cb498c41bd6e6b867c95fe",
+            "limits": {
+              "address_bytes": 268435456,
+              "cleanup_seconds": 3,
+              "core_bytes": 0,
+              "cpu_seconds": 10,
+              "file_bytes": 16777216,
+              "open_files": 32,
+              "stack_bytes": 8388608,
+              "wall_seconds": 20
+            },
+            "matching_cold": false,
+            "payload_no_interpreter_elf": true,
+            "payload_runtime_python_or_ctypes": false,
+            "returncode": 0,
+            "schema": "hia.linux-stdio-entry.direct-exec-observation.v1",
+            "stderr_hex": "",
+            "stdin_bytes": 17,
+            "stdin_consumed": 17,
+            "stdout_hex": "6469726563742048494120454c4600ff0a",
+            "supervisor_preexec_python": true,
+            "timed_out": false,
+            "wall_seconds": 0.006423511000321014,
+            "whole": false
+          }
+        }
+      },
+      "stage_labels": [
+        "linux-L1",
+        "linux-L2",
+        "linux-L3",
+        "unchanged-original-selfhost",
+        "entry-packer",
+        "bounded-copy",
+        "zero-transfer",
+        "read-ebadf-exact",
+        "write-ebadf-exact",
+        "out-of-bounds"
+      ],
+      "wall_seconds": 5.933948394998879
+    },
+    "direct-r1": {
+      "bytes": 13241,
+      "case_count": 12,
+      "cases": [
+        {
+          "actual_returncode": 0,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 1,
+          "name": "empty-input",
+          "program": "bounded-copy",
+          "source_sha256": "ff2cfe22ecb8b54677a1f6820c0618feb6c4e9d857c70a2071559cbe12076e91",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 0,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 3,
+          "name": "short-binary-input",
+          "program": "bounded-copy",
+          "source_sha256": "ff2cfe22ecb8b54677a1f6820c0618feb6c4e9d857c70a2071559cbe12076e91",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 0,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true,
+            "two_real_effects_in_reference": true
+          },
+          "effect_count": 2,
+          "name": "zero-count-open",
+          "program": "zero-transfer",
+          "source_sha256": "8d208dd89553443c4d3866e64db714245bdea6d4b0a7ec7d0ca346a4cfce106e",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 247,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 1,
+          "name": "zero-count-closed-read",
+          "program": "zero-transfer",
+          "source_sha256": "8d208dd89553443c4d3866e64db714245bdea6d4b0a7ec7d0ca346a4cfce106e",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 247,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 2,
+          "name": "zero-count-closed-write",
+          "program": "zero-transfer",
+          "source_sha256": "8d208dd89553443c4d3866e64db714245bdea6d4b0a7ec7d0ca346a4cfce106e",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 93,
+          "checks": {
+            "child_fully_reaped": true,
+            "exact_i64_comparison_before_exit": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 1,
+          "name": "full-signed-read-ebadf",
+          "program": "read-ebadf-exact",
+          "source_sha256": "fc50d996c4dfdc6693b16c9c223d768c26666210e4c79c7daf99e516d41b66f4",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 93,
+          "checks": {
+            "child_fully_reaped": true,
+            "exact_i64_comparison_before_exit": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 1,
+          "name": "full-signed-write-ebadf",
+          "program": "write-ebadf-exact",
+          "source_sha256": "77459de4cba8cc80a79fe0d8c7b7ae25f61bec78a7f616e4df391d0489d92420",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": -13,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 3,
+          "name": "SIGPIPE-default",
+          "program": "bounded-copy",
+          "source_sha256": "ff2cfe22ecb8b54677a1f6820c0618feb6c4e9d857c70a2071559cbe12076e91",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 224,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 3,
+          "name": "SIGPIPE-inherited-ignore-EPIPE",
+          "program": "bounded-copy",
+          "source_sha256": "ff2cfe22ecb8b54677a1f6820c0618feb6c4e9d857c70a2071559cbe12076e91",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 0,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 3,
+          "name": "exact-1MiB",
+          "program": "bounded-copy",
+          "source_sha256": "ff2cfe22ecb8b54677a1f6820c0618feb6c4e9d857c70a2071559cbe12076e91",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": 3,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 2,
+          "name": "over-1MiB-rejected-before-write",
+          "program": "bounded-copy",
+          "source_sha256": "ff2cfe22ecb8b54677a1f6820c0618feb6c4e9d857c70a2071559cbe12076e91",
+          "status": "PASS"
+        },
+        {
+          "actual_returncode": -4,
+          "checks": {
+            "child_fully_reaped": true,
+            "expected_return": true,
+            "input_consumption": true,
+            "no_effect_before_bounds_trap": true,
+            "no_stderr": true,
+            "no_timeout": true,
+            "same_immutable_elf": true,
+            "stdout_bytes": true
+          },
+          "effect_count": 0,
+          "name": "bounds-before-read",
+          "program": "out-of-bounds",
+          "source_sha256": "c51d080ba7d529f04a16792323a6c5f77a56ba1e81b28d9fdea8a0df239d63ea",
+          "status": "PASS"
+        }
+      ],
+      "git_blob": "b0e3e5d92a7d839e5715afa8bd306af7244793f0",
+      "report": "evidence/direct-r1/REPORT.json",
+      "sha256": "f6fb9ce280a624498c6552f323caf2d3bd1ff780e085d2f2db8bc89893b4b2e9",
+      "wall_seconds": 0.5542613350007741
+    },
+    "packer-boundaries-r1": {
+      "bytes": 8448,
+      "case_count": 13,
+      "cases": [
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967295,
+          "kind": "native-VM-full-buffer",
+          "name": "empty-frame",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967295,
+          "kind": "native-VM-full-buffer",
+          "name": "bad-magic",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967295,
+          "kind": "native-VM-full-buffer",
+          "name": "wrong-version",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967295,
+          "kind": "native-VM-full-buffer",
+          "name": "reserved-field",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967295,
+          "kind": "native-VM-full-buffer",
+          "name": "zero-image",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967295,
+          "kind": "native-VM-full-buffer",
+          "name": "truncated-frame",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967295,
+          "kind": "native-VM-full-buffer",
+          "name": "trailing-frame-byte",
+          "status": "PASS"
+        },
+        {
+          "error": "private byte ABI limits",
+          "kind": "unchanged-byte-ABI-admission",
+          "name": "frame-over-1MiB",
+          "native_invoked": false,
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967295,
+          "kind": "native-VM-full-buffer",
+          "name": "image-one-byte-over-max",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967294,
+          "kind": "native-VM-full-buffer",
+          "name": "zero-output",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "refusal_before_output_mutation": true,
+            "result": true,
+            "source": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4294967294,
+          "kind": "native-VM-full-buffer",
+          "name": "short-output",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "result": true,
+            "source": true,
+            "structural_byte_oracle": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 1048576,
+          "kind": "native-VM-full-buffer",
+          "name": "exact-max-ELF",
+          "status": "PASS"
+        },
+        {
+          "checks": {
+            "all_canaries": true,
+            "full_output": true,
+            "full_workspace": true,
+            "no_IO": true,
+            "no_timeout": true,
+            "result": true,
+            "source": true,
+            "structural_byte_oracle": true
+          },
+          "executed_packed_image": false,
+          "expected_result": 4096,
+          "kind": "native-VM-full-buffer",
+          "name": "minimum-image-structural-only",
+          "status": "PASS"
+        }
+      ],
+      "git_blob": "44883e0f3812c23fd54bd1dd9900b5f1152e4e97",
+      "report": "evidence/packer-boundaries-r1/REPORT.json",
+      "sha256": "d0eb1d47f28507d7b3ae5be292a7f892883ebcc0e112c42682791f3d4c9438d9",
+      "wall_seconds": 2.0882482129964046
+    },
+    "startup-refusal-r1": {
+      "bytes": 1152,
+      "checks": {
+        "business_read_not_entered": true,
+        "business_write_not_entered": true,
+        "child_reaped": true,
+        "no_stderr": true,
+        "no_timeout": true,
+        "same_elf": true,
+        "startup_exit_126": true
+      },
+      "git_blob": "8a0d20526037b904bddafb2ab49bc2623a3da518",
+      "report": "evidence/startup-refusal-r1/REPORT.json",
+      "sha256": "7640e04d30b40aada5510f48bf9fe7c30c897c5ba136cbef8913575daf11aab4",
+      "wall_seconds": 0.007293524999113288
+    }
+  },
+  "matching_cold": false,
+  "no_arbitrary_fd_syscall_or_resident_image_authority": true,
+  "ordinary_full_suite": false,
+  "packer_authoring": {
+    "blocks": 35,
+    "entry_at": 232,
+    "fixed_buffer_extents": [
+      0,
+      1048576,
+      1048576
+    ],
+    "format": "ELF64 ET_EXEC/Linux x86-64",
+    "functions": 7,
+    "image_at": 384,
+    "matching_cold": false,
+    "operations": 255,
+    "runtime_python_or_ctypes": false,
+    "schema": "hia.linux-stdio-entry.packer-authoring.v1",
+    "source_bytes": 13232,
+    "source_sha256": "bd42f085f76c477760e6bac5eebe5dec0cb8dc084eefa969c3a0e1dc7706209b",
+    "whole": false
+  },
+  "payload_python_or_ctypes": false,
+  "performance_claim": false,
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "predecessor_recipe": "09553a95cdce3f0ec09013cf015ee26e0976dc33",
+  "predecessor_source_blob": "0ce11990f94ef7fa4eda9213990660bdf16d8f47",
+  "preserved_original_refusals": [
+    "program-author-r1.stderr",
+    "program-author-r2.stderr"
+  ],
+  "program_authoring": {
+    "bounded-copy": {
+      "blocks": 20,
+      "bytes": 3526,
+      "functions": 2,
+      "operations": 46,
+      "sha256": "ff2cfe22ecb8b54677a1f6820c0618feb6c4e9d857c70a2071559cbe12076e91"
+    },
+    "out-of-bounds": {
+      "blocks": 1,
+      "bytes": 429,
+      "functions": 1,
+      "operations": 6,
+      "sha256": "c51d080ba7d529f04a16792323a6c5f77a56ba1e81b28d9fdea8a0df239d63ea"
+    },
+    "read-ebadf-exact": {
+      "blocks": 1,
+      "bytes": 550,
+      "functions": 1,
+      "operations": 10,
+      "sha256": "fc50d996c4dfdc6693b16c9c223d768c26666210e4c79c7daf99e516d41b66f4"
+    },
+    "write-ebadf-exact": {
+      "blocks": 1,
+      "bytes": 552,
+      "functions": 1,
+      "operations": 10,
+      "sha256": "77459de4cba8cc80a79fe0d8c7b7ae25f61bec78a7f616e4df391d0489d92420"
+    },
+    "zero-transfer": {
+      "blocks": 3,
+      "bytes": 733,
+      "functions": 1,
+      "operations": 10,
+      "sha256": "8d208dd89553443c4d3866e64db714245bdea6d4b0a7ec7d0ca346a4cfce106e"
+    }
+  },
+  "public_Core_default_changed": false,
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "reference_only_oversized_source_case_count": 1,
+  "refs_modified": false,
+  "runtime_syscalls": [
+    "prctl",
+    "read",
+    "write",
+    "exit"
+  ],
+  "schema": "hia.linux-stdio-entry.development-summary.v1",
+  "status": "DIRECT_EXEC_FINITE_CONTROLS_PASS",
+  "whole": false
+}

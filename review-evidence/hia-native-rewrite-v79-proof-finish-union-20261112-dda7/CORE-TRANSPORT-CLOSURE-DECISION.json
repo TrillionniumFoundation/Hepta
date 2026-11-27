@@ -1,0 +1,61 @@
+{
+  "schema": "hia.v79.core-transport-dependency-decision.v1",
+  "date": "2026-11-12",
+  "status": "REVIEWED_FIX_SELECTED_NOT_YET_JOINTLY_QUALIFIED",
+  "failed_original": {
+    "run": 43264682454,
+    "job": 131345002985,
+    "source_tree": "aa32ea9110b9b50e5840392324b7ffbcf86d0f45",
+    "tests": 826,
+    "failures": 1,
+    "original_test_blob": "4cca12d970b7af07321f9fafa95eda28d880cff8",
+    "failure": "imports minus CORE_SOURCE_FILES additionally contains hia_machine_transport.py"
+  },
+  "reviewed_sources": [
+    {
+      "path": "hepta/hia_machine_transport.py",
+      "bytes": 2024,
+      "sha256": "385ff8acf769fd1a3b7c004ca1986812639d66fd09aa0452f4e3b6fcc3025905",
+      "blob": "322f5950a7f4b4d2453faf738c8dbaef84b06dc8"
+    },
+    {
+      "path": "hepta/hia_call_primitive_native.py",
+      "bytes": 8172,
+      "sha256": "5eb8090654eae554ce4d0930044c128d82828a04e26aa4cc1cb6c864229bf6c0",
+      "blob": "da5b21a5162d71e123743ff8fdac9a32c95584d1"
+    },
+    {
+      "path": "hepta/hia_checker_identity.py",
+      "bytes": 18928,
+      "sha256": "3ada6209fc7b1e565e5bba23be08dc00eef69e97c6d220b2ea522b212379f4b7",
+      "blob": "be5a7d205638a42425daa71619b4361b57fde7fb"
+    }
+  ],
+  "facts": [
+    "The Core call-primitive bridge now imports _private_zeroed_buffer from hia_machine_transport.",
+    "The complete 2024-byte module has only ctypes, errno, mmap and types imports, plus future annotations; it has no relative project import and no native selector.",
+    "_private_zeroed_buffer is physical storage and allocation-failure/lifetime transport.",
+    "_code_call_names changes CPython FunctionType __qualname__ metadata to preserve public Code argument-binding diagnostics; it performs no Code planning, compilation or semantic policy."
+  ],
+  "decision": "Move the existing complete transport module from MECHANISM_SOURCE_FILES into CORE_SOURCE_FILES because it is now a direct actual dependency. Do not copy the allocator, hide the import or modify the unchanged original inventory test.",
+  "counts": {
+    "failed_r2": {
+      "core": 46,
+      "mechanism": 17
+    },
+    "after_proof_additions_and_transport_move": {
+      "core": 47,
+      "mechanism": 19
+    }
+  },
+  "invariants": [
+    "The complete prior CORE union MECHANISM source hash domain loses no member.",
+    "Three new Proof mechanism files extend that union.",
+    "Fresh sorted source reads and original error observation remain unchanged.",
+    "Hashing the complete module conservatively includes unused Code naming metadata; this does not place a Code business owner in Core."
+  ],
+  "rejected_alternative": "Extracting a second allocator-only module solely to keep the count 46 would add source/ABI changes without reducing a required dependency.",
+  "whole_native": false,
+  "default_changed": false,
+  "legacy_deleted": false
+}

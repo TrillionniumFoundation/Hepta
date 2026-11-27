@@ -1,0 +1,174 @@
+{
+  "actual_component_mode_returns": {
+    "1": 442,
+    "2": 792,
+    "3": 2241,
+    "4": 3544,
+    "5": 326,
+    "6": 14008,
+    "7": 5113
+  },
+  "component_controls": {
+    "changed-compatibility-source": {
+      "elapsed_ns": 12457760353,
+      "errors": 0,
+      "expected_failures": 0,
+      "failures": 0,
+      "original_failures": [],
+      "passed": 27,
+      "skips": 0,
+      "tests_run": 27,
+      "unexpected_successes": 0
+    },
+    "native-control": {
+      "elapsed_ns": 3584121773,
+      "errors": 0,
+      "expected_failures": 0,
+      "failures": 0,
+      "original_failures": [],
+      "passed": 12,
+      "skips": 0,
+      "tests_run": 12,
+      "unexpected_successes": 0
+    },
+    "source-control": {
+      "elapsed_ns": 4262537517,
+      "errors": 0,
+      "expected_failures": 0,
+      "failures": 2,
+      "original_failures": [
+        [
+          "tests.test_hia_service_artifacts_native.ServiceArtifactsSourceTests.test_all_six_public_routes_and_complete_held_custody_are_registered",
+          "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_service_artifacts_native.py\", line 83, in test_all_six_public_routes_and_complete_held_custody_are_registered\n    self.assertEqual(ast.dump(old), retained['methods'][name]['ast'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"Func[35 chars]ents(args=[arg(arg='self'), arg(arg='ref'), ar[540 chars]))])\" != \"Func[35 chars]ents(posonlyargs=[], args=[arg(arg='self'), ar[617 chars]=[])\"\nDiff is 2679 characters long. Set self.maxDiff to None to see it.\n"
+        ],
+        [
+          "tests.test_hia_service_artifacts_native.ServiceArtifactsSourceTests.test_six_exact_original_bodies_and_hia_regeneration",
+          "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_service_artifacts_native.py\", line 41, in test_six_exact_original_bodies_and_hia_regeneration\n    self.assertEqual(ast.dump(actual), row['ast'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"Func[35 chars]ents(args=[arg(arg='self'), arg(arg='ref'), ar[540 chars]))])\" != \"Func[35 chars]ents(posonlyargs=[], args=[arg(arg='self'), ar[617 chars]=[])\"\nDiff is 2679 characters long. Set self.maxDiff to None to see it.\n"
+        ]
+      ],
+      "passed": 43,
+      "skips": 0,
+      "tests_run": 45,
+      "unexpected_successes": 0
+    }
+  },
+  "current_source_cold": false,
+  "head": "b340e2c4ea16ee3794e198a7ec5d5fd6920ca4b1",
+  "original_callers": {
+    "agent": {
+      "actual_machine_mode_returns": {
+        "1": 132268,
+        "2": 41616,
+        "3": 36252,
+        "4": 101036,
+        "5": 8580,
+        "6": 129592,
+        "7": 67635
+      },
+      "actual_machine_returns": 516979,
+      "elapsed_ns": 139459400852,
+      "errors": 0,
+      "expected_failures": 0,
+      "failures": 0,
+      "old_six_business_body_calls": 0,
+      "original_failures": [],
+      "outer_wrapper_tests_run": 48,
+      "passed": 48,
+      "preparation_failed_first_baseline_emit_count": 0,
+      "skips": 0,
+      "tests_run": 48,
+      "timeout_observations_seconds": [],
+      "unexpected_successes": 0
+    },
+    "ledger": {
+      "actual_machine_mode_returns": {
+        "1": 127508,
+        "2": 39744,
+        "3": 34428,
+        "4": 96444,
+        "5": 8060,
+        "6": 121832,
+        "7": 63585
+      },
+      "actual_machine_returns": 491601,
+      "elapsed_ns": 708919254321,
+      "errors": 0,
+      "expected_failures": 0,
+      "failures": 3,
+      "old_six_business_body_calls": 0,
+      "original_failures": [
+        [
+          "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+          "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 656, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-c52455fc45a8155b5da92064b2ece2362834ede92abc02a111e48cb623bc6584\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n"
+        ],
+        [
+          "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+          "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 571, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n    self.assertLess(time.monotonic() - started, 5)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 6.849092580999923 not less than 5\n"
+        ],
+        [
+          "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+          "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 590, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        document=looping, candidate=looping, workload=workload,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-dfa4ebef874dd05de9b4989162afc301ccd155235cc98d1e26f627b937c8e114\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n"
+        ]
+      ],
+      "outer_wrapper_tests_run": 1,
+      "passed": 45,
+      "preparation_failed_first_baseline_emit_count": 2,
+      "skips": 0,
+      "tests_run": 48,
+      "timeout_observations_seconds": [
+        6.849092580999923
+      ],
+      "unexpected_successes": 0
+    },
+    "namespace": {
+      "actual_machine_mode_returns": {
+        "1": 75204,
+        "2": 23328,
+        "3": 19152,
+        "4": 50350,
+        "5": 4368,
+        "6": 65184,
+        "7": 34020
+      },
+      "actual_machine_returns": 271606,
+      "elapsed_ns": 446454524089,
+      "errors": 0,
+      "expected_failures": 0,
+      "failures": 3,
+      "old_six_business_body_calls": 0,
+      "original_failures": [
+        [
+          "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+          "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 656, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-6ade7ece3eb26df4545001161705bfe5fdb640005681a20cd92067bd1cd07771\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n"
+        ],
+        [
+          "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+          "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 571, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n    self.assertLess(time.monotonic() - started, 5)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 6.863295219000008 not less than 5\n"
+        ],
+        [
+          "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+          "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 590, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        document=looping, candidate=looping, workload=workload,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-native314/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-3a88ab44a7483e43e0dda7a2add64bad7af73ea8979209696a3530dd865cb570\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n"
+        ]
+      ],
+      "outer_wrapper_tests_run": 1,
+      "passed": 32,
+      "preparation_failed_first_baseline_emit_count": 2,
+      "skips": 0,
+      "tests_run": 35,
+      "timeout_observations_seconds": [
+        6.863295219000008
+      ],
+      "unexpected_successes": 0
+    }
+  },
+  "original_limits_changed": false,
+  "profile": "native314",
+  "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+  "run_id": 43322044447,
+  "schema": "hia.artifacts.actual-terminal-summary.v82.r3",
+  "source_and_inputs_unchanged": true,
+  "source_files": 3306,
+  "source_tree": "2a7fd01cd9f011d9304dc01375d6265bca699403",
+  "status": "FAIL",
+  "whole_native": false
+}

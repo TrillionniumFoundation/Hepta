@@ -1,0 +1,378 @@
+{
+  "conclusion": "NO_CONCRETE_CUSTODY_BYPASS_FOUND_IN_THE_REVIEWED_CHANGE",
+  "limitations": [
+    "Read-only review; no products or tests executed by this review.",
+    "R2 local CPython3.12.14 development success is not d79 CI success, actual3.14 qualification, or whole-native qualification.",
+    "The synthetic dependency-contribution unit does not demonstrate acceptance of a second valid independently compiled image."
+  ],
+  "observed_reports": [
+    {
+      "errors": [
+        [
+          "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+          "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/tests/test_hia_machine_plan_native.py\", line 310, in test_backend_custody_binds_selected_native_owner\n    self.assertNotEqual(_implementation_hash(), selected)\n                        ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_program_native.py\", line 95, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_program_native.py\", line 157, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_checker_identity.py\", line 9733, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_checker_identity.py\", line 9689, in checker_native_selection\n    image_identity = {name: _mapped_identity(image) for name, image in sorted(images.items())}\n                            ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_checker_identity.py\", line 9553, in _mapped_identity\n    raise ValueError(\"checker native mapping differs from its loaded identity\")\nValueError: checker native mapping differs from its loaded identity\n"
+        ]
+      ],
+      "events": [
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+          "phase": "stop"
+        }
+      ],
+      "expected_failures": [],
+      "expected_ids": [
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner"
+      ],
+      "failures": [],
+      "matching_source_cold": false,
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/original-single/RESULT.json",
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "run": 1,
+      "scope": "EXPLICIT_DEVELOPMENT_ONLY",
+      "seconds": 0.3780776740022702,
+      "skipped": [],
+      "source_after_count": 2989,
+      "source_before_count": 2989,
+      "source_conserved": true,
+      "unexpected_successes": [],
+      "whole_native": false
+    },
+    {
+      "errors": [
+        [
+          "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+          "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/tests/test_hia_machine_plan_native.py\", line 320, in test_backend_custody_binds_selected_native_owner\n    self.assertNotEqual(_implementation_hash(), selected)\n                        ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_program_native.py\", line 95, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_program_native.py\", line 165, in _reference_implementation_hash\n    digest.update(b'native-machine-plan\\0' + plan_identity() + b'\\0')\n                                             ^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_machine_plan.py\", line 322, in native_implementation_identity\n    return plan_family.identity(None)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_backend_family_selection.py\", line 133, in identity\n    selected = self._select(namespace)\n               ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_backend_family_selection.py\", line 79, in _select\n    admitted = getattr(bundle, self.primary_admit)(old_path, namespace)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_machine_plan_native.py\", line 313, in _admit_family\n    return _Admission(owner, hold_native_owner(SELECTOR, owner, raw, source))\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_checker_identity.py\", line 9523, in hold_native_owner\n    _held_native_identity(binding)\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_checker_identity.py\", line 9512, in _held_native_identity\n    mapped = _mapped_identity(binding.image)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/source/hepta/hia_checker_identity.py\", line 9553, in _mapped_identity\n    raise ValueError(\"checker native mapping differs from its loaded identity\")\nValueError: checker native mapping differs from its loaded identity\n"
+        ]
+      ],
+      "events": [
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_actual_wheel_native_calls_without_authoring_or_checkout_fallback",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_actual_wheel_native_calls_without_authoring_or_checkout_fallback",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_differential_schema_and_first_refusal_priority",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_differential_schema_and_first_refusal_priority",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_foreign_truthiness_key_equality_and_mutation_order",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_foreign_truthiness_key_equality_and_mutation_order",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_public_witness_hook_observes_frozen_plan_and_captured_owner",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_public_witness_hook_observes_frozen_plan_and_captured_owner",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_seeded_register_lifetimes_and_opaque_foreign_refusals",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_seeded_register_lifetimes_and_opaque_foreign_refusals",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_selected_failure_has_no_fallback_and_context_is_released",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_selected_failure_has_no_fallback_and_context_is_released",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_warm_code_still_rechecks_manifest_and_source",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_warm_code_still_rechecks_manifest_and_source",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_caller_gate_requires_every_loaded_test_without_anomalies",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_caller_gate_requires_every_loaded_test_without_anomalies",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_current_cold_admission_precedes_artifacts",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_current_cold_admission_precedes_artifacts",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_generated_source_and_retained_oracles",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_generated_source_and_retained_oracles",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_independent_vm_runs_complete_witness_and_refusal",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_independent_vm_runs_complete_witness_and_refusal",
+          "phase": "stop"
+        }
+      ],
+      "expected_failures": [],
+      "expected_ids": [
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_actual_wheel_native_calls_without_authoring_or_checkout_fallback",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_differential_schema_and_first_refusal_priority",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_foreign_truthiness_key_equality_and_mutation_order",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_public_witness_hook_observes_frozen_plan_and_captured_owner",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_seeded_register_lifetimes_and_opaque_foreign_refusals",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_selected_failure_has_no_fallback_and_context_is_released",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_warm_code_still_rechecks_manifest_and_source",
+        "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_caller_gate_requires_every_loaded_test_without_anomalies",
+        "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_current_cold_admission_precedes_artifacts",
+        "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_generated_source_and_retained_oracles",
+        "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_independent_vm_runs_complete_witness_and_refusal"
+      ],
+      "failures": [],
+      "matching_source_cold": false,
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/repaired-full/RESULT.json",
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "run": 12,
+      "scope": "EXPLICIT_DEVELOPMENT_ONLY",
+      "seconds": 15.327329728999757,
+      "skipped": [],
+      "source_after_count": 2989,
+      "source_before_count": 2989,
+      "source_conserved": true,
+      "unexpected_successes": [],
+      "whole_native": false
+    },
+    {
+      "errors": [],
+      "events": [
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_actual_wheel_native_calls_without_authoring_or_checkout_fallback",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_actual_wheel_native_calls_without_authoring_or_checkout_fallback",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_differential_schema_and_first_refusal_priority",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_differential_schema_and_first_refusal_priority",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_foreign_truthiness_key_equality_and_mutation_order",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_foreign_truthiness_key_equality_and_mutation_order",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_public_witness_hook_observes_frozen_plan_and_captured_owner",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_public_witness_hook_observes_frozen_plan_and_captured_owner",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_seeded_register_lifetimes_and_opaque_foreign_refusals",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_seeded_register_lifetimes_and_opaque_foreign_refusals",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_selected_failure_has_no_fallback_and_context_is_released",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_selected_failure_has_no_fallback_and_context_is_released",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_warm_code_still_rechecks_manifest_and_source",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_warm_code_still_rechecks_manifest_and_source",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_caller_gate_requires_every_loaded_test_without_anomalies",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_caller_gate_requires_every_loaded_test_without_anomalies",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_current_cold_admission_precedes_artifacts",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_current_cold_admission_precedes_artifacts",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_generated_source_and_retained_oracles",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_generated_source_and_retained_oracles",
+          "phase": "stop"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_independent_vm_runs_complete_witness_and_refusal",
+          "phase": "start"
+        },
+        {
+          "id": "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_independent_vm_runs_complete_witness_and_refusal",
+          "phase": "stop"
+        }
+      ],
+      "expected_failures": [],
+      "expected_ids": [
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_actual_wheel_native_calls_without_authoring_or_checkout_fallback",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_differential_schema_and_first_refusal_priority",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_foreign_truthiness_key_equality_and_mutation_order",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_public_witness_hook_observes_frozen_plan_and_captured_owner",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_seeded_register_lifetimes_and_opaque_foreign_refusals",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_selected_failure_has_no_fallback_and_context_is_released",
+        "tests.test_hia_machine_plan_native.MachinePlanNativeTests.test_warm_code_still_rechecks_manifest_and_source",
+        "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_caller_gate_requires_every_loaded_test_without_anomalies",
+        "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_current_cold_admission_precedes_artifacts",
+        "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_generated_source_and_retained_oracles",
+        "tests.test_hia_machine_plan_native.MachinePlanSourceTests.test_independent_vm_runs_complete_witness_and_refusal"
+      ],
+      "failures": [],
+      "matching_source_cold": false,
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/repaired-full-r2/RESULT.json",
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "run": 12,
+      "scope": "EXPLICIT_DEVELOPMENT_ONLY",
+      "seconds": 15.933948570000211,
+      "skipped": [],
+      "source_after_count": 2989,
+      "source_before_count": 2989,
+      "source_conserved": true,
+      "unexpected_successes": [],
+      "whole_native": false
+    }
+  ],
+  "only_changed_method": "MachinePlanNativeTests.test_backend_custody_binds_selected_native_owner",
+  "reasoning": [
+    "Real selected vs retained digest difference and actual image identity membership remain.",
+    "Actual mapped-image metadata corruption now must raise the exact physical-identity ValueError; the live checker and family guards are not patched.",
+    "After restoring image metadata the digest must equal the original selected digest.",
+    "Only the plan identity contribution is replaced in a separate dependency unit; this is not represented as a valid image admission or native receipt.",
+    "The caller imports plan_identity at use time; its returned bytes feed the backend SHA directly, while checker_digest still runs first.",
+    "Existing first repair ERROR is retained separately from R2 12/12 success."
+  ],
+  "scope": "INDEPENDENT_SOURCE_REVIEW_AND_EXISTING_LOCAL_REPORT_READBACK_NOT_NEW_EXECUTION",
+  "sources": [
+    {
+      "bytes": 22180,
+      "git_blob": "1835a364a39d99c8b97199eb7af1f568b5e1aa08",
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/ORIGINAL-TEST.py",
+      "sha256": "070380c1f0f54ab42c1510a16d9d445e6ff356050b42f4298be6d82967951ed1"
+    },
+    {
+      "bytes": 22954,
+      "git_blob": "ee51bd59fda1fbc33609a7b70f98c6d7746a3832",
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/REPAIRED-TEST.py",
+      "sha256": "46788eeaf49812212911a8b8e66084566d3f4e26fa70a160b95603263ac14c43"
+    },
+    {
+      "bytes": 23102,
+      "git_blob": "679256faa2eee41c6d70a2d34a4d759e83c54a16",
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/REPAIRED-TEST-R2.py",
+      "sha256": "e6cf4e34a51a32ba4b1f951c2e229aba5bb57dd0af276d69aa99dc52f7fa4a9e"
+    },
+    {
+      "bytes": 1783,
+      "git_blob": "41b71f5dde3763df6bece677b25150ecaaa08988",
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/changes-r2.patch",
+      "sha256": "f4cfbf9b37c63886ade925ac3368ae4168f6376ef8a99772bcf59e06c29749c9"
+    },
+    {
+      "bytes": 752197,
+      "git_blob": "635d26992ac3837fb9253ed9180c16b7001b5c25",
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/original-single/RESULT.json",
+      "sha256": "f1ff9a0281eaecb855575268fb5b1d32cc50997de75c036fcad059edd55917d8"
+    },
+    {
+      "bytes": 758070,
+      "git_blob": "d5b46cbb004e26027da630136507bdf282018bd4",
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/repaired-full/RESULT.json",
+      "sha256": "47d009715b4928734942eafb0f67a6395eafa4b8b543d32e8a2aeeedc7aca8e8"
+    },
+    {
+      "bytes": 755281,
+      "git_blob": "3d5cfbbb4fdbec4a7e974ab4dee44d8705433720",
+      "path": "/workspace/scratch/dda74a4fae35/v87-machine-plan-custody-repair-r1/repaired-full-r2/RESULT.json",
+      "sha256": "fba051aa4fd228e392d2cb4f2cbbabda2b6734208c5a75df3fe4dfe0955e17a7"
+    }
+  ],
+  "unchanged_methods": [
+    "MachinePlanSourceTests.test_caller_gate_requires_every_loaded_test_without_anomalies",
+    "MachinePlanSourceTests.test_generated_source_and_retained_oracles",
+    "MachinePlanSourceTests.test_current_cold_admission_precedes_artifacts",
+    "MachinePlanSourceTests.test_independent_vm_runs_complete_witness_and_refusal",
+    "MachinePlanNativeTests.setUpClass",
+    "MachinePlanNativeTests.selected",
+    "MachinePlanNativeTests.test_differential_schema_and_first_refusal_priority",
+    "MachinePlanNativeTests.test_seeded_register_lifetimes_and_opaque_foreign_refusals",
+    "MachinePlanNativeTests.test_public_witness_hook_observes_frozen_plan_and_captured_owner",
+    "MachinePlanNativeTests.test_foreign_truthiness_key_equality_and_mutation_order",
+    "MachinePlanNativeTests.test_selected_failure_has_no_fallback_and_context_is_released",
+    "MachinePlanNativeTests.test_warm_code_still_rechecks_manifest_and_source",
+    "MachinePlanNativeTests.test_actual_wheel_native_calls_without_authoring_or_checkout_fallback"
+  ],
+  "whole_file_except_that_exact_method_unchanged": true
+}

@@ -1,0 +1,81 @@
+{
+  "scope": "SOURCE_REVIEW_ONLY_NOT_NEW_RUNTIME_QUALIFICATION",
+  "source": "tools/hia_native_byte_abi_policy.py",
+  "source_sha256": "e5db1e4ae5711c1d4ff30d30b249563b631a9877527a2de9fca7ddc61e2ef438",
+  "boolop_count": 7,
+  "value_context_count": 0,
+  "rows": [
+    {
+      "line": 16,
+      "expression": "type(exports) is not tuple or len(exports) > 128",
+      "parent_chain": [
+        "If",
+        "FunctionDef"
+      ],
+      "consumed_by_condition": true
+    },
+    {
+      "line": 21,
+      "expression": "program.structured_bytes is not None or 'exports' in document",
+      "parent_chain": [
+        "If",
+        "FunctionDef"
+      ],
+      "consumed_by_condition": true
+    },
+    {
+      "line": 26,
+      "expression": "type(pair) is not tuple or len(pair) != 2 or type(pair[0]) is not str or (type(pair[1]) is not int) or (not 1 <= pair[1] <= MAX_EXTENT) or (pair[0] in names)",
+      "parent_chain": [
+        "If",
+        "For",
+        "FunctionDef"
+      ],
+      "consumed_by_condition": true
+    },
+    {
+      "line": 31,
+      "expression": "name in IMPORTS or name in _LOADER_HOOKS or name.startswith('__hia_')",
+      "parent_chain": [
+        "If",
+        "For",
+        "FunctionDef"
+      ],
+      "consumed_by_condition": true
+    },
+    {
+      "line": 37,
+      "expression": "not 1 <= len(loans) <= MAX_RANGES or fn['returns'] != ['u32'] or any((p['type'] not in SCALARS - {'unit'} | LOANS for p in fn['params']))",
+      "parent_chain": [
+        "If",
+        "For",
+        "FunctionDef"
+      ],
+      "consumed_by_condition": true
+    },
+    {
+      "line": 127,
+      "expression": "typ in WIDTHS and WIDTHS[typ] < 64",
+      "parent_chain": [
+        "If",
+        "If",
+        "If",
+        "FunctionDef"
+      ],
+      "consumed_by_condition": true
+    },
+    {
+      "line": 95,
+      "expression": "left_mutable or right_mutable",
+      "parent_chain": [
+        "UnaryOp",
+        "If",
+        "For",
+        "For",
+        "FunctionDef"
+      ],
+      "consumed_by_condition": true
+    }
+  ],
+  "shared_source_unmodified": true
+}

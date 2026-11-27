@@ -1,0 +1,153 @@
+{
+  "schema": "hepta.hia.source-admission-performance-audit.v1",
+  "status": "NO_ACCEPTED_PERFORMANCE_PATCH",
+  "basis": {
+    "candidate_commit": "8b9fbcbeb943447bdbd4e534f081f92e5f1ad8b2",
+    "candidate_tree": "1766691461d2ba7fef644e2b4e436566016f2226",
+    "closure_files": 821,
+    "explicit_source_files": 640,
+    "production_python_files": 181,
+    "closure_bytes": 23219411,
+    "local_root": "/tmp/hia-source-admission-perf-r1/closure-8b9",
+    "full_git_checkout": false,
+    "whole_native": false,
+    "default_native": false,
+    "live_migration": false,
+    "legacy_deletion": false
+  },
+  "measured_result": {
+    "python": "3.12.14",
+    "profile": "LOCAL_DEVELOPMENT_NOT_PYTHON_3_14_QUALIFICATION",
+    "samples": 32,
+    "ordering": "8 ABBA blocks, 16 observations each",
+    "candidate": "ordered synchronous direct io.open with identical buffering and arguments",
+    "original_wall_median_ns": 40477447.5,
+    "candidate_wall_median_ns": 42594745.5,
+    "candidate_over_original": 1.052308090820203,
+    "controls": 11,
+    "control_failures": 0,
+    "source_before_after_equal": true,
+    "comparison_report_bytes": 5413185,
+    "comparison_report_sha256": "b262f49e6bd309bf9cea2ffff8383705bb6f242420389880909dea1cad26c3f9",
+    "decision": "Reject this micro-optimization: no demonstrated performance improvement; no product patch applied."
+  },
+  "version_boundary": {
+    "local_path_read_bytes_buffering": -1,
+    "cpython3144_path_read_bytes_buffering": 0,
+    "official_cpython_commit_tag": "v3.14.4",
+    "official_path": "Lib/pathlib/__init__.py",
+    "official_blob": "0d763d1f0dcaa55bb3b2fe3eadf8a133d668eafb",
+    "remote_prior_673_observation_not_replaced": true
+  },
+  "current_call_chain": [
+    {
+      "path": "hepta/artifact_publication_native.py",
+      "method": "_admitted_code",
+      "details": "Checkout branch calls current_sources before publisher manifest/schema/source/image admission."
+    },
+    {
+      "path": "tools/build_hia_artifact_publication.py",
+      "method": "current_sources imported alias",
+      "details": "Imports current_sources from build_hia_json_preflight."
+    },
+    {
+      "path": "tools/build_hia_json_preflight.py",
+      "method": "current_sources",
+      "details": "Calls validate_contract, returns its source files plus a separate fresh SHA of the contract bytes."
+    },
+    {
+      "path": "tools/hia_selfhost_contract.py",
+      "method": "validate_contract -> support_contract -> file_digests",
+      "details": "Reads and JSON-decodes declared contract first, then recomputes expected semantics and all sorted file reads; compares complete dictionaries."
+    }
+  ],
+  "ordering_required": "Path(root); fresh hepta/**/*.py enumeration; union SOURCE_FILES; sort; each open/read/close completes before SHA256 and hexdigest; next file only after previous digest. Do not mask a prior hash/read/close failure with a later missing input.",
+  "ruled_out_without_product_change": [
+    {
+      "proposal": "Cross-public content, digest, mtime or code-admission cache",
+      "reason": "Contradicts required fresh source admission. Existing _StoreAdmission is intentionally only one put call's hash/put lifetime."
+    },
+    {
+      "proposal": "Parallel reads or batch all reads before hashes",
+      "reason": "Changes the observed failure/effect prefix. The concrete earlier-hash-failure plus later-missing-file control requires stopping before the later read."
+    },
+    {
+      "proposal": "mmap as a drop-in read_bytes replacement",
+      "reason": "Not an established equivalent: concurrent truncation can fault the process, unlike the captured immutable bytes path. No product experiment executed."
+    },
+    {
+      "proposal": "Move admission outside ExecutionContext or raise existing timeout",
+      "reason": "Would change the original execution-budget boundary; not authorized or attempted."
+    },
+    {
+      "proposal": "Claim this result proves all possible optimizations impossible",
+      "reason": "Not supported. Only the explicit direct-I/O candidate was measured, and it was slower."
+    }
+  ],
+  "parallel_branches": {
+    "pr893": {
+      "head": "807bbc4ce64b80d34b3102c774daf35e454d04be",
+      "source_contract_blob": "cc362c59c8bfbe07a5973a484ca933000a0be5d1",
+      "current_sources_blob": "1062074ce96d5d07ccef66b62a377b72502cda47",
+      "publisher_blob": "aa8ad7bc1a82ebcbc96d6c4822760d93288f7f92",
+      "source_builder_blob": "682beadd1b104908a179d59f00a6d6c4ff21116b",
+      "installed_bindings_doc_blob": "a409f0c3850ac0edafd4ac09d540ff0eda49ca2f",
+      "findings": [
+        "current_sources and file_digests function text remain identical to 8b9; no runtime HIA whole-source scanner/admission owner in this examined path.",
+        "SOURCE_BUILD_FILES and COMPILER_BUILD_FILES are packaged, inventoried and freshly checked by hosted installed custody; they do not cache or replace the checkout scan.",
+        "HIA source-bundle build/pack owns supplied-bundle compilation and self-repacking. Its hosted bootstrap still calls admit_cold_build/current_sources; its native runtime opens no source-tree files.",
+        "Publisher adds actual F_GET_SEALS and descriptor extent/byte readback. This is useful separate custody work, not a measured source-scan optimization.",
+        "Sources use .hepta suffixes, while this candidate uses .hiaasm. Resource lists/manifests must be integrated by actual union and rebinding.",
+        "Its publisher lacks NativePublicationRefusal, which 8b9's namespace uses for confirmed returned read-only refusal provenance. Do not overwrite the current publisher wholesale."
+      ]
+    },
+    "pr894": {
+      "head": "5386be50a1faddc0d986af3c04cad37a4ac6c102",
+      "publisher_blob": "e217e2a67d7bff6c6bcfb7c770c2dc0c63256ce8",
+      "scope": "Publisher inspected only; no independent full PR validation.",
+      "findings": [
+        "Checkout still invokes current_sources; no NativePublicationRefusal class in the inspected publisher.",
+        "Sealed executable readback differs from PR893; do not transfer one branch's result to the other."
+      ]
+    },
+    "pass_claims_accepted": false,
+    "remote_branches_mutated": false
+  },
+  "native_owner_assessment": {
+    "proposed_scope": "Complete explicitly selected checkout source-admission state owner, not a file-hash facade and not a claim to replace installed package custody.",
+    "owners_required": [
+      "Own the current semantic support declaration as native data and all declared-contract comparison decisions; no callback to hosted support_contract or validate_contract on the selected path.",
+      "Own fresh dynamic path union, exact ordering, per-file pending/read/closed/hash/receipt states, and complete source-map equality before returning admission.",
+      "Own SHA-256 state and digest rendering; reuse the existing HIA SHA algebra only after retaining its actual capacity and failure boundaries.",
+      "Bind returned admission to this call's exact source observation, policy image and selected executable-manifest identity; no implicit cross-call reuse or fallback."
+    ],
+    "allowed_fixed_foreign_boundary": [
+      "Exact original Path conversion/root selection, directory enumeration and ordered read/close primitives with original OS errors.",
+      "Existing JSON/object transport with preserved original parsing, type/number equality and error order; it cannot decide final admission.",
+      "Explicit image and raw source/manifest custody, allocation and syscall transport; no hidden policy callback.",
+      "Authoring-time conversion of the retained semantic support declaration to native constants is separate from selected runtime policy."
+    ],
+    "actual_reuse_candidates": [
+      {
+        "path": "tools/generate_hia_sha256_stream.py",
+        "role": "Native incremental SHA init/update/final; fixed 1184-byte state, 8MiB per chunk and MAX_TOTAL=(1<<61)-1."
+      },
+      {
+        "path": "tools/generate_hia_sha256.py",
+        "role": "Native schedule and 64-round compression algebra, byte serialization."
+      },
+      {
+        "path": "tools/hia_artifact_publication_syscalls.S",
+        "role": "Fixed syscall transport pattern and native SHA calls; its publication path and receipt policy are distinct and must not be reused as a generic source verifier."
+      }
+    ],
+    "blockers_before_any_default_or_performance_claim": [
+      "Existing native stream MAX_TOTAL is narrower than an unqualified claim over arbitrary original read_bytes inputs; chunking avoids its chunk limit but does not erase the total limit.",
+      "The current scalar HIA SHA implementation has no demonstrated full-closure throughput benefit. Native language ownership alone does not establish a 3-second fix.",
+      "Runtime admission needs a self-bound policy/manifest selection boundary without recursively calling the source admission being replaced.",
+      "Full original JSON numeric equality, source-path ordering, unknown outcome custody and original exception precedence require independent actual-machine controls.",
+      "Installed resources and PR893 builder roles require separate explicit composition; checkout-only completion cannot be reported as installed/full closure."
+    ],
+    "action": "Design assessment only. No new native source-admission product implementation or performance success claimed."
+  }
+}

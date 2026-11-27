@@ -1,0 +1,49 @@
+{
+  "entire_twenty_case_With_AST_unchanged": true,
+  "observation_function_AST_unchanged": true,
+  "only_driver_identity_and_expected_harness_AST_diff_projection_changed": true,
+  "original_control_script_blob": "f5eb5d9b29331eeefb801e7ed5aac85fe4a81179",
+  "source_edits": [
+    [
+      "r8=(HARNESS/'materialize_candidate_r8.py').read_bytes()",
+      "r8=(HARNESS/'materialize_candidate_r9.py').read_bytes()"
+    ],
+    [
+      "r9=(HARNESS/'materialize_candidate_r9.py').read_bytes()",
+      "r9=(HARNESS/'materialize_candidate_r10.py').read_bytes()"
+    ],
+    [
+      "assert identity(r9)['blob']=='dd141887690ced77704e7ba2f6ac482edca97f02'",
+      "assert identity(r8)['blob']=='dd141887690ced77704e7ba2f6ac482edca97f02'\n    assert identity(r9)['blob']=='03249a2c928055f5451a3ab8bbfbccf47eee8a91'"
+    ],
+    [
+      "assert changed==['apply_sources','regenerate'],changed",
+      "assert changed==['check_materialization_extension'],changed"
+    ],
+    [
+      "assert set(after)-set(before)=={'check_materialization_extension'}",
+      "assert not set(after)-set(before)"
+    ],
+    [
+      "str(HARNESS/'materialize_candidate_r9.py'),'exec'",
+      "str(HARNESS/'materialize_candidate_r10.py'),'exec'"
+    ],
+    [
+      "assert (HARNESS/'materialize_candidate_r9.py').read_bytes()==r9",
+      "assert (HARNESS/'materialize_candidate_r10.py').read_bytes()==r9"
+    ],
+    [
+      "assert (HARNESS/'materialize_candidate_r8.py').read_bytes()==r8",
+      "assert (HARNESS/'materialize_candidate_r9.py').read_bytes()==r8"
+    ],
+    [
+      "'schema':'hepta.r9-materialization-extension-controls.v1'",
+      "'schema':'hepta.r10-materialization-extension-controls.v1'"
+    ],
+    [
+      "'r8':identity(r8),'r9':identity(r9)",
+      "'baseline_r9':identity(r8),'candidate_r10':identity(r9)"
+    ]
+  ],
+  "status": "PASS"
+}

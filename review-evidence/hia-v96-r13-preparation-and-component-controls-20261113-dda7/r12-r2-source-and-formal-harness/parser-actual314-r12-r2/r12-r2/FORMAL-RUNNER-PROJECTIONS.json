@@ -1,0 +1,85 @@
+{
+  "probe_fresh_selected.py": {
+    "actual_local_before": {
+      "bytes": 2764,
+      "git_blob": "ec46e277a5457e1c291103a89f919e0c8b5badea",
+      "mode": "100644",
+      "sha256": "3af4a895a2ae24e65fa5d1feead410e8bc30d5224e4fe5414a2c685c3778fd25"
+    },
+    "formal_after": {
+      "bytes": 2453,
+      "git_blob": "a18ccedd76cab7338466568f04cd31e9447fc263",
+      "mode": "100644",
+      "sha256": "167750375d736d6304752d399c81d3ed1fd1983cce52fde98466afc3b67997ad"
+    },
+    "previous_authored_portable_draft": {
+      "bytes": 2764,
+      "git_blob": "ec46e277a5457e1c291103a89f919e0c8b5badea",
+      "mode": "100644",
+      "sha256": "3af4a895a2ae24e65fa5d1feead410e8bc30d5224e4fe5414a2c685c3778fd25"
+    },
+    "product_test_files_changed": false,
+    "unified_diff_from_actual_local": "--- local/probe_fresh_selected.py\n+++ formal/probe_fresh_selected.py\n@@ -1,8 +1,7 @@\n from pathlib import Path\n import hashlib, json, os, subprocess, sys, time, traceback\n \n-ROOT = Path(__file__).resolve().parent\n-SOURCE = ROOT / 'source'\n+from bounded_support import ROOT, SOURCE, snapshot\n sys.path.insert(0, str(SOURCE))\n label, manifest = sys.argv[1:3]\n OUT = ROOT / 'evidence' / label\n@@ -11,10 +10,6 @@\n def save(name, value):\n     (OUT / name).write_text(json.dumps(value, indent=2, sort_keys=True) + '\\n')\n \n-def snapshot():\n-    return {p.relative_to(SOURCE).as_posix(): {'bytes': p.stat().st_size,\n-        'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'mode': p.stat().st_mode & 511}\n-        for p in sorted(SOURCE.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc'}\n \n before = snapshot()\n save('SOURCE-BEFORE.json', before)\n@@ -39,7 +34,7 @@\n after = snapshot()\n save('SOURCE-AFTER.json', after)\n report = {'schema': 'hia-cli-fresh-selected-original-command-observations.v1',\n-          'scope': 'ACTUAL_CPYTHON314_LOCAL_DEVELOPMENT_NOT_COLD', 'python': sys.version,\n+          'scope': 'FORMAL_ACTUAL314_BOUNDED_DEVELOPMENT_NOT_COLD', 'python': sys.version,\n           'records': records, 'source_unchanged': before == after,\n           'status': 'PASS' if before == after and all(r['returncode'] == 2 for r in records) else 'FAIL'}\n save('REPORT.json', report)\n"
+  },
+  "run_build.py": {
+    "actual_local_before": {
+      "bytes": 1872,
+      "git_blob": "099c20bac3a6b0ce464358f1d2e33e09209fe5ba",
+      "mode": "100644",
+      "sha256": "dec04fcc991651c422d7e48f9703369b751171e89bd5a652eaee8817a471fa46"
+    },
+    "formal_after": {
+      "bytes": 1517,
+      "git_blob": "0fd4b857e61258d433a02f64788081459c41e36e",
+      "mode": "100644",
+      "sha256": "9eca8d598ca28d9b12c4adbc6e0af2ced6a8f04d3bcac1ce8b052522baa95a00"
+    },
+    "previous_authored_portable_draft": {
+      "bytes": 1793,
+      "git_blob": "4f097b8b07388ce0631f7875bd4ebe52655e84e2",
+      "mode": "100644",
+      "sha256": "d70639508ad4262983d543eaace8693fb2f5d9e1b3ff9518b7721ad232b88b5b"
+    },
+    "product_test_files_changed": false,
+    "unified_diff_from_actual_local": "--- local/run_build.py\n+++ formal/run_build.py\n@@ -1,17 +1,16 @@\n from pathlib import Path\n import hashlib,json,sys,time,traceback\n-ROOT=Path(__file__).resolve().parent;SOURCE=ROOT/'source';sys.path.insert(0,str(SOURCE))\n+from bounded_support import ROOT, SOURCE, snapshot\n+sys.path.insert(0,str(SOURCE))\n label=sys.argv[1];OUT=ROOT/'evidence'/label;OUT.mkdir(exist_ok=False)\n-def snapshot():\n- return {p.relative_to(SOURCE).as_posix():{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'mode':p.stat().st_mode&511} for p in sorted(SOURCE.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'}\n def save(name,value):(OUT/name).write_text(json.dumps(value,indent=2,sort_keys=True)+'\\n')\n before=snapshot();save('SOURCE-BEFORE.json',before);started=time.monotonic_ns()\n-report={'schema':'hia-cli-discovery-five-image-development-build.v1','scope':'ACTUAL_CPYTHON314_LOCAL_DEVELOPMENT_NOT_COLD','status':'FAIL','python':sys.version}\n+report={'schema':'hia-cli-discovery-five-image-development-build.v1','scope':'FORMAL_ACTUAL314_BOUNDED_DEVELOPMENT_NOT_COLD','status':'FAIL','python':sys.version}\n try:\n  from tools.build_hia_cli_discovery_bundle import build_development\n  from tools.qualify_hia_cli_discovery_bundle import inspect_build\n  from tools.hia_cli_discovery_bundle_custody import binding\n- compiler=Path('/workspace/scratch/dda74a4fae35/v86-native-entry-development-r1/development-build-r1/B3.image.bin')\n+ compiler=ROOT/'inputs/B3.image.bin'\n  assert hashlib.sha256(compiler.read_bytes()).hexdigest()=='bfd603dd2b40974d2083b567b4295fb3975938da8435dd636514fc197c485de0'\n  report['compiler']=binding(compiler)\n  manifest=build_development(OUT/'build',compiler)\n"
+  },
+  "run_group.py": {
+    "actual_local_before": {
+      "bytes": 3612,
+      "git_blob": "be225ebcaa4e30b1f522ac943de4eca514dba082",
+      "mode": "100644",
+      "sha256": "76b5b8a59b46465f98766efc01c4fb5f594a087cd579f78cd94aa5689cd8538a"
+    },
+    "formal_after": {
+      "bytes": 3368,
+      "git_blob": "8e033753ba478bc3fa8ffbef7cebdcb296dd6e0e",
+      "mode": "100644",
+      "sha256": "d75cd13935e9161490cc7a8a97c874112cda7951f3f55997d67bfe3700766566"
+    },
+    "previous_authored_portable_draft": {
+      "bytes": 3534,
+      "git_blob": "26b4bf2fad1f98e8673365a5a9ed45edec1d798b",
+      "mode": "100644",
+      "sha256": "7cabe93327b943c4978f640bf082de5b53c063993e5f771f83e66556ce13e689"
+    },
+    "product_test_files_changed": false,
+    "unified_diff_from_actual_local": "--- local/run_group.py\n+++ formal/run_group.py\n@@ -1,12 +1,11 @@\n from pathlib import Path\n import hashlib,json,os,sys,time,traceback,unittest\n-ROOT=Path(__file__).resolve().parent;SOURCE=ROOT/'source';sys.path.insert(0,str(SOURCE))\n+from bounded_support import ROOT, SOURCE, snapshot\n+sys.path.insert(0,str(SOURCE))\n label,group=sys.argv[1:3];OUT=ROOT/'evidence'/label;OUT.mkdir(exist_ok=False)\n def save(name,value):(OUT/name).write_text(json.dumps(value,indent=2,sort_keys=True)+'\\n')\n-def snapshot():\n- return {p.relative_to(SOURCE).as_posix():{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'mode':p.stat().st_mode&511} for p in sorted(SOURCE.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'}\n before=snapshot();save('SOURCE-BEFORE.json',before);started=time.monotonic_ns()\n-report={'schema':'hia-cli-discovery-portable-development-group.v1','scope':'ACTUAL_CPYTHON314_LOCAL_DEVELOPMENT_NOT_COLD','python':sys.version,'status':'FAIL','group':group,'started_ids':[],'stopped_ids':[]}\n+report={'schema':'hia-cli-discovery-portable-development-group.v1','scope':'FORMAL_ACTUAL314_BOUNDED_DEVELOPMENT_NOT_COLD','python':sys.version,'status':'FAIL','group':group,'started_ids':[],'stopped_ids':[]}\n try:\n  from tools import qualify_hia_cli_discovery_bundle as qualifier\n  if group=='source':\n@@ -17,13 +16,15 @@\n  elif group=='original43':\n   names=('tests.test_hia_cli_native','tests.test_hia_cli_continuation_native');expected=43\n   os.environ[qualifier.OLD_DEVELOPMENT]=str(Path(sys.argv[3]).resolve(strict=True));os.environ[qualifier.OLD_EVIDENCE]=str(OUT/'controls')\n-  packaging=Path('/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python').resolve(strict=True)\n+  packaging=Path(sys.executable).resolve(strict=True)\n   os.environ['HEPTA_HIA_TEST_PACKAGING_PYTHON']=str(packaging)\n   report['declared_packaging_interpreter']=str(packaging)\n-  report['packaging_scope']='Existing original-test packaging-only override; test bodies and installed child use actual sys.executable'\n+  report['packaging_scope']='Actual CPython3.14.4 is used for packaging, original test bodies and installed children'\n  else:raise ValueError('unknown fixed group')\n  loader=unittest.TestLoader();suite=loader.loadTestsFromNames(names);ids=[test.id() for test in qualifier._flatten(suite)]\n  report.update(loaded_ids=ids,loaded=suite.countTestCases(),loader_errors=loader.errors)\n+ fixed=json.loads((ROOT/'FORMAL-EXPECTED-IDS.json').read_bytes())['bounded_groups'][group]\n+ assert ids==fixed\n  assert len(ids)==len(set(ids))==expected and not loader.errors\n  if group=='original43':assert ids==list(qualifier.groups()['original_cli'])\n  class Result(unittest.TextTestResult):\n"
+  },
+  "supervise.py": {
+    "actual_local_before": {
+      "bytes": 1048,
+      "git_blob": "38a9dab0f583c0e0031ff9d26ebe73020126142f",
+      "mode": "100644",
+      "sha256": "bec5938e62e99161fecbc0e55950ffdd6ce6ee26379d6c544e0a1e58143e3cb6"
+    },
+    "cleanup_seconds": 3,
+    "formal_after": {
+      "bytes": 1114,
+      "git_blob": "717285b6ad41aaa092cc7f313c62d3f7a9f4c7cd",
+      "mode": "100644",
+      "sha256": "d5a15ce5325235f53cb9cb36f23cee1417c484d3609487ee4b76861babd6d9d0"
+    },
+    "qualification_seconds": 180,
+    "unified_diff_from_actual_local": "--- local/supervise.py\n+++ formal/supervise.py\n@@ -1,13 +1,16 @@\n from pathlib import Path\n import json,os,sys\n-ROOT=Path(__file__).resolve().parent;sys.path.insert(0,str(ROOT/'source'))\n+TOOLS=Path(__file__).resolve().parent\n+sys.path.insert(0,str(TOOLS))\n+from bounded_support import ROOT, SOURCE\n+sys.path.insert(0,str(SOURCE))\n from tools.hia_selfhost_process_owner import run_owned\n name,script=sys.argv[1:3];out=ROOT/'evidence'/name;out.mkdir(exist_ok=False)\n env=dict(os.environ)\n for key in list(env):\n     if key.startswith('HEPTA_') or key in ('PYTHONPATH','PYTHONHOME'):env.pop(key)\n env['PYTHONDONTWRITEBYTECODE']='1'\n-result=run_owned([sys.executable,'-B',str(ROOT/script),*sys.argv[3:]],cwd=str(ROOT),env=env,stdout_path=out/'stdout.log',stderr_path=out/'stderr.log',receipt_path=out/'owner.json',qualification_seconds=180,cleanup_seconds=3)\n+result=run_owned([sys.executable,'-B',str(TOOLS/script),*sys.argv[3:]],cwd=str(ROOT),env=env,stdout_path=out/'stdout.log',stderr_path=out/'stderr.log',receipt_path=out/'owner.json',qualification_seconds=180,cleanup_seconds=3)\n (out/'RETURNED.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\\n')\n print(json.dumps({key:result.get(key) for key in ('status','returncode','cleanup','qualification_seconds','cleanup_seconds')}))\n raise SystemExit(0 if result.get('status')=='OWNED_PROCESS_COMPLETED' and type(result.get('returncode')) is int and result['returncode']==0 and result.get('cleanup',{}).get('complete') is True else 1)\n"
+  }
+}

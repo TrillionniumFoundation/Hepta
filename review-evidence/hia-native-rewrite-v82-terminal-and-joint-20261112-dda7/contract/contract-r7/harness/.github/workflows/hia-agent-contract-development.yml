@@ -1,0 +1,84 @@
+name: HIA Agent contract seven-function development V82
+
+"on":
+  push:
+    branches:
+      - codex/hia-agent-contract-development-v82-r1-20261112-dda7
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  development:
+    name: contract-${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python: '3.14.4'
+            profile: native314
+          - python: '3.11'
+            profile: default311
+    steps:
+      - name: Check out the immutable harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Check out the exact published source base
+        uses: actions/checkout@v4
+        with:
+          ref: 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
+          path: base-source
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Set up the declared Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install original pinned development dependencies
+        run: python -I -m pip install --isolated setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Install original native caller tools
+        if: matrix.profile == 'native314'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-20 binutils gcc
+          clang-20 --version
+          ld --version
+      - name: Verify harness preparation controls
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -B -m unittest discover -s harness/tests -v
+      - name: Run the complete independent development scope
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python -B harness/inputs/run_development.py \
+            --base "$GITHUB_WORKSPACE/base-source" \
+            --workspace "$RUNNER_TEMP/contract-${{ matrix.profile }}" \
+            --profile '${{ matrix.profile }}'
+      - name: Export every completed selected text record
+        if: always()
+        run: python -B harness/inputs/export_text.py "$RUNNER_TEMP/contract-${{ matrix.profile }}"
+      - name: Preserve complete original development records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-agent-contract-${{ matrix.profile }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/contract-${{ matrix.profile }}/evidence/
+            ${{ runner.temp }}/contract-${{ matrix.profile }}/component/
+            ${{ runner.temp }}/contract-${{ matrix.profile }}/original55/
+            ${{ runner.temp }}/contract-${{ matrix.profile }}/default311/
+            ${{ runner.temp }}/contract-${{ matrix.profile }}/retained-development-compiler.bin
+            harness/inputs/
+            harness/tests/
+            harness/README.md
+            harness/.github/workflows/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

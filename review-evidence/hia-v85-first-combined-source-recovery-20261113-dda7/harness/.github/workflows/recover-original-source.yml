@@ -1,0 +1,30 @@
+name: Recover original failed combined source R1
+on:
+  push:
+    branches:
+      - codex/hia-first-combined-source-recovery-v85-20261113-dda7
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Restore fixed original source without product execution
+        run: python3 -B tools/recover_original_source.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_INPUTS_GIT_BLOB: 72365abbcfc09657c2e2c95327187b98d41ea18d
+          EXPECTED_DRIVER_GIT_BLOB: 947a29e7142b50c99999e0efc1ddcd552eba24d7
+      - name: Preserve recovered source and strict custody report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-combined-r1-source-recovery-${{ github.sha }}
+          path: ${{ runner.temp }}/r1-source-recovery/
+          if-no-files-found: error
+          retention-days: 90
+          include-hidden-files: true
