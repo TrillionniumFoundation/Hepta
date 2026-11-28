@@ -28,6 +28,10 @@ NOMINAL_BYTE_BOUNDARY_RESOURCES = (
     'examples/hia_bootstrap/core_json_bytes.hepta',
     'examples/hia_bootstrap/nominal_tokens.hepta',
 )
+CARRIER_POLICY_RESOURCES = (
+    'examples/hia_bootstrap/carrier_image_policy.hepta',
+    'examples/hia_bootstrap/carrier_cell_policy.hepta',
+)
 
 def agent_resources():
     tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
@@ -84,7 +88,7 @@ class AgentResourceBuild(build_py):
         super().run()
         self._agent_outputs=[]
         names = agent_resources()
-        for name in names + executable_capture_resources(names) + nominal_program_resources(names) + VM_INTEGER_DIVREM_RESOURCES + VM_INTEGER_ARITHMETIC_RESOURCES + VM_INTEGER_SCALAR_RESOURCES + NOMINAL_BYTE_BOUNDARY_RESOURCES:
+        for name in names + executable_capture_resources(names) + nominal_program_resources(names) + VM_INTEGER_DIVREM_RESOURCES + VM_INTEGER_ARITHMETIC_RESOURCES + VM_INTEGER_SCALAR_RESOURCES + NOMINAL_BYTE_BOUNDARY_RESOURCES + CARRIER_POLICY_RESOURCES:
             source=ROOT/name
             if not source.is_file():raise ValueError('missing Agent package resource: '+name)
             target=Path(self.build_lib)/'hepta/_data'/name
@@ -108,4 +112,8 @@ setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':MechanicalBuildExt, '
       ext_modules=extensions(),
       package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py',
                              'hia_bounded_read_abi.json', 'hia_core_compare_abi.json',
-                             'hia_core_integer_abi.json', 'hia_core_unpack_abi.json']})
+                             'hia_core_integer_abi.json', 'hia_core_unpack_abi.json',
+                             'native/carrier_image_abi.c', 'native/carrier_image_dispatch.inc',
+                             'native/carrier_cell_abi.c', 'native/carrier_cell_dispatch.inc',
+                             'native/native_carrier_build.py', 'hia_carrier_image_abi.json',
+                             'hia_carrier_cell_abi.json']})

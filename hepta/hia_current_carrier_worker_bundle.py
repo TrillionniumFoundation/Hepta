@@ -74,7 +74,7 @@ def _ordinary_chain(binding):
 
 
 class NativeCurrentCarrierWorkerBinding(NativeCarrierWorkerBinding):
-    def __init__(self, snapshot, expected_sha256):
+    def __init__(self, snapshot, expected_sha256, *, package_snapshots=()):
         self.owner = (authority.os.getpid(), authority.threading.get_ident())
         self._current_complete = False
         self._store_values = ()
@@ -97,7 +97,18 @@ class NativeCurrentCarrierWorkerBinding(NativeCarrierWorkerBinding):
                 or type(record["bridges"]) is not list):
             raise ValueError("unsupported current carrier Worker capsule")
         self.sha256 = expected_sha256
-        self.snapshots = [(snapshot, authority.MAX_BUNDLE_BYTES)]
+        if (type(package_snapshots) is not tuple or any(
+                type(item) is not tuple or len(item) != 2
+                or type(item[0]) is not authority._Snapshot
+                or type(item[1]) is not int or not 0 < item[1] <= authority.MAX_SOURCE_BYTES
+                for item in package_snapshots)):
+            raise ValueError("current carrier package snapshots are not explicit captures")
+        self.snapshots = [(snapshot, authority.MAX_BUNDLE_BYTES), *package_snapshots]
+        # Default RECORD/pin observations join custody before the first native
+        # mapping or extension load, and remain in every later file check.
+        for observed, maximum in package_snapshots:
+            if authority._read(observed.path, maximum) != observed:
+                raise ValueError("installed carrier default changed before typed admission")
         from .hia_loaded_source import loaded_source_identity
         identities = loaded_source_identity(__name__, (
             'hia_current_carrier_worker_bundle.py', 'hia_carrier_policy_release.py',

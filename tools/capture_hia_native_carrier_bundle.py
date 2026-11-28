@@ -60,10 +60,15 @@ def canonical(value):
 
 
 
-def capture_bridge_records(package, expected_receipts, required, captures):
+def capture_bridge_records(package, expected_receipts, required, captures, *, current_slot=False):
+    if type(current_slot) is not bool:
+        raise ValueError("carrier Slot domain selection must be exact")
     bridges = []
     for bridge_name in required:
         _selector, abi, schema, receipt_name, basename, sources = BRIDGES[bridge_name]
+        if current_slot and bridge_name == "slot-mechanical":
+            at = sources.index("hepta/hia_mechanical_worker_bundle.py")
+            sources = sources[:at] + ("hepta/hia_native_host_support.py",) + sources[at:]
         receipt_path = package / receipt_name
         receipt = read(receipt_path, 8 << 20)
         if sha256(receipt).hexdigest() != expected_receipts[bridge_name]:
