@@ -1013,6 +1013,13 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tests/fixtures/hia_bootstrap_carrier_service_predecessor_v1.json',
+    'tests/fixtures/hia_bootstrap_case_terminal_original_source_v1.json',
+    'tests/fixtures/hia_bootstrap_current_service_composition_v1.json',
+    'tests/test_hia_bootstrap_carrier_predecessor.py',
+    'tests/test_hia_bootstrap_case_terminal.py',
+    'tests/test_hia_bootstrap_current_service_history.py',
+    'tools/hia_bootstrap_carrier_predecessor.py',
     'examples/hia_bootstrap/carrier_cell_policy.hepta',
     'examples/hia_bootstrap/carrier_image_policy.hepta',
     'examples/hia_bootstrap/release_stage_carrier_policies.hiastd',
