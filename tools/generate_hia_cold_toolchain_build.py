@@ -29,6 +29,8 @@ TOP_ROOTS = {
     0: BOOTSTRAP[4], 2: BOOTSTRAP[5], 3: BOOTSTRAP[6],
     4: BOOTSTRAP[0], 5: BOOTSTRAP[1], 40: BOOTSTRAP[2],
 }
+OPERATIONAL_PROFILES = {'source_contract_generate': 'v1', 'cold_master': 'word', 'cold_source_export': 'v1', 'cold_plan_inventory': 'v1', 'cold_descriptor_compose': 'v1', 'cold_cli_bind': 'v1'}
+
 PROFILE_SOURCE = {
     "v1": "seed_backend", "div": "seed_div_backend",
     "bulk": "seed_bulk_backend", "div-bulk": "seed_div_bulk_backend",
@@ -249,6 +251,15 @@ class Stage:
             return "cold-bulk-word" if bulk else "word"
         return "div-bulk" if div and bulk else "div" if div else "cold-bulk" if bulk else "v1"
 
+    def operational_profile(self, role):
+        profile = self.profile(role)
+        expected = OPERATIONAL_PROFILES.get(role)
+        if expected is None:
+            return profile
+        if profile != expected:
+            raise ValueError("source requirements differ for fixed cold operational profile: " + role)
+        return "cold-bulk-word"
+
     def core(self, role):
         source = self.source(BOOT + role + ".hepta")
         return call(self.p, self.A, source, argv=("hia-seed-assembly", "--agent-compact"),
@@ -265,7 +276,7 @@ class Stage:
     def flat(self, role, profile=None):
         if role in self.flats:
             return self.flats[role]
-        profile = self.profile(role) if profile is None else profile
+        profile = self.operational_profile(role) if profile is None else profile
         core = self.core(role)
         projected = self.projected(core)
         flat = call(self.p, self.seed(profile), projected,
@@ -419,7 +430,7 @@ def stage_orchestration(build, entry=True):
     if entry:
         s.publish(s.flat("cold_build_entry"), "tmp-build-entry-policy", executable=False)
         s.publish(s.tool("cold_build_entry_packer"), "tmp-build-entry-packer")
-        s.publish(s.flat("cold_source_bootstrap_entry", "cold-bulk"),
+        s.publish(s.flat("cold_source_bootstrap_entry", "cold-bulk-word"),
                   "tmp-source-bootstrap-entry-policy", executable=False)
         s.publish(s.tool("cold_source_bootstrap_entry_packer", "v1"),
                   "tmp-source-bootstrap-entry-packer")

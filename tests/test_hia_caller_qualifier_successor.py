@@ -160,8 +160,10 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
             cls.corpus[name] = capture(name)
         inventory = cls.values['store']['unchanged_files']
         latest = {name for value in cls.values.values() for name in value['unchanged_files']}
+        from tools.hia_cold_caller_sources import PATHS as cold_paths
         required = {*delivery.COMPONENT_PATHS, delivery.MACHINE_RECEIPT_CALLER,
-                    'tests/test_hia_native_build_admission_native.py', *(_records().keys() & latest)}
+                    'tests/test_hia_native_build_admission_native.py',
+                    *((_records().keys() | set(cold_paths)) & latest)}
         for name in required - cls.corpus.keys():
             raw = cold_control_source(ROOT, name, capture(name),
                                       cls.source_raw, cls.cold_adjustments)

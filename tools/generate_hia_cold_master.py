@@ -2,8 +2,10 @@
 from pathlib import Path
 from hashlib import sha256
 from hepta.hia_agent_assembly import render_assembly
-from tools.generate_hia_cold_allocator_witness import document
+from tools.generate_hia_cold_allocator_witness import document as packer_document
+from tools.hia_cold_guarded_write import document
 from tools.generate_hia_cold_master_common import helpers,packer
+from tools.hia_cold_guarded_read import guarded_u64_read
 ROOT=Path(__file__).resolve().parents[1]
 FAMILIES=('capacity','cfg','elf','chain','owned','bulk','loan','resource','tail','select','effects','multi','keyword','signed','scalar-casts','explicit-traps','cli','names','exports')
 SOURCE=r'''
@@ -917,9 +919,9 @@ def source():
     text+='\ndef initialize(w:mutbuf) -> u64:\n'
     for at,value in [(61000,b'hia-cold-master\0'),(61100,b'.hiaqar\0'),(61120,b'evidence.hiaqj\0'),(61200,b'PATH=\0'),(61216,b'LANG=C\0'),(61232,b'LC_ALL=C\0'),(61248,b'TZ=UTC\0'),(61264,b'\0')]:
         for i in range(0,len(value),8):text+=f'    put(w,{at+i},{int.from_bytes(value[i:i+8],"little")})\n'
-    return text+'    return 0\n'+helpers()
+    return guarded_u64_read(text+'    return 0\n'+helpers())
 
 if __name__=='__main__':
     for name,text in [('cold_master',source()),('cold_master_packer',packer(b'HIAQMP01'))]:
-        doc=document(text);raw=render_assembly(doc).encode();path=ROOT/'examples/hia_bootstrap'/(name+'.hepta');path.write_bytes(raw)
+        doc=document(text) if name == 'cold_master' else packer_document(text);raw=render_assembly(doc).encode();path=ROOT/'examples/hia_bootstrap'/(name+'.hepta');path.write_bytes(raw)
         print(name,len(raw),len(doc['functions']),sum(len(f['blocks']) for f in doc['functions']),sum(len(b['ops']) for f in doc['functions'] for b in f['blocks']),sha256(raw).hexdigest(),flush=True)

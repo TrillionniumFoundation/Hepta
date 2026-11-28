@@ -8,7 +8,8 @@ from hashlib import sha256
 import ast,struct,subprocess,tempfile
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_cold_build_entry import source as base_source
-from tools.generate_hia_cold_document import bulk_document
+from tools.generate_hia_cold_document import bulk_document as packer_document
+from tools.hia_cold_guarded_write import bulk_document
 from tools.generate_hia_native_filter import LINK_SOURCE
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -184,5 +185,5 @@ def packer():
 
 if __name__=='__main__':
     for name,text in [('cold_source_bootstrap_entry',source()),('cold_source_bootstrap_entry_packer',packer())]:
-        doc=bulk_document(text,name);raw=render_assembly(doc).encode();(ROOT/'examples/hia_bootstrap'/(name+'.hepta')).write_bytes(raw)
+        doc=bulk_document(text,name) if name == 'cold_source_bootstrap_entry' else packer_document(text,name);raw=render_assembly(doc).encode();(ROOT/'examples/hia_bootstrap'/(name+'.hepta')).write_bytes(raw)
         print(name,len(raw),len(doc['functions']),sum(len(f['blocks']) for f in doc['functions']),sum(len(b['ops']) for f in doc['functions'] for b in f['blocks']),max(len(f['blocks']) for f in doc['functions']),sha256(raw).hexdigest(),flush=True)

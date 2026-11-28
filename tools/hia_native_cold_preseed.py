@@ -17,6 +17,8 @@ ROOT_NAMES = (
     "hia-seed-filter-pack", "hia-cold-qualification-driver",
     "hia-independent-subprocess", "hia-cold-process-owner",
 )
+OPERATIONAL_PROFILES = {'source_contract_generate': 'v1', 'cold_master': 'word', 'cold_source_export': 'v1', 'cold_plan_inventory': 'v1', 'cold_descriptor_compose': 'v1', 'cold_cli_bind': 'v1'}
+
 PROFILE_SOURCE = {
     "v1": "seed_backend", "div": "seed_div_backend",
     "bulk": "seed_bulk_backend", "div-bulk": "seed_div_bulk_backend",
@@ -119,6 +121,15 @@ class Builder:
             return "cold-bulk-word" if bulk else "word"
         return "div-bulk" if div and bulk else "div" if div else "cold-bulk" if bulk else "v1"
 
+    def operational_profile(self, role):
+        profile = self.profile(role)
+        expected = OPERATIONAL_PROFILES.get(role)
+        if expected is None:
+            return profile
+        if profile != expected:
+            raise ValueError("source requirements differ for fixed cold operational profile: " + role)
+        return "cold-bulk-word"
+
     def backend(self, profile):
         if profile not in self.backends:
             flat = self.flat(PROFILE_SOURCE[profile], "v1")
@@ -129,7 +140,7 @@ class Builder:
         return self.backends[profile]
 
     def flat(self, role, profile=None):
-        profile = self.profile(role) if profile is None else profile
+        profile = self.operational_profile(role) if profile is None else profile
         key = role, profile
         if key not in self.flats:
             raw = self.source_bytes(role)
@@ -147,7 +158,7 @@ class Builder:
         return self.publish(label + ".tool", raw, inventory=False)
 
     def tool(self, role, profile=None):
-        profile = self.profile(role) if profile is None else profile
+        profile = self.operational_profile(role) if profile is None else profile
         key = role, profile
         if key not in self.tools:
             self.tools[key] = self.wrap(self.flat(role, profile), role + "-" + profile)
@@ -228,7 +239,7 @@ class Builder:
         self.save()
         self.publish("tmp-build-entry-policy", self.flat("cold_build_entry"), executable=False)
         self.publish("tmp-build-entry-packer", self.tool("cold_build_entry_packer").read_bytes())
-        self.publish("tmp-source-bootstrap-entry-policy", self.flat("cold_source_bootstrap_entry", "cold-bulk"), executable=False)
+        self.publish("tmp-source-bootstrap-entry-policy", self.flat("cold_source_bootstrap_entry", "cold-bulk-word"), executable=False)
         self.publish("tmp-source-bootstrap-entry-packer", self.tool("cold_source_bootstrap_entry_packer", "v1").read_bytes())
         for name, expected in self.record["sources"].items():
             assert pin((self.source / name).read_bytes()) == expected, name

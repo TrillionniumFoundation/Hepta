@@ -20,6 +20,10 @@ _lock = Lock()
 def _sources():
     from tools.build_hia_json_preflight import current_sources
 
+    from tools.hia_release_contract import source_domain, validate_release_contract
+    if source_domain(validate_release_contract(ROOT)) == 'native':
+        from tests.hia_native_distribution_compat import compatibility_sources
+        return compatibility_sources(ROOT)
     return current_sources()
 
 
@@ -136,6 +140,10 @@ def ordinary_wheel(source, python=None):
     """Use one real offline pip build per source identity and packaging interpreter."""
     source = Path(source)
     python = python or os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
+    from tools.hia_release_contract import source_domain, validate_release_contract
+    if source_domain(validate_release_contract(ROOT)) == 'native':
+        from tests.hia_native_distribution_compat import compatibility_wheel
+        return compatibility_wheel(ROOT, source, python)
     sources = _sources()
     # Partial fixture trees deliberately contain the resources exercised by each
     # caller. A conflicting staged input must fail even if the wheel already exists.
