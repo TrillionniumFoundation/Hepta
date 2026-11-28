@@ -150,6 +150,7 @@ class _CapturedAdmission:
         self._root = Path(root)
         self._captured = {}
         self._physical = {}
+        self._native_cold_sources = {}
         self._consumed = []
         self._accepted = set()
         self._accepted_distribution = set()
@@ -177,11 +178,26 @@ class _CapturedAdmission:
         self._admit_reviewed_components()
         self._admit_store_admin_helpers()
 
+    def _take_physical(self, path):
+        path = Path(path)
+        name = path.relative_to(self._root).as_posix()
+        raw = path.read_bytes()
+        if name in self._physical and self._physical[name] != raw:
+            raise ValueError('caller terminal source changed during capture: ' + name)
+        self._physical[name] = raw
+        return raw
+
     def _capture(self, name):
-        from tests.hia_installed_distribution_history import predecessor
+        from tests.hia_native_transport_worker_successor import _installed_predecessor
+        from tools.hia_frozen_component_sources import cold_caller_source
         if name not in self._captured:
-            self._physical[name] = (self._root / name).read_bytes()
-            self._captured[name] = predecessor(name, self._physical[name])
+            physical = self._take_physical(self._root / name)
+            prior, proof = cold_caller_source(
+                self._root, name, physical, take=self._take_physical)
+            if proof is not None:
+                self._native_cold_sources[name] = proof
+            self._captured[name] = _installed_predecessor(
+                name, prior, root=self._root, take=self._take_physical)
         return self._captured[name]
 
     def _admit_pair_and_evaluation(self):
@@ -225,7 +241,7 @@ class _CapturedAdmission:
                         self._capture(delivery.SQLITE_BOUNDARY_FIXTURE), FIXTURE, frozen,
                         pair['files'][name]['new'])
                 if name == DELIVERY and _pin(raw) != pair['files'][name]['new']:
-                    raw = delivery.restore_sql_source(name, raw, self._capture, pair['files'][name]['new'])
+                    raw = delivery.restore_sql_source(name, raw, self._capture, pair['files'][name]['new'], root=self._root)
                 reverse_one(raw, pair['files'][name], OLD[name])
             self._state = 'EXACT_TERMINAL_V2_PAIR'
             self._allowed[TRANSPORT] = self._adjustment(
@@ -261,7 +277,9 @@ class _CapturedAdmission:
                 raise ValueError('caller evaluation provenance scope differs')
             approved = evaluation
             if _pin(evaluation) != EVALUATION_NEW:
-                approved = delivery.restore_evaluation_store(evaluation, self._capture(delivery.EVALUATION_STORE_FIXTURE))
+                approved = delivery.restore_evaluation_store(self._physical[EVALUATION],
+                    self._capture(delivery.EVALUATION_STORE_FIXTURE),
+                    root=self._root, take=self._take_physical)
             reverse_evaluation(approved, value['record'])
             self._state = 'EXACT_TERMINAL_V2_PAIR_WITH_EVALUATION_V2'
             self._allowed[EVALUATION] = self._adjustment(
@@ -447,6 +465,7 @@ class _CapturedAdmission:
                 'captured_files': {name: _pin(raw) for name, raw in self._physical.items()},
                 'installed_distribution_predecessors': {name: _pin(raw) for name, raw in self._captured.items()
                                                        if raw != self._physical[name]},
+                'reviewed_native_cold_caller_sources': dict(self._native_cold_sources),
                 'terminal_reread_identical': True,
                 'production_composition_source_count': 13,
                 'production_source_exceptions': [],

@@ -154,9 +154,53 @@ def legacy_catalog_owner():
     return catalog
 
 
-def before_default_cli(name, current):
+def before_default_cli(name, current, *, root=None, take=Path.read_bytes,
+                       with_source_admission=False):
+    """Compose the exact cold caller inverse with the retained CLI histories."""
+    from tools.hia_frozen_component_sources import cold_caller_source
+    root = Path(ROOT if root is None else root)
+    captured = {}
+    physical = current.encode()
+    cold_proof = None
+
+    def capture(path):
+        path = Path(path)
+        raw = take(path)
+        if path in captured and captured[path] != raw:
+            raise ValueError("CLI source-history input changed between captures")
+        captured[path] = raw
+        return raw
+
+    try:
+        if name == "tests/test_hia_cli_native.py":
+            prior, cold_proof = cold_caller_source(root, name, physical, take=capture)
+            current = prior.decode()
+        restored = _before_default_cli(name, current, root, capture)
+        for path, raw in captured.items():
+            if take(path) != raw:
+                raise ValueError("CLI source-history input changed at terminal readback")
+    except (FileNotFoundError, ValueError) as exc:
+        raise ValueError("source differs from the pinned default CLI successor: "
+                         + name + "; " + str(exc)) from exc
+    proof = {
+        "schema": "hepta.hia.cli-discovery-cold-caller-source.v1",
+        "path": name,
+        "physical_current": {"bytes": len(physical), "sha256": sha256(physical).hexdigest()},
+        "restored_predecessor": {"bytes": len(restored.encode()),
+                                "sha256": sha256(restored.encode()).hexdigest()},
+        "native_cold_caller_source": cold_proof,
+        "captured_files": {path.relative_to(root).as_posix():
+                          {"bytes": len(raw), "sha256": sha256(raw).hexdigest()}
+                          for path, raw in captured.items()},
+        "terminal_reread_identical": True,
+        "whole_native_delivery_qualified": False,
+    }
+    return (restored, proof) if with_source_admission else restored
+
+
+def _before_default_cli(name, current, root, take):
     """Undo only the pinned installed-owner and wheel fixture changes."""
-    raw = DEFAULT_SUCCESSOR.read_bytes()
+    raw = take(root / 'tests/fixtures' / DEFAULT_SUCCESSOR.name)
     if sha256(raw).hexdigest() != DEFAULT_SUCCESSOR_SHA256:
         raise ValueError('default CLI successor fixture changed')
     fixture = json.loads(raw)
@@ -187,12 +231,12 @@ def before_default_cli(name, current):
                 raise ValueError('invalid package discovery parser inverse')
             current = current.replace(active, original)
     additions = {
-        'hepta/hia_cli_native.py': (PROFILE_3123_SUCCESSOR, PROFILE_3123_SUCCESSOR_SHA256),
-        'tests/test_hia_cli_native.py': (WHEEL_TEST_SUCCESSOR, WHEEL_TEST_SUCCESSOR_SHA256),
+        'hepta/hia_cli_native.py': (root / 'tests/fixtures' / PROFILE_3123_SUCCESSOR.name, PROFILE_3123_SUCCESSOR_SHA256),
+        'tests/test_hia_cli_native.py': (root / 'tests/fixtures' / WHEEL_TEST_SUCCESSOR.name, WHEEL_TEST_SUCCESSOR_SHA256),
     }
     if name in additions and sha256(current.encode()).hexdigest() != row['current_sha256']:
         path, expected = additions[name]
-        record = path.read_bytes()
+        record = take(path)
         if sha256(record).hexdigest() != expected:
             raise ValueError('CLI successor fixture changed: ' + name)
         successor = json.loads(record)

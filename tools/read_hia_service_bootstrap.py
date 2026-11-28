@@ -1418,11 +1418,7 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
     integer(scope['outer_seconds'], 1800)
     from tests.hia_bootstrap_caller_predecessors import bootstrap_caller_predecessor
     from tools import hia_cold_caller_sources as cold_history
-    relation_raw = take(cold_history.FIXTURE)
-    relation_reader = take(cold_history.SOURCE)
-    if Path(cold_history.__file__).read_bytes() != relation_reader:
-        raise ValueError('native cold caller relation reader differs from captured source')
-    cold_relations = cold_history.read_relations(relation_raw)
+    cold_relations = None
     cold_adjustments = {}
 
     adjustments = {}
@@ -1430,10 +1426,25 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
     predecessors = {}
     for name, old_pin in scope['files'].items():
         physical = take(name)
-        cold_predecessor = cold_history.restore_caller_source(name, physical, cold_relations)
+        cold_predecessor = physical
+        raw = bootstrap_caller_predecessor(ROOT, name, physical, old_pin, take)
+        if (raw == physical and name in cold_history.PATHS
+                and s.bytes_pin(raw) != old_pin
+                and not (name == _CALLER_JOURNAL_PATH and s.bytes_pin(raw) == _CALLER_JOURNAL_NEW)):
+            if cold_relations is None:
+                try:
+                    relation_raw = take(cold_history.FIXTURE)
+                    previous_raw = take(cold_history.PREVIOUS_FIXTURE)
+                    relation_reader = take(cold_history.SOURCE)
+                except FileNotFoundError as error:
+                    raise ValueError('unreviewed native cold caller lacks its source authority') from error
+                if Path(cold_history.__file__).read_bytes() != relation_reader:
+                    raise ValueError('native cold caller relation reader differs from captured source')
+                cold_relations = cold_history.read_relations(relation_raw, previous_raw=previous_raw)
+            cold_predecessor = cold_history.restore_caller_source(name, physical, cold_relations)
+            raw = bootstrap_caller_predecessor(ROOT, name, cold_predecessor, old_pin, take)
         if cold_predecessor != physical:
             cold_adjustments[name] = {'physical': s.bytes_pin(physical), 'predecessor': s.bytes_pin(cold_predecessor)}
-        raw = bootstrap_caller_predecessor(ROOT, name, cold_predecessor, old_pin, take)
         if raw != cold_predecessor:
             predecessors[name] = {'physical': s.bytes_pin(physical), 'predecessor': s.bytes_pin(raw)}
         if s.same(s.bytes_pin(raw), old_pin):

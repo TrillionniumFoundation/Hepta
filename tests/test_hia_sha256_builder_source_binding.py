@@ -73,6 +73,9 @@ class Sha256BuilderSourceBindingTests(unittest.TestCase):
         context = patch('tools.hia_selfhost_contract.validate_contract', side_effect=self.contract)
         context.start()
         self.addCleanup(context.stop)
+        context = patch('tools.hia_release_contract.validate_release_contract', side_effect=self.contract)
+        context.start()
+        self.addCleanup(context.stop)
         context = patch('tools.qualify_hia_selfhost.compile_stage', side_effect=self.compile)
         context.start()
         self.addCleanup(context.stop)
@@ -81,8 +84,10 @@ class Sha256BuilderSourceBindingTests(unittest.TestCase):
         return {name: sha256((self.root / name).read_bytes()).hexdigest()
                 for name in self.bound_names}
 
-    def contract(self):
-        return {'source_identity': {'files': {
+    def contract(self, root=None):
+        if root is not None and Path(root) != self.root:
+            raise AssertionError("custody fixture used an unrelated source root")
+        return {'source_identity': {'roles': {'seed_entry': 'tools/qualify_hia_selfhost.py:build_seed'}, 'files': {
             name: value for name, value in self.sources().items() if name != CONTRACT_PATH}}}
 
     def compile(self, output, label, compiler, source):

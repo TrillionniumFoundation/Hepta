@@ -75,6 +75,25 @@ class CostArtifactCallerAdmissionSourceTests(unittest.TestCase):
         cls.live_sources = dict(cls.sources)
         for pins in cls.original_files.values():
             historical_caller_dependencies(ROOT, cls.sources, pins)
+        from tools.hia_frozen_component_sources import history_inverse
+        assembly_path = 'tests/test_hia_agent_assembly.py'
+        assembly_fixture = 'tests/fixtures/hia_artifact_assembly_source_history_20261128.json'
+        frozen = (ROOT / assembly_fixture).read_bytes()
+        if {'bytes': len(frozen), 'sha256': sha256(frozen).hexdigest()} != {'bytes': 8662, 'sha256': '35e0dc1cb30476e0ec6fafc0539d5d7c877d4942fda3048bb614caf8d94e7f24'}:
+            raise AssertionError('the fixed complete assembly source history changed')
+        cls.live_sources[assembly_fixture] = frozen
+        relation = json.loads(frozen)
+        if (relation['path'] != assembly_path
+                or relation['schema'] != 'hepta.hia.artifact-assembly-source-history.v1'
+                or relation['predecessor_commit'] != 'a6b8d145a84556958384f15c99993f25236df276'
+                or relation['current_commit'] != 'e78be455707430e3c94e50ab07b021fd2cb40ecc'
+                or relation['original_method_count'] != 18
+                or relation['current_method_count'] != 20
+                or relation['original_method_asts_unchanged'] is not True):
+            raise AssertionError('the fixed assembly source history scope changed')
+        cls.sources[assembly_path] = history_inverse(
+            cls.sources[assembly_path], relation['record'],
+            {'bytes': 11095, 'sha256': cls.original_files['artifact132'][assembly_path]})
         cls.actual_diagnostic = cls.sources[cost._DIAGNOSTICS_CALLER]
         cls.sources[cost._DIAGNOSTICS_CALLER] = diagnostic_predecessor(ROOT, cls.actual_diagnostic)
         cls.original = inverse(cls.sources[cost._DIAGNOSTICS_CALLER],

@@ -55,10 +55,16 @@ class DeliveryJournalPreparationSourceTests(unittest.TestCase):
             names.update(cls.originals[kind]['unchanged_files'])
             names.update(cls.originals[kind].get('shared_dependency_review', {}))
         names.update((subject.SQL_SOURCE_FIXTURE, subject.SQL_EFFECT_TEST))
+        from tools import hia_cold_caller_sources as cold
+        names.update((cold.FIXTURE, cold.PREVIOUS_FIXTURE, cold.SOURCE))
         cls.sources = {name: (ROOT / name).read_bytes() for name in sorted(names)}
         from tests.hia_installed_distribution_history import predecessor
+        from tests.hia_historical_diagnostic_controls import cold_control_source
+        cls.cold_adjustments = {}
         for name, expected in OUTER_PINS.items():
-            raw = predecessor(name, cls.sources[name])
+            raw = cold_control_source(
+                ROOT, name, cls.sources[name], cls.sources, cls.cold_adjustments)
+            raw = predecessor(name, raw)
             if name == subject.DELIVERY and pin(raw) != expected:
                 raw = subject.restore_sql_source(name, raw, cls.sources.__getitem__, expected)
             if pin(raw) != expected:

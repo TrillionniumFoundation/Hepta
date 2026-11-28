@@ -86,16 +86,19 @@ class NativeBuilderSourceBindingTests(unittest.TestCase):
         self.addCleanup(patch.stopall)
         patch.object(builder, 'ROOT', self.root).start()
         patch('tools.hia_selfhost_contract.validate_contract', side_effect=self.contract).start()
+        patch('tools.hia_release_contract.validate_release_contract', side_effect=self.contract).start()
         patch('tools.qualify_hia_selfhost.compile_stage', side_effect=self.compile).start()
 
     def sources(self):
         return {name: sha256((self.root / name).read_bytes()).hexdigest()
                 for name in (*self.source_names, 'related-source.py', CONTRACT_PATH)}
 
-    def contract(self):
+    def contract(self, root=None):
+        if root is not None and Path(root) != self.root:
+            raise AssertionError("custody fixture used an unrelated source root")
         files = self.sources()
         del files[CONTRACT_PATH]
-        return {'source_identity': {'files': files}}
+        return {'source_identity': {'roles': {'seed_entry': 'tools/qualify_hia_selfhost.py:build_seed'}, 'files': files}}
 
     def compile(self, output, protocol, compiler, source):
         self.calls.append((protocol, compiler.read_bytes(), source))

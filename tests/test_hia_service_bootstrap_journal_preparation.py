@@ -48,6 +48,10 @@ class ServiceBootstrapJournalPreparationTests(unittest.TestCase):
             paths.update(scope['files'])
         from tests.hia_installed_distribution_history import predecessor
         cls.inputs = {name: (ROOT / name).read_bytes() for name in sorted(paths)}
+        from tests.hia_historical_diagnostic_controls import cold_control_source
+        cls.live_sources, cls.cold_adjustments = dict(cls.inputs), {}
+        cls.inputs[JOURNAL] = cold_control_source(
+            ROOT, JOURNAL, cls.inputs[JOURNAL], cls.live_sources, cls.cold_adjustments)
         cls.inputs[JOURNAL] = predecessor(JOURNAL, cls.inputs[JOURNAL])
         fixed = {
             HELPER: {'bytes': 15935, 'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797'},
@@ -65,6 +69,11 @@ class ServiceBootstrapJournalPreparationTests(unittest.TestCase):
         cls.inputs[DIAGNOSTIC] = diagnostic_predecessor(ROOT, cls.actual_diagnostic)
         cls.diagnostic_original = reader._restore_caller_diagnostic_source(
             cls.inputs[DIAGNOSTIC], cls.inputs[DIAGNOSTIC_FIXTURE])
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.live_sources != {name: (ROOT / name).read_bytes() for name in cls.live_sources}:
+            raise AssertionError('Bootstrap journal physical Source inputs changed')
 
     def stage(self, root, *, journal_current=True, diagnostic_current=True):
         for name, raw in self.inputs.items():
