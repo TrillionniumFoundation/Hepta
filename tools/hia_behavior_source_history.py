@@ -15,8 +15,8 @@ import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 SELF = 'tools/hia_behavior_source_history.py'
-FIXTURE = 'tests/fixtures/hia_behavior_input_history_v4.json'
-FIXTURE_SHA256 = '2b386e0ddfa072adceaa1e1293fa82dc381bb0bcaf02ce30460696a663ec3ec1'
+FIXTURE = 'tests/fixtures/hia_behavior_input_history_v7.json'
+FIXTURE_SHA256 = '6215141499231dca05b9edf889d8113ea0745dbfe081d2f6db7c1224adbc215c'
 _IMPORTED_SELF = (ROOT / SELF).read_bytes()
 
 
