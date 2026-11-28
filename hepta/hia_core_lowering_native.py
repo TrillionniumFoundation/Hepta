@@ -11,7 +11,7 @@ import builtins
 import ctypes
 import operator
 import struct
-from types import MappingProxyType
+from types import FunctionType, MappingProxyType
 
 from .hia_core_compare_native import eligible as _numeric_comparison_eligible
 from .hia_core_integer_native import eligible_binary as _integer_binary_eligible
@@ -20,6 +20,7 @@ from .hia_core_integer_native import eligible_unary as _integer_unary_eligible
 from .hia_native_helpers import check_native_scheduling_scope
 
 MAGIC = int.from_bytes(b'HIALOW01', 'little')
+MAGIC_V2 = int.from_bytes(b'HIALOW02', 'little')
 POOL_MAGIC = int.from_bytes(b'HIALIT01', 'little')
 ABI = 0xfffffffd
 FRAME = struct.Struct('<16Q')
@@ -120,7 +121,11 @@ class LoweringSession:
 
     def __init__(self, owner, mode, arguments):
         check_native_scheduling_scope(owner)
-        if type(mode) is not int or type(arguments) is not tuple or len(arguments) > 4:
+        self.magic = getattr(owner, 'protocol_magic', MAGIC)
+        if self.magic not in (MAGIC, MAGIC_V2):
+            raise ValueError('native lowering protocol profile differs')
+        self.v2 = self.magic == MAGIC_V2
+        if type(mode) is not int or type(arguments) is not tuple or len(arguments) > (6 if self.v2 else 4):
             raise TypeError('exact native lowering invocation frame required')
         self.owner = owner
         literals = owner.literals
@@ -143,7 +148,7 @@ class LoweringSession:
         self.finished = False
         self.request = None
         args = tuple(self.register(value) for value in arguments)
-        words = (MAGIC, 0, 0, mode, len(args), *args)
+        words = (self.magic, 0, 0, mode, len(args), *args)
         self.initial = FRAME.pack(*words, *([0] * (16 - len(words))))
 
     def register(self, value):
@@ -191,10 +196,10 @@ class LoweringSession:
             ctypes.memmove(self.input, packet, 128)
             result = self.owner.images[self.unit]._entry(
                 self.input, 128, self.output, len(self.output), self.state, len(self.state))
-            if result not in (0, 1, 2):
+            if result not in ((0, 1, 2, 3) if self.v2 else (0, 1, 2)):
                 raise RuntimeError('native lowering protocol refusal: ' + hex(result))
             header = struct.unpack_from('<16Q', self.output)
-            if header[0] != MAGIC:
+            if header[0] != self.magic:
                 raise RuntimeError('native lowering output identity differs')
             if result == 0:
                 if header[2] != 0:
@@ -203,13 +208,18 @@ class LoweringSession:
                 self.status, self.returned = 0, returned
                 self._close()
                 return 0
-            if result == 2:
-                if header[2] != 19 or header[3] >= len(self.owner.images):
+            if result == 3:
+                if header[2] != 20:
+                    raise RuntimeError('native lowering yield framing differs')
+                self.yielded = self.value(header[3])
+                self.request = header
+            elif result == 2:
+                if header[2] != (21 if self.v2 else 19) or header[3] >= len(self.owner.images):
                     raise RuntimeError('native lowering handoff framing differs')
                 self.request = header
             else:
                 opcode, count, vector_count, results = header[2:6]
-                if not 1 <= opcode <= 18 or count > 8 or results > 3:
+                if not 1 <= opcode <= (19 if self.v2 else 18) or count > 8 or results > (4 if self.v2 else 3):
                     raise RuntimeError('native lowering primitive framing differs')
                 if 128 + vector_count * 8 > len(self.output):
                     raise RuntimeError('native lowering vector exceeds private output')
@@ -230,7 +240,20 @@ class LoweringSession:
         try:
             header = self.request
             self.unit = header[3]
-            return FRAME.pack(MAGIC, 2, header[1], self.unit, *([0] * 12))
+            return FRAME.pack(self.magic, 2, header[1], self.unit, *([0] * 12))
+        except BaseException:
+            self._close()
+            raise
+
+    def resume(self):
+        self._check_worker_scope(observing=True)
+        if not self.v2 or self.finished or not self.pending or self.status != 3:
+            self._close()
+            raise RuntimeError('native lowering generator resume is not pending')
+        self.pending = False
+        try:
+            header = self.request
+            return FRAME.pack(self.magic, 3, header[1], self.unit, *([0] * 12))
         except BaseException:
             self._close()
             raise
@@ -253,7 +276,7 @@ class LoweringSession:
             if len(results) != nresults or flag not in (0, 1):
                 raise RuntimeError('native lowering primitive result shape differs')
             handles = tuple(self.register(value) for value in results)
-            words = (MAGIC, 1, header[1], len(handles), flag, *handles)
+            words = (self.magic, 1, header[1], len(handles), flag, *handles)
             return FRAME.pack(*words, *([0] * (16 - len(words))))
         except BaseException:
             self._close()
@@ -284,11 +307,15 @@ class LoweringSession:
                 raise RuntimeError('native lowering call arity differs')
             target = get(callee)
             positional = tuple(get(v) for v in (a, b, c, d)[:argc])
-            keyword = get(key)
-            if keyword is None:
-                result = target(*positional)
+            if self.v2 and key == 0:
+                # The HIA-selected CALL_EX observes the mapping at its original call.
+                result = target(*positional, **get(value))
             else:
-                result = target(*positional, **{keyword: get(value)})
+                keyword = get(key)
+                if keyword is None:
+                    result = target(*positional)
+                else:
+                    result = target(*positional, **{keyword: get(value)})
             return 0, (result,)
         if opcode == 7:
             kind, count = args
@@ -374,23 +401,45 @@ class LoweringSession:
             list.append(get(value), get(item))
             return 0, ()
         if opcode == 17:
-            if args:
+            if not self.v2:
+                if args:
+                    raise RuntimeError('native lowering import framing differs')
+                from hepta.hia_machine_plan import VALUE_REGISTERS
+                return 0, (VALUE_REGISTERS,)
+            kind, = args
+            if kind == 1:
+                from .hia_machine_plan import VALUE_REGISTERS
+                result = VALUE_REGISTERS
+            elif kind == 2:
+                from .hia_machine_plan import code_options
+                result = code_options
+            elif kind == 3:
+                from .hia_native_byte_abi import emit_wrapper
+                result = emit_wrapper
+            else:
                 raise RuntimeError('native lowering import framing differs')
-            from hepta.hia_machine_plan import VALUE_REGISTERS
-            return 0, (VALUE_REGISTERS,)
+            return 0, (result,)
         if opcode == 18:
             value, = args
             raise get(value)
+        if self.v2 and opcode == 19:
+            name, iterator = args
+            return 0, (self.owner.generator(get(name), get(iterator)),)
         raise RuntimeError('native lowering unknown primitive')
 
-    def run(self):
+    def advance(self, packet):
         self._check_worker_scope(host_scheduler=True)
-        packet = self.initial
         while True:
             status = self.step(packet)
-            if status == 0:
-                return self.returned
+            if status in (0, 3):
+                return status
             packet = self.handoff() if status == 2 else self.observe()
+
+    def run(self):
+        if self.advance(self.initial) != 0:
+            self._close()
+            raise RuntimeError('ordinary lowering method unexpectedly yielded')
+        return self.returned
 
 
 class NativeCoreLowering:
@@ -400,9 +449,12 @@ class NativeCoreLowering:
 
     def __init__(self, images, pool, abi, namespace, *, unpack=None, numeric_compare=None, integer=None):
         check_native_scheduling_scope(self, constructing=True)
-        if type(abi) is not dict or abi.get('schema') != self.ABI_SCHEMA:
+        v2 = (type(abi) is dict and self.ABI_SCHEMA == 'hepta.hia.core-lowering-abi.v1'
+              and abi.get('schema') == 'hepta.hia.core-lowering-abi.v2')
+        if type(abi) is not dict or (not v2 and abi.get('schema') != self.ABI_SCHEMA):
             raise ValueError('native lowering ABI metadata differs')
-        if abi.get('protocol_magic') != MAGIC or abi.get('pool_magic') != POOL_MAGIC or abi.get('packet_bytes') != 128:
+        self.protocol_magic = MAGIC_V2 if v2 else MAGIC
+        if abi.get('protocol_magic') != self.protocol_magic or abi.get('pool_magic') != POOL_MAGIC or abi.get('packet_bytes') != 128:
             raise ValueError('native lowering protocol identity differs')
         self.images = tuple(images)
         if not self.images or len(self.images) != len(abi['units']):
@@ -412,6 +464,7 @@ class NativeCoreLowering:
                 or self.workspace_bytes < 1024 or self.output_bytes < 128):
             raise ValueError('native lowering private extents differ')
         self.modes = abi['modes']
+        self.generator_modes = tuple(abi['generator_modes']) if v2 else ()
         self.namespace = namespace
         self.unpack = unpack
         self.numeric_compare = numeric_compare
@@ -426,6 +479,7 @@ class NativeCoreLowering:
         self._literal_indexes = MappingProxyType({id(value): index
             for index, value in enumerate(self.literals, 1)})
         self._classes = {}
+        self._emitter_classes = {}
         # These wrappers bind the original helper signatures; every body is
         # another HIA invocation, never the retained helper implementation.
         def reject(message, code='E_HIA_PROGRAM_NATIVE'):
@@ -440,6 +494,9 @@ class NativeCoreLowering:
             return self.invoke('_prologue', (code, frame))
         self._helpers = {'_reject': reject, '_words': words, '_bounds': bounds,
                          '_normalize': normalize, '_prologue': prologue}
+        if v2:
+            for name, helper in self._helpers.items():
+                helper.__qualname__ = name
 
     def global_value(self, name):
         # Private helper replacement is not a runtime fallback. Remaining module
@@ -459,6 +516,39 @@ class NativeCoreLowering:
         if len(arguments) != mode['arity']:
             raise RuntimeError('native lowering bound argument count differs')
         return LoweringSession(self, mode['number'], arguments).run()
+
+    def generator(self, name, iterator):
+        if name not in self.generator_modes or self.modes[name]['arity'] != 1:
+            raise RuntimeError('native lowering generator mode differs')
+        engine = getattr(self, '_continuation', None)
+        check_native_scheduling_scope(self, host_scheduler=engine is None)
+        session = LoweringSession(self, self.modes[name]['number'], (iterator,))
+
+        def suspended():
+            # This Python object implements generator suspension/throw/close
+            # only. All NEXT, body lookups, yields and termination are selected
+            # by HIA. In particular a body StopIteration crosses this real
+            # generator frame and therefore follows CPython's PEP479 behavior.
+            if engine is not None:
+                # The native engine owns every dispatch, handoff and resume.
+                returned = yield from engine.iterate(session)
+                if returned is not None:
+                    raise RuntimeError('native generator returned a foreign terminal value')
+                return
+            packet = session.initial
+            try:
+                while True:
+                    status = session.advance(packet)
+                    if status == 0:
+                        if session.returned is not None:
+                            raise RuntimeError('native generator returned a foreign terminal value')
+                        return
+                    yield session.yielded
+                    packet = session.resume()
+            finally:
+                session._close()
+
+        return suspended()
 
     def function_class(self, base):
         previous = self._classes.get(base)
@@ -533,5 +623,44 @@ class NativeCoreLowering:
             def render(self):
                 return owner.invoke('_Function.render', (self,))
 
+        if self.protocol_magic == MAGIC_V2:
+            for name, method in vars(Function).items():
+                if type(method) is FunctionType:
+                    method.__qualname__ = '_Function.' + name
         self._classes[base] = Function
         return Function
+
+    def emitter_class(self, base):
+        if self.protocol_magic != MAGIC_V2:
+            raise RuntimeError('native Emitter requires the explicit Core v2 profile')
+        previous = self._emitter_classes.get(base)
+        if previous is not None:
+            return previous
+        owner = self
+
+        class Emitter(base):
+            def __init__(self, document, allowed_exports, block_order=None,
+                         foreign_buffer_exports=(), machine_plan=None):
+                owner.invoke('_Emitter.__init__', (self, document, allowed_exports,
+                    block_order, foreign_buffer_exports, machine_plan))
+
+            def ordered_blocks(self, fn):
+                return owner.invoke('_Emitter.ordered_blocks', (self, fn))
+
+            def label(self, suffix):
+                return owner.invoke('_Emitter.label', (self, suffix))
+
+            def function_symbol(self, name):
+                return owner.invoke('_Emitter.function_symbol', (self, name))
+
+            def wrapper(self, fn):
+                return owner.invoke('_Emitter.wrapper', (self, fn))
+
+            def render(self):
+                return owner.invoke('_Emitter.render', (self,))
+
+        for name, method in vars(Emitter).items():
+            if type(method) is FunctionType:
+                method.__qualname__ = '_Emitter.' + name
+        self._emitter_classes[base] = Emitter
+        return Emitter

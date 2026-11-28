@@ -120,10 +120,9 @@ class NativeWorkerSchedulingBinding:
             core_companions.map_scheduling_companions(self, core_capture[2]['compiler_sha256'])
         self.images = dict(self.legacy.images)
         self.bundles = dict(getattr(self.legacy, 'bundles', {}))
-        from .hia_native_continuation_selection import _FAMILIES, _RUNTIME, INPROCESS_SCHEMA
+        from .hia_native_continuation_selection import _FAMILIES, _RUNTIME, INPROCESS_SCHEMA_V2, resource_names
         from .hia_native_continuation_inprocess import InProcessContinuation
         from .hia_json_preflight_native import NativeHiaJsonImage
-        from .hia_agent_contract import CONTINUATION_BUILD_FILES
         for kind, outer, value, selection, abi, abi_raw, policy, units, aggregate in captures:
             namespace = vars(import_module('.' + FAMILIES[kind][1], __package__))
             images = tuple(NativeHiaJsonImage(image.raw, image_hash)
@@ -151,9 +150,9 @@ class NativeWorkerSchedulingBinding:
             owner._worker_scheduling_binding = self
             resources = value['resource_sha256']
             runtime_pins = value['runtime_sha256']
-            owner._native_continuation_identity = ('\0'.join((INPROCESS_SCHEMA,
+            owner._native_continuation_identity = ('\0'.join((value['schema'],
                 sha256(outer.raw).hexdigest(), value['image_sha256'],
-                *(resources[n] for n in CONTINUATION_BUILD_FILES),
+                *(resources[n] for n in resource_names(kind, core_v2=value['schema'] == INPROCESS_SCHEMA_V2)),
                 *(runtime_pins['hepta/' + n] for n in _RUNTIME)))).encode('ascii')
             key = (str(outer.path.resolve(strict=True)), kind)
             self.schedulers[key] = owner
@@ -239,8 +238,7 @@ class NativeWorkerSchedulingBinding:
             raise ValueError('native Core patch requires its exact adjacent admission helper')
 
     def capture_scheduler(self, kind, path, pin):
-        from .hia_native_continuation_selection import INPROCESS_SCHEMA, _RUNTIME
-        from .hia_agent_contract import CONTINUATION_BUILD_FILES
+        from .hia_native_continuation_selection import INPROCESS_SCHEMA, INPROCESS_SCHEMA_V2, _RUNTIME, resource_names
         from .hia_json_preflight_native import _source_resource_path
         from .hia_native_continuation import MAX_EXECUTABLE
         selection = import_module('.hia_' + FAMILIES[kind][0] + '_selection', __package__)
@@ -248,12 +246,14 @@ class NativeWorkerSchedulingBinding:
         value = authority._decode(outer.raw)
         if (type(value) is not dict or set(value) != {'schema', 'kind', 'policy_bundle',
                 'policy_bundle_sha256', 'compiler_sha256', 'image_path', 'image_sha256',
-                'resource_sha256', 'runtime_sha256'} or value['schema'] != INPROCESS_SCHEMA
+                'resource_sha256', 'runtime_sha256'} or value['schema'] not in (INPROCESS_SCHEMA, INPROCESS_SCHEMA_V2)
+                or (value['schema'] == INPROCESS_SCHEMA_V2 and kind != 'core-lowering')
                 or value['kind'] != kind or value['policy_bundle'] != 'policy/manifest.json'
                 or value['image_path'] != 'continuation.image.bin'
                 or not authority._digest(value['compiler_sha256'])):
             raise ValueError('invalid native scheduling in-process owner')
-        resources = {n: _source_resource_path(n) for n in CONTINUATION_BUILD_FILES}
+        core_v2 = value['schema'] == INPROCESS_SCHEMA_V2
+        resources = {n: _source_resource_path(n) for n in resource_names(kind, core_v2=core_v2)}
         runtime = {'hepta/' + n: Path(__file__).parent / n for n in _RUNTIME}
         for field, paths in [('resource_sha256', resources), ('runtime_sha256', runtime)]:
             pins = value[field]
@@ -261,14 +261,18 @@ class NativeWorkerSchedulingBinding:
                 raise ValueError('native scheduling owner source inventory differs')
             for name, source in paths.items():
                 self.capture(source, authority.MAX_SOURCE_BYTES, pins[name])
-        abi_snapshot = self.capture(_source_resource_path(selection.ABI_SOURCE), authority.MAX_SOURCE_BYTES)
-        abi = selection.checked_abi(abi_snapshot.raw)
+        abi_source = selection.ABI_SOURCE_V2 if core_v2 else selection.ABI_SOURCE
+        checked_abi = selection.checked_abi_v2 if core_v2 else selection.checked_abi
+        schema = selection.SCHEMA_V2 if core_v2 else selection.SCHEMA
+        unit_schema = selection.UNIT_SCHEMA_V2 if core_v2 else selection.UNIT_SCHEMA
+        abi_snapshot = self.capture(_source_resource_path(abi_source), authority.MAX_SOURCE_BYTES)
+        abi = checked_abi(abi_snapshot.raw)
         names = tuple(Path(n).stem for n in selection.source_names(abi))
         policy = self.capture(path.parent / 'policy/manifest.json', authority.MAX_MANIFEST_BYTES,
                               value['policy_bundle_sha256'])
         base = authority._decode(policy.raw)
         if (type(base) is not dict or set(base) != {'schema', 'abi_sha256', 'compiler_sha256', 'unit_manifests'}
-                or base['schema'] != selection.SCHEMA
+                or base['schema'] != schema
                 or base['abi_sha256'] != sha256(abi_snapshot.raw).hexdigest()
                 or base['compiler_sha256'] != value['compiler_sha256']
                 or base['unit_manifests'] != {n: n + '/manifest.json' for n in names}):
@@ -277,7 +281,7 @@ class NativeWorkerSchedulingBinding:
         for name in names:
             manifest = self.capture(policy.path.parent / base['unit_manifests'][name], authority.MAX_MANIFEST_BYTES)
             image, row = self.capture_image(manifest,
-                _source_resource_path('examples/hia_bootstrap/' + name + '.hepta'), selection.UNIT_SCHEMA)
+                _source_resource_path('examples/hia_bootstrap/' + name + '.hepta'), unit_schema)
             if row['compiler_sha256'] != value['compiler_sha256']:
                 raise ValueError('native scheduling compiler differs across units')
             units.append((name, row['source_sha256'], image, row['image_sha256']))
