@@ -8,9 +8,8 @@ from hashlib import sha256
 import argparse, json, subprocess, sys
 ROOT = Path(__file__).resolve().parents[1]
 AUTHORITY = 'docs/HIA_NATIVE_SOURCE_AUTHORITY.json'
-AUTHORITY_MODULES = ('tools.generate_hia_current_worker_manifest',
-                     'tools.generate_hia_worker_install_identity',
-                     'tools.generate_hia_worker_install_recipes')
+AUTHORITY_MODULES = ('tools.generate_hia_worker_install_identity',
+                     'tools.generate_hia_worker_protocol_sources')
 MODULES = ('tools.generate_hia_core_host_custody',
            'tools.generate_hia_core_companion_manifest',
            'tools.generate_hia_core_companion_stage',
@@ -19,7 +18,7 @@ MODULES = ('tools.generate_hia_core_host_custody',
            'tools.generate_hia_source_agent_helper_manifest',
            'tools.generate_hia_agent_helper_recipe',
            'tools.generate_hia_release_extension_catalog',
-           'tools.generate_hia_worker_install_bind', *AUTHORITY_MODULES)
+           *AUTHORITY_MODULES)
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--native-source-authority', type=Path, default=ROOT / AUTHORITY)
