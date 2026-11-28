@@ -215,5 +215,71 @@ class Source8BuilderHistoryTests(unittest.TestCase):
                          history.ENGINE_SHA256)
 
 
+    def _last_take_change(self, domain, target_kind):
+        if domain == 'generation':
+            self.install(self.complete_sources)
+        module = history
+        if target_kind == 'executed-module':
+            path = self.root / 'executed_reader.py'
+            path.write_bytes(self.sources[history.SELF])
+            spec = importlib.util.spec_from_file_location('_hia_source8_terminal_reader', path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            target = path
+        elif target_kind == 'selected-reader':
+            target = self.root / generation.SELF
+        else:
+            target = self.root / history.BUILDER
+        original = target.read_bytes()
+        calls = []
+        armed = False
+        count = 0
+        last = 0
+        def take(path):
+            nonlocal count
+            raw = path.read_bytes()
+            calls.append(path)
+            if armed:
+                count += 1
+                if count == last:
+                    self.assertNotEqual(path, target)
+                    target.write_bytes(original + b'\n')
+            return raw
+        if domain == 'generation':
+            _, saved = generation.prepare(self.root, take=take)
+            verify = generation.verify_unchanged
+        else:
+            _, saved = module.prepare(self.root,
+                {history.BUILDER: self.sources[history.BUILDER]}, take=take)
+            verify = module.verify_unchanged
+        calls.clear()
+        verify(saved)
+        last = len(calls)
+        self.assertGreater(last, 0)
+        self.assertNotEqual(calls[-1], target)
+        armed = True
+        try:
+            with self.assertRaises(ValueError):
+                verify(saved)
+            self.assertEqual(target.read_bytes(), original + b'\n')
+        finally:
+            armed = False
+            target.write_bytes(original)
+        verify(saved)
+
+    def test_last_leaf_take_cannot_change_previously_checked_builder(self):
+        self._last_take_change('leaf', 'builder')
+
+    def test_last_leaf_take_cannot_change_the_executed_module(self):
+        self._last_take_change('leaf', 'executed-module')
+
+    def test_last_generation_take_cannot_change_previously_checked_builder(self):
+        self._last_take_change('generation', 'builder')
+
+    def test_last_generation_take_cannot_change_selected_reader(self):
+        self._last_take_change('generation', 'selected-reader')
+
+
+
 if __name__ == '__main__':
     unittest.main()

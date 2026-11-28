@@ -27,7 +27,7 @@ STORE_READER = 'tools/hia_current_store_source_history.py'
 CHANGED_INPUTS = (SERVICE, REGISTRY, BUILDER, VERIFICATION_TEST)
 SOURCE8_BUILDER = {'bytes': 31169, 'sha256': 'f2ebc4b904ad8b34ff4dac8cb9268edfcb7cf71279ce217d536fbd894648dbc6'}
 SOURCE8_BUILDER_READER = 'tools/hia_source8_builder_history.py'
-SOURCE8_BUILDER_READER_SHA256 = 'b9bdc78df34ef8c1c48d3d5a2f112d05b659bb23bbbce4fa87f9afdf3a054650'
+SOURCE8_BUILDER_READER_SHA256 = '917d3cec041891638f71f48ac931bbf3a7476ff297a062070d1dbc5d3afc185f'
 CURRENT = {
     SERVICE: {'bytes': 274230, 'sha256': '7351b80e8f8d46c6cf1988a56b5eb0d2acb5c31727e3d5e63bf5b6355d1e4525'},
     REGISTRY: {'bytes': 35618, 'sha256': '747c63098d9989971e40d737d7c1ffd96caa60b6095d8dc0d1015dcbe08cfb37'},
@@ -233,6 +233,32 @@ def verify_unchanged(history):
                                     take=history.capture)
     if history.captures != {n: row[0] for n, row in history._initial.items()}:
         raise ValueError('source generation physical inventory changed at terminal')
+    if history.source8_builder_history is not None:
+        _source8_terminal_physical(history)
+
+
+def _source8_terminal_physical(history):
+    """Keep the physical inventory current after all nested take callbacks."""
+    from tools import hia_source8_builder_history as source8
+    source8.verify_physical_unchanged(history.source8_builder_history)
+    if (history.prior_sources != history._prior
+            or history.captures != {n: row[0] for n, row in history._initial.items()}):
+        raise ValueError('source generation terminal actual or prior custody changed')
+    for name, (expected, mode) in history._initial.items():
+        path, _ = _name(history.root, history.root / name)
+        cursor = path
+        while cursor != history.root:
+            if stat.S_ISLNK(cursor.lstat().st_mode):
+                raise ValueError('source generation terminal path uses a symlink: ' + name)
+            cursor = cursor.parent
+        before = path.lstat()
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+                or stat.S_IMODE(before.st_mode) != mode
+                or path.read_bytes() != expected
+                or _stamp(before) != _stamp(path.lstat())):
+            raise ValueError('source generation input changed after final take: ' + name)
+    if _EXECUTED_PATH.read_bytes() != _EXECUTED_SOURCE:
+        raise ValueError('source generation executed reader changed after final take')
 
 
 def maybe_prepare(root, supplied, *, take=Path.read_bytes):

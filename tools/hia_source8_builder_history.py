@@ -179,3 +179,31 @@ def verify_unchanged(history):
             or any(pin(history.captures[n]) != expected
                    for n, expected in INTRODUCED_INPUTS.items())):
         raise ValueError('Source8 builder terminal identities differ')
+    verify_physical_unchanged(history)
+
+
+def verify_physical_unchanged(history):
+    """End with physical reads after the last caller-supplied take callback."""
+    if (type(history) is not BuilderHistory
+            or history.prior_sources != history._prior
+            or set(history._prior) != {BUILDER}
+            or pin(history._prior[BUILDER]) != PRIOR
+            or tuple(sorted(history._initial)) != history._inventory
+            or history.captures != {n: row[0] for n, row in history._initial.items()}):
+        raise ValueError('Source8 builder terminal custody changed')
+    for name in history._inventory:
+        path, _ = _name(history.root, history.root / name)
+        cursor = path
+        while cursor != history.root:
+            if stat.S_ISLNK(cursor.lstat().st_mode):
+                raise ValueError('Source8 builder terminal path uses a symlink: ' + name)
+            cursor = cursor.parent
+        before = path.lstat()
+        expected, mode = history._initial[name]
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+                or stat.S_IMODE(before.st_mode) != mode
+                or path.read_bytes() != expected
+                or _stamp(before) != _stamp(path.lstat())):
+            raise ValueError('Source8 builder actual input changed after take: ' + name)
+    if _EXECUTED_PATH.read_bytes() != _EXECUTED_SOURCE:
+        raise ValueError('Source8 builder executed reader changed after take')
