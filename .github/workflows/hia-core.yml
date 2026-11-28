@@ -3,13 +3,14 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   source:
     runs-on: ubuntu-latest
-    env:
-      HEPTA_HIA_TEST_COMPATIBILITY_EVIDENCE_DIRECTORY: ${{ runner.temp }}/hia-python-compatibility-source
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+      - name: Retain explicit installed compatibility evidence path
+        run: |
+          printf '%s\n' "HEPTA_HIA_TEST_COMPATIBILITY_EVIDENCE_DIRECTORY=$RUNNER_TEMP/hia-python-compatibility-source" >> "$GITHUB_ENV"
       - name: Install the frozen caller inventory dependency
         run: python -m pip install jsonschema==4.26.0 setuptools==78.1.1 wheel==0.46.3
       - name: Regenerate actual HIA sources
@@ -949,12 +950,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/../rust-target
-      HEPTA_HIA_TEST_COMPATIBILITY_EVIDENCE_DIRECTORY: ${{ runner.temp }}/hia-python-compatibility-native
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+      - name: Retain explicit installed compatibility evidence path
+        run: |
+          printf '%s\n' "HEPTA_HIA_TEST_COMPATIBILITY_EVIDENCE_DIRECTORY=$RUNNER_TEMP/hia-python-compatibility-native" >> "$GITHUB_ENV"
       - name: Install qualified Clang 20 native execution prerequisites
         run: |
           set -euo pipefail
