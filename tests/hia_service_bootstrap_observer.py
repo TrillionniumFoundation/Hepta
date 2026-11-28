@@ -14,7 +14,70 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(ROOT))
 from tests import hia_service_bootstrap_oracle as oracle
 from tests import hia_service_bootstrap_support as support
-SCHEMA = "hepta.hia.service-bootstrap-finite-observations.v2"
+SCHEMA = "hepta.hia.service-bootstrap-finite-observations.v3"
+
+class CaseTerminal:
+    """Hold only observer Worlds until their complete case record is sealed.
+
+    No provider/error field is rewritten. Ordinary reference-count releases
+    inside the five original bodies remain immediate. The one explicit
+    collection happens outside their active exception and Context, before a
+    later independent case can accidentally supply either.
+    """
+    def __init__(self, case):
+        import gc
+        import threading
+        import weakref
+        self._gc, self._weakref = gc, weakref.ref
+        self.identity = case["id"]
+        self.parts = 2 if case["method"] == "generator_protocol" else 1
+        self._thread = threading.get_ident()
+        self._context = oracle._THREAD_LABEL.get()
+        self._initial = self._gc_state()
+        self._worlds, self._refs = [], []
+        self._closed = False
+        if (sys.exception() is not None or self._context != "main"
+                or threading.current_thread() is not threading.main_thread()
+                or self._initial["enabled"] is not True):
+            raise ValueError("case terminal requires the ordinary exception-free main context")
+
+    def _gc_state(self):
+        return {"enabled": self._gc.isenabled(),
+                "thresholds": list(self._gc.get_threshold())}
+
+    def _outside_case(self):
+        import threading
+        if (sys.exception() is not None or threading.get_ident() != self._thread
+                or oracle._THREAD_LABEL.get() != self._context
+                or self._gc_state() != self._initial):
+            raise ValueError("case terminal context or GC configuration changed")
+
+    def retain(self, world):
+        if (self._closed or type(world) is not oracle.World
+                or world.case["id"] != self.identity
+                or len(self._worlds) >= self.parts
+                or any(previous is world for previous in self._worlds)):
+            raise ValueError("case terminal received an unrelated or repeated World")
+        self._worlds.append(world)
+        self._refs.append(self._weakref(world))
+
+    def finish(self):
+        if self._closed or len(self._worlds) != self.parts:
+            raise ValueError("case terminal is incomplete or already closed")
+        self._outside_case()
+        self._closed = True
+        self._worlds.clear()
+        self._gc.collect()
+        self._outside_case()
+        if any(reference() is not None for reference in self._refs):
+            raise ValueError("a case-owned World or provider survived the terminal boundary")
+        return {"schema": support.CASE_TERMINAL_SCHEMA, "id": self.identity,
+                "retained_worlds": self.parts, "released_worlds": self.parts,
+                "collection_calls": 1, "active_exception_before": None,
+                "active_exception_after": None, "context": self._context,
+                "main_thread": True, "gc_before": self._initial,
+                "gc_after": self._gc_state()}
+
 
 class VMEntry:
     def __init__(self, program):
@@ -222,7 +285,8 @@ def _admit_process_terminal(directory, row, start, result, checkpoint, captured)
             or result["cleanup"]["reaped"] is not True or result["cleanup"]["after"] != []
             or result["cleanup"]["signals"] != []):
         raise ValueError("original terminal lacks a natural completed owned child")
-    if (checkpoint["schema"] != "hepta.hia.service-bootstrap-finite-observations.v2"
+    if (checkpoint["schema"] != "hepta.hia.service-bootstrap-finite-observations.v3"
+            or checkpoint.get("case_terminal_protocol") != support.CASE_TERMINAL_SCHEMA
             or checkpoint["status"] != "CHECKPOINT_ORIGINAL_COMPLETE"
             or checkpoint["process_terminal_required"] is not True
             or checkpoint["late_differences"] is not None
@@ -231,7 +295,7 @@ def _admit_process_terminal(directory, row, start, result, checkpoint, captured)
     _terminal_integer(checkpoint["differences"], 0)
     if checkpoint["unraisables"] != []:
         raise ValueError("original checkpoint contains an unraisable failure")
-    if (terminal["schema"] != "hepta.hia.service-bootstrap-process-terminal.v2"
+    if (terminal["schema"] != "hepta.hia.service-bootstrap-process-terminal.v3"
             or terminal["status"] != "TERMINAL_COMPLETE"
             or terminal["label"] != row["label"] or terminal["lane"] != "original"
             or terminal["natural_exit"] is not True or terminal["owned_group_gone"] is not True
@@ -285,10 +349,11 @@ def _admit_process_terminal(directory, row, start, result, checkpoint, captured)
 def admit_originals(authority_path, expected_pin, input_raw, source_before):
     authority_path = Path(authority_path)
     raw, authority, pin = support.capture_json(authority_path, expected_pin)
-    if (authority.get("schema") != "hepta.hia.service-bootstrap-original-authority.v2"
+    if (authority.get("schema") != "hepta.hia.service-bootstrap-original-authority.v3"
+            or authority.get("case_terminal_protocol") != support.CASE_TERMINAL_SCHEMA
             or authority.get("process_terminal_complete") is not True
             or authority.get("checkpoint_reports_preserved") is not True
-            or authority.get("late_comparison_scope") != "NATURAL_PROCESS_EXIT"):
+            or authority.get("late_comparison_scope") != "CASE_LOCAL_COLLECTION_THEN_NATURAL_PROCESS_EXIT"):
         raise ValueError("bootstrap requires its complete independent original authority")
     if (authority["source_before"] != source_before or authority["source_after"] != source_before
             or authority["runtime"] != sys.version
@@ -340,6 +405,8 @@ def admit_originals(authority_path, expected_pin, input_raw, source_before):
                 or result["stderr"]["bytes"] != 0):
             raise ValueError("original stderr changed or contains an unhandled diagnostic")
         report = _admit_process_terminal(directory,row,start,result,report,captured)
+        support.case_terminals(directory, report,
+            base_cases if row["label"].startswith("basis") else complete_value["cases"])
         lanes[row["label"]] = (directory, report)
     for prefix in ("basis","complete"):
         left0, lp0 = lanes[prefix+"-first"]
@@ -350,7 +417,7 @@ def admit_originals(authority_path, expected_pin, input_raw, source_before):
             if (type(report0["count"]) is not int or report0["count"] != len(ids0)
                     or report0["ordered_ids"] != ids0 or report0["input"] != expected_input):
                 raise ValueError("an original lane does not cover its entire input")
-        for channel in ("observations.jsonl","late-events.jsonl","raw-tracebacks.jsonl"):
+        for channel in ("observations.jsonl","late-events.jsonl","raw-tracebacks.jsonl","case-terminals.jsonl"):
             if not support.identical_files(left0/channel,right0/channel,lp0["files"][channel],rp0["files"][channel]):
                 raise ValueError("original lane channels differ: "+prefix+"/"+channel)
     basis_path,basis_report = lanes["basis-first"]
@@ -462,7 +529,7 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
     support.write_json(output/"ordering.json", ordering)
     streams = {name:output_stream(output/name) for name in (
         "observations.jsonl","raw-tracebacks.jsonl","late-events.jsonl",
-        "differences.jsonl","entry-counts.jsonl","progress.jsonl")}
+        "differences.jsonl","entry-counts.jsonl","progress.jsonl","case-terminals.jsonl")}
     late_stream = streams["late-events.jsonl"]
     def late_sink(row):
         late_stream.write(oracle.canonical(row)+b"\n")
@@ -483,16 +550,20 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
         for ordinal, case in enumerate(cases):
             current_id = case["id"]
             streams["progress.jsonl"].write(oracle.canonical({"event":"start","ordinal":ordinal,"id":current_id})+b"\n")
+            boundary = CaseTerminal(case)
             before_entries = 0 if backend is None else backend.image._entry.calls
             if backend is None:
-                actual, trace = oracle.observe(case)
+                actual, trace = oracle.observe(case, retain_world=boundary.retain)
             else:
                 functions, namespace, captured_builtins = backend.select(case)
                 actual, trace = oracle.observe(case, functions=functions, namespace=namespace,
-                                               captured_builtins=captured_builtins)
+                                               captured_builtins=captured_builtins,
+                                               retain_world=boundary.retain)
             actual_bytes, frozen_actual = seal_record(actual,late_sink)
             streams["observations.jsonl"].write(actual_bytes+b"\n")
             streams["raw-tracebacks.jsonl"].write(oracle.canonical(trace)+b"\n")
+            terminal = boundary.finish()
+            streams["case-terminals.jsonl"].write(oracle.canonical(terminal)+b"\n")
             if expected_stream is not None:
                 expected_raw = expected_stream.readline()
                 if not expected_raw.endswith(b"\n"):
@@ -557,6 +628,7 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
     passed = difference_count == 0 and not unraisables
     report = {
         "schema":SCHEMA, **support.child_identity(), "lane":lane,
+        "case_terminal_protocol":support.CASE_TERMINAL_SCHEMA,
         "status":("CHECKPOINT_ORIGINAL_COMPLETE" if lane=="original" else "CHECKPOINT_CANDIDATE_COMPLETE") if passed else "HOLD",
         "input":input_pin,"source_before":source_before,"source_after":source_after,
         "count":len(done),"ordered_ids":done,"differences":difference_count,
@@ -569,9 +641,10 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
         "explicit_unselected_cases":[] if backend is None else backend.unselected_cases,
         "original_code_objects_shared_within_lane":True,
         "scope":"finite frozen original methods and explicit provider namespace; raw traceback frames are separately retained, never normalized",
-        "late_scope":"checkpoint prefix only; natural process exit and separate parent terminal seal are required before complete late comparison",
+        "late_scope":"every case releases its observer Worlds and collects outside an active exception; the complete append-only late channel still requires natural process exit and a separate parent terminal seal",
         "whole_native_stack_qualified":False,
     }
+    support.case_terminals(output, report, cases)
     support.write_json(output/"report.json",report)
     return 0 if passed else 1
 

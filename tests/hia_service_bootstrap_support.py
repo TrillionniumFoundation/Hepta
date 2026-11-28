@@ -12,6 +12,48 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "hepta.hia.service-bootstrap"
+CASE_TERMINAL_SCHEMA = "hepta.hia.service-bootstrap-case-terminal.v1"
+
+def case_terminals(directory, report, cases):
+    """Read every case boundary as data; never import an observer or product."""
+    if report.get("case_terminal_protocol") != CASE_TERMINAL_SCHEMA:
+        raise ValueError("bootstrap case-terminal protocol is missing or stale")
+    names = {"schema", "id", "retained_worlds", "released_worlds",
+             "collection_calls", "active_exception_before", "active_exception_after",
+             "context", "main_thread", "gc_before", "gc_after"}
+    expected_gc = None
+    count = 0
+    for ordinal, raw, row in json_lines(
+            Path(directory) / "case-terminals.jsonl",
+            report["files"]["case-terminals.jsonl"]):
+        if ordinal >= len(cases) or type(row) is not dict or set(row) != names:
+            raise ValueError("case-terminal record count or complete shape differs")
+        case = cases[ordinal]
+        parts = 2 if case["method"] == "generator_protocol" else 1
+        if (row["schema"] != CASE_TERMINAL_SCHEMA or row["id"] != case["id"]
+                or type(row["retained_worlds"]) is not int or row["retained_worlds"] != parts
+                or type(row["released_worlds"]) is not int or row["released_worlds"] != parts
+                or type(row["collection_calls"]) is not int or row["collection_calls"] != 1
+                or row["active_exception_before"] is not None
+                or row["active_exception_after"] is not None
+                or row["context"] != "main" or row["main_thread"] is not True):
+            raise ValueError("case-terminal identity, ownership, or context differs")
+        for value in (row["gc_before"], row["gc_after"]):
+            if (type(value) is not dict or set(value) != {"enabled", "thresholds"}
+                    or value["enabled"] is not True
+                    or type(value["thresholds"]) is not list or len(value["thresholds"]) != 3
+                    or any(type(n) is not int or n < 0 for n in value["thresholds"])):
+                raise ValueError("case-terminal GC state is not complete")
+        if expected_gc is None:
+            expected_gc = row["gc_before"]
+        if row["gc_before"] != expected_gc or row["gc_after"] != expected_gc:
+            raise ValueError("case-terminal GC configuration changed")
+        count += 1
+    if count != len(cases) or report["count"] != count:
+        raise ValueError("case-terminal channel omitted an original input")
+    return {"count": count, "gc": expected_gc}
+
+
 def canonical(value):
     return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 def same(left, right):

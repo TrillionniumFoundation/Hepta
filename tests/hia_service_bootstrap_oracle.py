@@ -974,7 +974,8 @@ def _run_body(world, functions, arguments):
     world.held_tracebacks.clear()
     return outcome, state, before_consumer
 
-def observe(case, *, functions=None, namespace=None, captured_builtins=None):
+def observe(case, *, functions=None, namespace=None, captured_builtins=None,
+            retain_world=None):
     """Seal returned canonical bytes immediately; separately retain all late events."""
     functions = ORIGINALS if functions is None else functions
     kinds = ("roots", "directories") if case["method"] == "generator_protocol" else ("method",)
@@ -988,6 +989,8 @@ def observe(case, *, functions=None, namespace=None, captured_builtins=None):
             else:
                 local_case["fault"] = {**target, "index": target["local_index"]}
         world = World(local_case)
+        if retain_world is not None:
+            retain_world(world)
         world.generator_kind = kind
         arguments, added_names = prepare(world, namespace, captured_builtins)
         if case["outer_exception"]:

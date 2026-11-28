@@ -19,10 +19,21 @@ class BootstrapSourceHistoryTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory(prefix="hia-bootstrap-source-history-")
         self.addCleanup(directory.cleanup)
         root = Path(directory.name).resolve()
+        # These thirteen original methods exercise the fixed four-file
+        # 353bd domain. Admit the complete current group before preparing that
+        # explicit prior view; independent controls cover current 7351 input.
+        physical = (ROOT / history.SOURCE).read_bytes()
+        saved = None
+        prior = physical
+        if history.identity(physical) == history.CURRENT_SERVICE:
+            _, _, saved = history.capture(ROOT)
+            prior = history.current_service_predecessor(saved)
         for name in NAMES:
             target = root / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((ROOT / name).read_bytes())
+            target.write_bytes(prior if name == history.SOURCE else (ROOT / name).read_bytes())
+        if saved is not None:
+            history.unchanged(ROOT, saved)
         if legacy:
             relation = json.loads((root / history.SUCCESSOR_FIXTURE).read_bytes())["record"]
             raw = (root / history.SOURCE).read_bytes()

@@ -15,7 +15,7 @@ BASIS_IDS=(
  "close.body-and-finally-error-context.outer1","_profiles.complete-all27-outer-writes.outer0",
  "_profile.provider-returns-opaque-object.outer0","_program.normal.outer0",
  "generator_protocol.send-none.outer0","generator_protocol.body-StopIteration-PEP479.outer0")
-CHANNELS=("observations.jsonl","late-events.jsonl","raw-tracebacks.jsonl")
+CHANNELS=("observations.jsonl","late-events.jsonl","raw-tracebacks.jsonl","case-terminals.jsonl")
 def equal(left,right,message):
     if not s.same(left,right):raise ValueError(message)
 def integer(value,expected=None):
@@ -32,7 +32,7 @@ def stream_identity(path,pin):
 def terminal_receipt(directory,record,start,result,checkpoint,captured):
     """Independently recheck the completed process and checkpoint-prefix chain."""
     terminal=capture(directory/"process-terminal.json",record["terminal"],captured)
-    if (terminal["schema"]!="hepta.hia.service-bootstrap-process-terminal.v2"
+    if (terminal["schema"]!="hepta.hia.service-bootstrap-process-terminal.v3"
             or terminal["status"]!="TERMINAL_COMPLETE"
             or terminal["label"]!=record["label"] or terminal["lane"]!=checkpoint["lane"]
             or terminal["natural_exit"] is not True or terminal["owned_group_gone"] is not True):
@@ -127,7 +127,8 @@ def receipt(parent,label,record,captured,source,*,lane,seconds):
         stream_identity(parent/(label+"."+suffix+".log"),result[suffix])
     integer(result["stderr"]["bytes"],0)
     integer(report["differences"],0)
-    if (report["schema"]!="hepta.hia.service-bootstrap-finite-observations.v2"
+    if (report["schema"]!="hepta.hia.service-bootstrap-finite-observations.v3"
+            or report.get("case_terminal_protocol")!=s.CASE_TERMINAL_SCHEMA
             or report["late_differences"] is not None
             or report["process_terminal_required"] is not True
             or report["late_comparison"]!="PENDING_PROCESS_TERMINAL"):
@@ -144,6 +145,7 @@ def receipt(parent,label,record,captured,source,*,lane,seconds):
 
 
 def rows(directory,report,cases):
+    s.case_terminals(directory,report,cases)
     count=0
     for ordinal,raw,row in s.json_lines(directory/"observations.jsonl",report["files"]["observations.jsonl"]):
         if ordinal>=len(cases):raise ValueError("extra original row")
@@ -168,10 +170,11 @@ def rows(directory,report,cases):
 def original_authority(path,pin,captured):
     path=Path(path);root=path.parent
     value=capture(path,pin,captured)
-    if (value["schema"]!="hepta.hia.service-bootstrap-original-authority.v2"
+    if (value["schema"]!="hepta.hia.service-bootstrap-original-authority.v3"
+            or value.get("case_terminal_protocol")!=s.CASE_TERMINAL_SCHEMA
             or value["process_terminal_complete"] is not True
             or value["checkpoint_reports_preserved"] is not True
-            or value["late_comparison_scope"]!="NATURAL_PROCESS_EXIT"):
+            or value["late_comparison_scope"]!="CASE_LOCAL_COLLECTION_THEN_NATURAL_PROCESS_EXIT"):
         raise ValueError("wrong complete original authority")
     source=s.source_snapshot()
     equal(value["source_before"],source,"authority current source differs")
@@ -236,7 +239,7 @@ def read_finite(directory,authority_path,authority_pin,lane):
     directory=Path(directory);captured=[]
     authority,cases,(original_path,original_report),source=original_authority(authority_path,authority_pin,captured)
     comparison=capture(directory/"report.json",None,captured)
-    if comparison["schema"]!="hepta.hia.service-bootstrap-finite-comparison.v2" or comparison["status"]!="PASS_FINITE_ONLY":
+    if comparison["schema"]!="hepta.hia.service-bootstrap-finite-comparison.v3" or comparison["status"]!="PASS_FINITE_ONLY":
         raise ValueError("finite comparison report is incomplete")
     equal(comparison["authority"],authority_pin,"finite authority pin differs")
     equal(comparison["complete_inputs"],authority["complete_inputs"],"comparison input pin differs")
@@ -245,7 +248,7 @@ def read_finite(directory,authority_path,authority_pin,lane):
     equal(report["input"],authority["complete_inputs"],"candidate parsed input bytes differ")
     _read_finite_source_domains(candidate_path, report, captured, source, lane, comparison)
     for _ in rows(candidate_path,report,cases):pass
-    for channel in ("observations.jsonl","late-events.jsonl"):
+    for channel in ("observations.jsonl","late-events.jsonl","case-terminals.jsonl"):
         if not s.identical_files(original_path/channel,candidate_path/channel,
                 original_report["files"][channel],report["files"][channel]):
             raise ValueError("full actual/raw original channel differs: "+channel)
@@ -269,7 +272,9 @@ def read_finite(directory,authority_path,authority_pin,lane):
           "candidate imports preceded complete originals")
     integer(report["files"]["differences.jsonl"]["bytes"],0)
     integer(report["files"]["late-differences.jsonl"]["bytes"],0)
-    if (comparison["late_comparison_scope"]!="BOTH_NATURAL_PROCESS_TERMINALS"
+    if (comparison["late_comparison_scope"]!="CASE_LOCAL_COLLECTION_AND_BOTH_NATURAL_PROCESS_TERMINALS"
+            or comparison.get("case_terminal_protocol")!=s.CASE_TERMINAL_SCHEMA
+            or comparison.get("complete_case_terminals_equal") is not True
             or comparison["checkpoint_reports_preserved"] is not True
             or comparison["complete_late_byte_equality"] is not True):
         raise ValueError("late equality was not established at both completed process terminals")
