@@ -61,9 +61,12 @@ def inverse(raw, value):
 class JournalCallerPreparationSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        from tests import hia_component_authoring_history as component_history
+        from tests import hia_installed_distribution_history as installed_history
         names = set(journal.SOURCE_PATHS) | set(PRODUCERS) | {
             SELF, DIAGNOSTIC, DIAGNOSTIC_HELPER, DIAGNOSTIC_AUTHORITY,
-            discovery.FIXTURE, verification.FIXTURE, transaction.FIXTURE}
+            discovery.FIXTURE, verification.FIXTURE, transaction.FIXTURE,
+            component_history.FIXTURE, installed_history.FIXTURE}
         cls.scopes = {}
         for subject, counts in SERVICES:
             frozen = (ROOT / subject.FIXTURE).read_bytes()

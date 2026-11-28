@@ -290,16 +290,27 @@ jobs:
               'tests.test_hia_cli_discovery_json.CliDiscoveryJsonSourceTests',
               'tests.test_hia_cli_discovery_selection.CliDiscoverySelectionSourceTests',
               'tests.test_hia_selfhost_call_graph_efficiency.CallGraphSourceTests',
-              'tests.test_hia_selfhost_contract.SelfhostContractTests',
               'tests.test_hia_selfhost_cli',
               'tests.test_hia_selfhost_names',
               'tests.test_hia_reference_fixture_efficiency',
               'tests.test_hia_observer_stream_retention.ObserverStreamRetentionSourceTests',
               'tests.test_hia_caller_diagnostics_admission',
               'tests.test_hia_evaluation_caller_admission',
+              'tests.test_hia_evaluation_cold_admission',
+              'tests.test_hia_native_cold_caller_sources',
               'tests.test_hia_delivery_diagnostic_sources.DeliveryDiagnosticSourceTests',
               'tests.test_hia_service_bootstrap_caller_admission.ServiceBootstrapCallerAdmissionTests',
               'tests.test_hia_service_bootstrap_caller_readback.ServiceBootstrapCallerReadbackTests',
+              'tests.test_hia_bootstrap_cold_source_custody',
+              'tests.test_hia_terminal_cold_source_custody',
+              'tests.test_hia_delivery_cold_source_custody',
+              'tests.test_hia_artifact_terminal_cold_custody',
+              'tests.test_hia_delivery_source_history_custody',
+              'tests.test_hia_history_fixture_custody',
+              'tests.test_hia_workflow_cold_history',
+              'tests.test_hia_cli_cold_source_custody',
+              'tests.test_hia_store_transaction_source_custody',
+              'tests.test_hia_native_cold_caller_integration',
               'tests.test_hia_journal_installed_preparation.JournalInstalledPreparationSourceTests',
               'tests.test_hia_journal_caller_preparation.JournalCallerPreparationSourceTests',
               'tests.test_hia_service_context_caller_admission.ServiceContextCallerAdmissionSourceTests',
@@ -395,6 +406,28 @@ jobs:
                        result.expectedFailures or result.unexpectedSuccesses)
           raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
           PY
+      - name: Complete retained hosted contract controls with all 12 original methods
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_hosted_contract_controls.py \
+            --evidence "$RUNNER_TEMP/hia-hosted-contract-source" \
+            2>&1 | tee "$RUNNER_TEMP/hia-hosted-contract-source.log"
+      - name: Preserve complete original hosted contract control evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-hosted-contract-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-hosted-contract-source.log
+            ${{ runner.temp }}/hia-hosted-contract-source/report.json
+            ${{ runner.temp }}/hia-hosted-contract-source/original-results.json
+            ${{ runner.temp }}/hia-hosted-contract-source/stdout
+            ${{ runner.temp }}/hia-hosted-contract-source/stderr
       - name: Exact evaluation worker terminal source admission
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         run: |
@@ -3351,6 +3384,7 @@ jobs:
             ${{ runner.temp }}/execution-observation-fixture/
             ${{ runner.temp }}/hia-candidate-budget/
             ${{ runner.temp }}/hia-cli-native/
+            ${{ runner.temp }}/hia-cold.cold/
             ${{ runner.temp }}/hia-cold.native-cold/
             ${{ runner.temp }}/hia-cold.generations.json
             ${{ runner.temp }}/core-verified-decoder/

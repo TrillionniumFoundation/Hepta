@@ -50,11 +50,22 @@ def _bind_source_admission(proof, digests):
             raise ValueError('transaction Journal admission differs from source capture: ' + name)
 
 
-def admit_separate_inventory(*, with_source_admission=False):
-    raw = (ROOT / FIXTURE).read_bytes()
+def admit_separate_inventory(*, with_source_admission=False, root=None):
+    root = ROOT if root is None else Path(root)
+    captured = {}
+
+    def take(path):
+        path = Path(path)
+        name = path.relative_to(root).as_posix()
+        raw = path.read_bytes()
+        if name in captured and captured[name] != raw:
+            raise ValueError('transaction physical source changed between captures: ' + name)
+        captured[name] = raw
+        return raw
+
+    raw = take(root / FIXTURE)
     if sha256(raw).hexdigest() != FIXTURE_SHA256:
         raise ValueError('independent complete 61-method inventory changed')
-    captured = {FIXTURE: raw}
     value = json.loads(raw)
     adjustments = {}
     names = ['tests.test_hia_agent_journal_native', 'tests.test_hia_execution_budget_native',
@@ -66,39 +77,67 @@ def admit_separate_inventory(*, with_source_admission=False):
             or [row['test_count'] for row in value['modules']] != [21, 25, 15]):
         raise ValueError('complete separate original module identity differs')
     from tests.hia_installed_distribution_history import journal_preparation_source, predecessor
-    installed_predecessors = {}
+    from tools.hia_frozen_component_sources import cold_caller_source
+    installed_predecessors, cold_views, cold_sources = {}, {}, {}
+
+    def installed_source(name, prior, expected):
+        if _source_pin(prior) == expected:
+            return prior
+        try:
+            return predecessor(name, prior, root=root, take=take)
+        except FileNotFoundError as error:
+            raise ValueError('transaction source-history authority is missing: ' + name) from error
+
+    def projected_take(path):
+        physical = take(path)
+        name = Path(path).relative_to(root).as_posix()
+        return cold_views.get(name, physical)
+
     for record in value['modules']:
-        physical = (ROOT / record['path']).read_bytes()
-        captured[record['path']] = physical
-        raw = predecessor(record['path'], physical)
-        if raw != physical:
-            installed_predecessors[record['path']] = _source_pin(raw)
-        if len(raw) != record['bytes'] or sha256(raw).hexdigest() != record['sha256']:
-            if record['path'] != _JOURNAL_CALLER:
-                raise ValueError('complete original caller source differs: ' + record['path'])
-            helper = (ROOT / _JOURNAL_HELPER).read_bytes()
+        name = record['path']
+        expected = {key: record[key] for key in ('bytes', 'sha256')}
+        physical = take(root / name)
+        if _source_pin(physical) == expected:
+            prior, native_proof = physical, None
+        else:
+            try:
+                prior, native_proof = cold_caller_source(root, name, physical, take=take)
+            except FileNotFoundError as error:
+                raise ValueError('transaction native cold source authority is missing: ' + name) from error
+        cold_views[name] = prior
+        if native_proof is not None:
+            cold_sources[name] = native_proof
+        raw = installed_source(name, prior, expected)
+        if raw != prior:
+            installed_predecessors[name] = _source_pin(raw)
+        if _source_pin(raw) != expected:
+            if name != _JOURNAL_CALLER:
+                raise ValueError('complete original caller source differs: ' + name)
+            helper = take(root / _JOURNAL_HELPER)
             if _source_pin(helper) != _JOURNAL_HELPER_PIN:
                 raise ValueError('transaction Journal preparation helper changed')
             from tests import hia_journal_installed_preparation as journal
             if Path(journal.__file__).read_bytes() != helper:
                 raise ValueError('transaction imported a different Journal admission')
-            proof = journal_preparation_source(ROOT, physical,
-                                               {key: record[key] for key in ('bytes', 'sha256')})
-            for name, expected in proof['captured_files'].items():
-                consumed = (ROOT / name).read_bytes()
-                checked = predecessor(name, consumed) if name == _JOURNAL_CALLER else consumed
-                if (_source_pin(checked) != expected
-                        or name in captured and captured[name] != consumed):
-                    raise ValueError('transaction Journal source changed after admission: ' + name)
-                captured[name] = consumed
+            try:
+                proof = journal_preparation_source(
+                    root, prior, expected, take=projected_take)
+            except FileNotFoundError as error:
+                raise ValueError('transaction Journal source authority is missing') from error
+            for consumed_name, pin in proof['captured_files'].items():
+                consumed = take(root / consumed_name)
+                checked = (installed_source(consumed_name, cold_views[consumed_name], expected)
+                           if consumed_name == _JOURNAL_CALLER else consumed)
+                if _source_pin(checked) != pin:
+                    raise ValueError('transaction Journal source changed after admission: ' + consumed_name)
             if captured[_JOURNAL_HELPER] != helper:
                 raise ValueError('transaction Journal helper changed after import')
-            adjustments[record['path']] = proof
+            adjustments[name] = proof
         identities = [name for name in value['ordered_ids'] if name.startswith(record['module'] + '.')]
         if len(identities) != record['test_count']:
             raise ValueError('complete original method list differs: ' + record['module'])
     for name, source in captured.items():
-        if (ROOT / name).read_bytes() != source:
+        if (root / name).read_bytes() != source:
             raise ValueError('transaction caller captured source changed: ' + name)
     proof = {
         'schema': 'hepta.hia.transaction-journal-preparation-source-admission.v1',
@@ -107,6 +146,7 @@ def admit_separate_inventory(*, with_source_admission=False):
         'original_module_counts': [21, 25, 15], 'original_outer_seconds': DEADLINE_SECONDS,
         'reviewed_journal_installed_preparation_source_adjustments': adjustments,
         'installed_distribution_predecessors': installed_predecessors,
+        'reviewed_native_cold_caller_sources': cold_sources,
         'captured_files': {name: _source_pin(source) for name, source in captured.items()},
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,
@@ -117,11 +157,12 @@ def admit_separate_inventory(*, with_source_admission=False):
 def source_pins():
     from tools.hia_selfhost_contract import file_digests
     from tools.build_hia_store_transaction import INPUTS
+    inventory, admission = admit_separate_inventory(with_source_admission=True, root=ROOT)
     paths = {*INPUTS, FIXTURE, 'tools/qualify_hia_store_transaction.py',
-             *(row['path'] for row in admit_separate_inventory()['modules'])}
-    return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
-                                for name in sorted(paths)}}
-
+             *(row['path'] for row in inventory['modules']),
+             *admission['captured_files']}
+    return {**file_digests(ROOT), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
+                                   for name in sorted(paths)}}
 
 def execute_module(selector, manifest, report_path):
     from tools.run_hia_unittest_gate import load_declared_suite

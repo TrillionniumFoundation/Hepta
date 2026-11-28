@@ -63,11 +63,31 @@ def admit_original_sources(root, records, *, source_proof=None):
                       'tests/test_hia_cost_ledger_native.py', 'tests/test_hia_worker_native_helpers.py'}
     reviewed = {}
     from tests.hia_installed_distribution_history import predecessor
-    installed_predecessors = {}
+    from tools.hia_frozen_component_sources import cold_caller_source
+    installed_predecessors, cold_adjustments = {}, {}
     for name, digest in records.items():
         physical = capture(name)
-        raw = predecessor(name, physical)
-        if raw != physical:
+        prior, cold_proof = cold_caller_source(root, name, physical,
+            take=lambda path: capture(path.relative_to(root).as_posix()))
+        if cold_proof is not None:
+            cold_adjustments[name] = cold_proof
+        prior_digest = sha256(prior).hexdigest()
+        retained = prior_digest == digest
+        if name == 'tests/test_hia_agent_native_tools.py':
+            from tests import hia_caller_diagnostics_admission as diagnostics
+            from tests import hia_native_transport_worker_successor as delivery
+            retained = retained or diagnostics.pin(prior) in (
+                diagnostics.CURRENT, delivery.SQLITE_BOUNDARY_SOURCES[name])
+        if name == 'tests/test_hia_worker_native_helpers.py':
+            retained = retained or (prior.count(current_line) == 1
+                and sha256(prior.replace(current_line, original_line, 1)).hexdigest() == digest)
+        try:
+            raw = prior if retained else predecessor(
+                name, prior, root=root,
+                take=lambda path: capture(path.relative_to(root).as_posix()))
+        except FileNotFoundError as error:
+            raise ValueError('unreviewed evaluation caller lacks its source authority: ' + name) from error
+        if raw != prior:
             installed_predecessors[name] = sha256(raw).hexdigest()
         actual = sha256(raw).hexdigest()
         if actual == digest:
@@ -124,6 +144,7 @@ def admit_original_sources(root, records, *, source_proof=None):
             'reviewed_diagnostic_source_adjustments': diagnostic_adjustments,
             'reviewed_historical_callers': reviewed,
             'installed_distribution_predecessors': installed_predecessors,
+            'reviewed_native_cold_caller_sources': cold_adjustments,
             'terminal_reread_identical': True, 'production_source_exceptions': []})
     return adjustments
 

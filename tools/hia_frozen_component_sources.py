@@ -16,7 +16,7 @@ def _relations(raw):
     return json.loads(raw)['files']
 
 
-COLD_CALLER_HELPER_PIN = {'bytes': 11616, 'sha256': '533ac5680937b82ffe3b951bd568e8cf4e103b08b8f302297f442b4119f17480'}
+COLD_CALLER_HELPER_PIN = {'bytes': 12101, 'sha256': '3b4d0a3bf10558574558bd22e1d6b03769cdd0ef7abcef777333581a3c617e80'}
 
 
 def cold_caller_source(root, name, raw, *, take=Path.read_bytes):

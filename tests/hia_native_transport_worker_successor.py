@@ -178,13 +178,14 @@ def _reverse_sqlite_boundary(path, raw, fixed, predecessor, previous_fixture, pr
     return reverse_exact(raw, record['record'], previous_pin)
 
 
-def restore_evaluation_store(raw, fixture, *, take=Path.read_bytes):
+def restore_evaluation_store(raw, fixture, *, root=None, take=Path.read_bytes):
     from tests.hia_store_delivery_successor import reverse_exact
     from tests.hia_store_source_history import restore_evaluation_test
-    raw = restore_evaluation_test(raw, root=ROOT, take=take)
+    root = ROOT if root is None else Path(root)
+    raw = restore_evaluation_test(raw, root=root, take=take)
 
     from tests.hia_installed_distribution_history import predecessor
-    raw = _installed_predecessor(EVALUATION, raw, root=ROOT, take=take)
+    raw = _installed_predecessor(EVALUATION, raw, root=root, take=take)
     if sha256(fixture).hexdigest() != EVALUATION_STORE_FIXTURE_SHA256:
         raise ValueError('evaluation typed Store test provenance changed')
     record = json.loads(fixture)
@@ -203,15 +204,18 @@ def restore_evaluation_store(raw, fixture, *, take=Path.read_bytes):
     return reverse_exact(raw, record, EVALUATION_NEW)
 
 
+
 SQL_SOURCE_FIXTURE = 'tests/fixtures/delivery_typed_sql_source.json'
 SQL_SOURCE_FIXTURE_PIN = {'bytes': 2329, 'sha256': 'ca2e446dfbe9b38e6df4bb06f99cac7279df7ca0462fb35116c6ff2bf6b971e9'}
 SQL_EFFECT_TEST = 'tests/hia_native_delivery_sql.py'
 
 
-def restore_sql_source(name, raw, capture, expected):
+def restore_sql_source(name, raw, capture, expected, *, root=None):
     from tests.hia_store_delivery_successor import reverse_exact
-    raw, _ = _cold_source(name, raw,
-        take=lambda path: capture(path.relative_to(ROOT).as_posix()))
+    from tools.hia_frozen_component_sources import cold_caller_source
+    root = ROOT if root is None else Path(root)
+    raw, _ = cold_caller_source(root, name, raw,
+        take=lambda path: capture(path.relative_to(root).as_posix()))
 
     authority = capture(SQL_SOURCE_FIXTURE)
     if _pin(authority) != SQL_SOURCE_FIXTURE_PIN:
@@ -222,6 +226,7 @@ def restore_sql_source(name, raw, capture, expected):
             or data['helper'] != {'path': SQL_EFFECT_TEST, **_pin(capture(SQL_EFFECT_TEST))}):
         raise ValueError('typed delivery SQL proof or scope changed')
     return reverse_exact(raw, data['files'][name], expected)
+
 
 
 def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
@@ -628,6 +633,25 @@ QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3
 
 
 def reviewed_qualifier_dependency(raw, capture):
+    from tools.hia_frozen_component_sources import history_inverse
+    current_runtime = {'bytes': 26341, 'sha256': 'af1da46b48d86faf91ee41b51d291eb7462cd9cd3878399475d575a7d33a20d3'}
+    history_captures = {}
+    if type(raw) is bytes and _pin(raw) == current_runtime:
+        fixture = 'tests/fixtures/hia_caller_terminal_cold_admission_20261128.json'
+        frozen = capture(fixture)
+        if _pin(frozen) != {'bytes': 4951, 'sha256': 'e67719cb7f61ed511e1851db3c2b65650b7fdb28030fddb3cb5bc1ad6e55e9db'}:
+            raise ValueError('terminal cold runtime source authority changed')
+        authority = json.loads(frozen)
+        if (type(authority) is not dict
+                or set(authority) != {'schema', 'path', 'predecessor_commit', 'record'}
+                or authority['schema'] != 'hepta.hia.terminal-cold-source-history.v1'
+                or authority['path'] != QUALIFIER_DEPENDENCY_PATH
+                or authority['predecessor_commit'] != 'e78be455707430e3c94e50ab07b021fd2cb40ecc'
+                or capture(QUALIFIER_DEPENDENCY_PATH) != raw):
+            raise ValueError('terminal cold runtime source scope or physical input differs')
+        history_captures = {fixture: frozen, QUALIFIER_DEPENDENCY_PATH: raw}
+        raw = history_inverse(raw, authority['record'],
+            {'bytes': 25395, 'sha256': '2778515c091610bf51322d670d266e81fe328b95c5aa187e4a4b313f157984b3'})
     from tests.hia_installed_distribution_history import predecessor
     if type(raw) is not bytes or _pin(raw) != QUALIFIER_DEPENDENCY_CURRENT:
         raw = _installed_predecessor(QUALIFIER_DEPENDENCY_PATH, raw, root=ROOT,
@@ -664,6 +688,9 @@ def reviewed_qualifier_dependency(raw, capture):
         raw = reverse_exact(raw, reviewed['record'], QUALIFIER_DEPENDENCY_CURRENT)
     elif _pin(raw) != QUALIFIER_DEPENDENCY_CURRENT:
         raise ValueError('qualifier runtime dependency is neither fixed original nor exact successor')
+    for name, physical in history_captures.items():
+        if capture(name) != physical:
+            raise ValueError('terminal cold runtime source changed at readback: ' + name)
     return raw, sql_successor, build_successor, emission_successor, store_successor
 
 
@@ -1658,6 +1685,8 @@ def _admit_build_inventory_control(inventory, prior):
 def delivery_sources(root, inventory, prior):
     """Bind newly installed-test sources to the original complete delivery inventory."""
     from tests.hia_installed_distribution_history import FIXTURE, FIXTURE_SHA256, _records, predecessor
+    from tools import hia_cold_caller_sources as cold
+    from tools.hia_frozen_component_sources import cold_caller_source, bind_cold_caller_adjustment
 
     root = Path(root)
     adjustments = dict(prior['source_adjustments'])
@@ -1673,18 +1702,25 @@ def delivery_sources(root, inventory, prior):
 
     records = _records(root=root, take=capture)
     for name, old in inventory['unchanged_files'].items():
-        if name not in records or name in adjustments:
+        if name in adjustments or (name not in records and name not in cold.PATHS):
             continue
         data = capture(root / name)
-        previous = _installed_predecessor(name, data, root=root, take=capture)
+        selected, native_proof = cold_caller_source(root, name, data, take=capture)
+        previous = predecessor(name, selected, root=root, take=capture)
         if previous == data or _pin(previous) != old:
             continue
-        adjustments[name] = {
+        adjustment = {
             'path': name, 'original_sha256': old['sha256'], 'original_bytes': old['bytes'],
             'current_sha256': sha256(data).hexdigest(), 'current_bytes': len(data),
             'scope': 'normal offline installation with original component qualification',
             'reversible_patch_fixture_sha256': FIXTURE_SHA256,
         }
+        if native_proof is not None:
+            adjustment = bind_cold_caller_adjustment(adjustment, data, native_proof)
+            if previous == selected:
+                adjustment['scope'] = 'complete native cold caller with original component qualification'
+                adjustment['reversible_patch_fixture_sha256'] = native_proof['authority']['sha256']
+        adjustments[name] = adjustment
     if any((root / name).read_bytes() != data for name, data in captured.items()):
         raise ValueError('the installed caller source changed before finishing delivery admission')
     return {**prior, 'source_adjustments': adjustments}

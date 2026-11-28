@@ -75,7 +75,7 @@ def original_source(current, specification):
 
 
 def admit_source_authority(captured, root):
-    root = Path(root)
+    root = Path(root).resolve()
     observation_sources = {}
     for name in ('tests/hia_service_artifact_worker_terminal.py',
                  'tools/read_hia_service_artifact_worker_terminal.py'):
@@ -96,7 +96,8 @@ def admit_source_authority(captured, root):
         path = PurePosixPath(name)
         require(not path.is_absolute() and '..' not in path.parts, 'unsafe terminal source path')
         data = captured.raw(root / name)
-        originals[name] = digest(original_source(predecessor(name, data, original_source), specification))
+        originals[name] = digest(original_source(predecessor(name, data, original_source,
+            root=root, take=captured.raw), specification))
         current[name] = digest(data)
     equal(digest(captured.raw(root / 'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt')),
           WORKERS[1])

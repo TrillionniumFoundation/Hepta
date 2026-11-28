@@ -31,6 +31,24 @@ def script(name):
 
 
 class CoreWorkflowContractTests(unittest.TestCase):
+    def setUp(self):
+        # This one original method names the retained hosted entry point.
+        # Admit the actual native boundary first; all other methods use the
+        # current workflow without a projected or historical view.
+        if self._testMethodName != "test_actual_failure_archive_runs_after_cold_failure_without_continuing_test_steps":
+            return
+        from tests.hia_workflow_cold_history import admit_current_native_archive, historical_workflow
+        current = WORKFLOW
+        admit_current_native_archive(current.read_text(),
+                                     (ROOT / "tools/replay_hia_native_cold.py").read_text())
+        original, _record = historical_workflow(ROOT)
+        directory = tempfile.TemporaryDirectory(prefix="hia-retained-workflow-")
+        self.addCleanup(directory.cleanup)
+        archived = Path(directory.name) / "original-workflow.yml"
+        archived.write_bytes(original)
+        self.addCleanup(setattr, sys.modules[__name__], "WORKFLOW", current)
+        setattr(sys.modules[__name__], "WORKFLOW", archived)
+
     def test_actual_source_generator_shell_refuses_mutation_and_first_failed_generator(self):
         command = script('Regenerate actual HIA sources')
         components = command.split('for component in ', 1)[1].split('; do', 1)[0].split()

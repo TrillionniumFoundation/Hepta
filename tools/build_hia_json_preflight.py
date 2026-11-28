@@ -39,7 +39,7 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
     contract = validate_release_contract(ROOT)
     if source_domain(contract) == 'native':
         if type(qualification) is not dict or qualification.get('schema') != SCHEMA:
-            raise ValueError('native source domain requires a native-v2 cold qualification')
+            raise ValueError('a completed matching native cold qualification is required; native source domain requires a native-v2 cold qualification')
         from tools.generate_hia_native_observer import reference_image
         return admit_native_report(compiler_bytes, cold_bytes,
                                    contract=contract,

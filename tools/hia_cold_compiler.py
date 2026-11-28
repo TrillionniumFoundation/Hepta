@@ -183,7 +183,7 @@ def read_cold_build_inputs(cold_report, *, generation_index=None):
         source_head = location["source_head"]
     else:
         _require(report.get("schema") == "hepta.hia.selfhost-cold-replay.v1"
-                 and generation_index is None, "unrecognized cold source domain")
+                 and generation_index is None, "unrecognized cold source domain: cold report lacks a compiler from a completed matching native cold qualification")
         nested_path = _path(report.get("nested_report"))
         nested_raw = _regular(nested_path, MAX_REPORT_BYTES)
         _require(sha256(nested_raw).hexdigest() == report.get("nested_report_sha256"),

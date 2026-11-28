@@ -56,6 +56,25 @@ def setup_predecessor(raw, expected):
     """Recover the exact package policy for the original 196-resource controls."""
     if pin(raw) == expected:
         return raw
+    if sha256(raw).hexdigest() == '26fed560e8d03b7f2e93693ae3fec05e0f7eb485feabf1b6b9a69df1ecc1b0d5':
+        declaration = (b"NOMINAL_BYTE_BOUNDARY_RESOURCES = (\n"
+                       b"    'examples/hia_bootstrap/core_json_bytes.hepta',\n"
+                       b"    'examples/hia_bootstrap/nominal_tokens.hepta',\n)\n")
+        for added, previous in ((declaration, b''), (b' + NOMINAL_BYTE_BOUNDARY_RESOURCES:', b':')):
+            if raw.count(added) != 1:
+                raise ValueError('the exact nominal-byte package addition differs')
+            raw = raw.replace(added, previous, 1)
+        if pin(raw) != {'bytes': 6325, 'sha256': 'd8f6e3b151820d5077b619172ba86a57cc0b24f0581a0728a32f076ddebbb7c1'}:
+            raise ValueError('the complete nominal-byte package predecessor differs')
+    if sha256(raw).hexdigest() == 'd8f6e3b151820d5077b619172ba86a57cc0b24f0581a0728a32f076ddebbb7c1':
+        start = raw.index(b'def nominal_program_resources(existing):\n')
+        end = raw.index(b'class AgentResourceBuild(build_py):\n', start)
+        added = b' + nominal_program_resources(names)'
+        if raw.count(added) != 1:
+            raise ValueError('the exact nominal-program package addition differs')
+        raw = (raw[:start] + raw[end:]).replace(added, b'', 1)
+        if pin(raw) != {'bytes': 5349, 'sha256': '90b0d5f089c0180a51f6df4e1706d7236cab458f5f69d8948cf8aeb4b0f5b559'}:
+            raise ValueError('the complete nominal-program package predecessor differs')
     if sha256(raw).hexdigest() != '90b0d5f089c0180a51f6df4e1706d7236cab458f5f69d8948cf8aeb4b0f5b559':
         raise ValueError('the installed Journal setup source changed')
     start = raw.index(b'class ColdSourceDistribution(sdist):')
@@ -80,7 +99,9 @@ class JournalInstalledPreparationSourceTests(unittest.TestCase):
         cls.live_sources = {name: (ROOT / name).read_bytes() for name in INPUTS}
         cls.sources = dict(cls.live_sources)
         cls.authority = json.loads(cls.sources[subject.FIXTURE])
-        cls.sources[subject.PATH] = predecessor(subject.PATH, cls.sources[subject.PATH])
+        from tools.hia_frozen_component_sources import cold_caller_source
+        prior, _ = cold_caller_source(ROOT, subject.PATH, cls.sources[subject.PATH], take=Path.read_bytes)
+        cls.sources[subject.PATH] = predecessor(subject.PATH, prior, root=ROOT)
         cls.sources['setup.py'] = setup_predecessor(
             cls.sources['setup.py'], cls.authority['policy_sources']['setup.py'])
         reviewed = cls.sources[POLICY_SUCCESSOR]

@@ -50,14 +50,25 @@ class AgentIdentitySourceBindingTests(unittest.TestCase):
         self.cold.write_text(json.dumps(self.report))
         for target, attribute, value in (
             (builder, "ROOT", self.root),
+            (admission, "ROOT", self.root),
             (admission, "current_sources", lambda: deepcopy(self.sources)),
         ):
             context = patch.object(target, attribute, value)
             context.start()
             self.addCleanup(context.stop)
+        context = patch("tools.hia_release_contract.validate_release_contract", side_effect=self.contract_fixture)
+        context.start()
+        self.addCleanup(context.stop)
         context = patch("tools.qualify_hia_selfhost.compile_stage", side_effect=self.compile_fixture)
         self.compile = context.start()
         self.addCleanup(context.stop)
+
+    def contract_fixture(self, root):
+        if Path(root) != self.root:
+            raise AssertionError("custody fixture used an unrelated source root")
+        return {"source_identity": {
+            "roles": {"seed_entry": "tools/qualify_hia_selfhost.py:build_seed"},
+            "files": deepcopy(self.sources)}}
 
     def compile_fixture(self, output, name, compiler, source):
         self.assertEqual(name, "agent-identity")

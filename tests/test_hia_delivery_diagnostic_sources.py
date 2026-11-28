@@ -133,11 +133,18 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             names.update(cls.values[kind]['unchanged_files'])
             names.update(cls.values[kind].get('shared_dependency_review', {}))
         names.update((subject.SQL_SOURCE_FIXTURE, subject.SQL_EFFECT_TEST))
+        from tools import hia_cold_caller_sources as cold
+        names.update((cold.FIXTURE, cold.PREVIOUS_FIXTURE, cold.SOURCE))
         cls.source_raw = {name: (ROOT / name).read_bytes() for name in sorted(names)}
+        cls.physical_sources = dict(cls.source_raw)
         cls.source_names = tuple(sorted(names))
         from tests.hia_installed_distribution_history import predecessor
+        from tests.hia_historical_diagnostic_controls import cold_control_source
+        cls.cold_adjustments = {}
         for name, expected in OUTER_PINS.items():
-            raw = predecessor(name, cls.source_raw[name])
+            raw = cold_control_source(
+                ROOT, name, cls.source_raw[name], cls.source_raw, cls.cold_adjustments)
+            raw = predecessor(name, raw)
             if name == subject.DELIVERY and pin(raw) != expected:
                 raw = subject.restore_sql_source(name, raw, cls.source_raw.__getitem__, expected)
             if pin(raw) != expected:
@@ -149,7 +156,9 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
         cls.reviewed_sources = {}
         for name in TARGETS:
             record = cls.authority['files'][name]
-            current = predecessor(name, cls.source_raw[name])
+            selected = cold_control_source(
+                ROOT, name, cls.source_raw[name], cls.source_raw, cls.cold_adjustments)
+            current = predecessor(name, selected)
             if name == TARGETS[1] and pin(current) != record['new']:
                 update = composition.evaluate_records(
                     cls.source_raw[composition.EVALUATE_FIXTURE])['evaluation_qualifier']
@@ -164,6 +173,15 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
                 if name in ALLOWED[kind]:
                     if pin(cls.old_sources[name]) != cls.values[kind]['unchanged_files'][name]:
                         raise AssertionError('old source is not the independently frozen original')
+        target = subject.QUALIFIER_PATHS[0]
+        selected = cold_control_source(
+            ROOT, target, cls.source_raw[target], cls.physical_sources, cls.cold_adjustments)
+        selected = predecessor(target, selected)
+        fixed_target = json.loads(cls.source_raw[subject.QUALIFIER_FIXTURE])['files'][target]
+        if pin(selected) != fixed_target['new']:
+            raise AssertionError('fixed prior-capture-gap control source changed')
+        cls.source_raw[target] = selected
+        cls.source_names = tuple(sorted(cls.physical_sources))
         cls.planned_by_method = planned_ids()
         cls.planned = sum((list(ids) for ids in cls.planned_by_method), [])
         if len(cls.planned) != 126 or len(set(cls.planned)) != 126:
@@ -172,7 +190,8 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
         write(cls.output / 'plan.json', {
             'schema': 'hepta.hia.delivery-diagnostic-source-plan.v1',
             'planned_ids': cls.planned, 'method_count': 3,
-            'source_before': {name: pin(raw) for name, raw in cls.source_raw.items()},
+            'source_before': {name: pin(raw) for name, raw in cls.physical_sources.items()},
+            'cold_control_source_admission': cls.cold_adjustments,
             'original_file_counts': {'native': 64, 'store': 89},
             'original_outer_test_files_unchanged': OUTER_PINS,
             'original_gates_replaced': False, 'production_source_exceptions': []})
@@ -180,7 +199,7 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         after = {name: (ROOT / name).read_bytes() for name in cls.source_names}
-        stable = after == cls.source_raw
+        stable = after == cls.physical_sources
         complete = [row['id'] for row in cls.results] == cls.planned
         passed = complete and stable and all(row['status'] == 'PASS_SOURCE_CONTROL' for row in cls.results)
         write(cls.output / 'report.json', {
@@ -188,7 +207,8 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             'status': 'PASS_SOURCE_CONTROLS' if passed else 'HOLD',
             'planned_ids': cls.planned, 'results': cls.results,
             'complete_ordered_ids': complete,
-            'source_before': {name: pin(raw) for name, raw in cls.source_raw.items()},
+            'source_before': {name: pin(raw) for name, raw in cls.physical_sources.items()},
+            'cold_control_source_admission': cls.cold_adjustments,
             'source_after': {name: pin(raw) for name, raw in after.items()},
             'raw_terminal_reread_identical': stable,
             'original_file_counts': {'native': 64, 'store': 89},
@@ -258,16 +278,21 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
         for name in expected:
             self.assertEqual(propagated[name], proof['source_adjustments'][name])
             reviewed = self.authority['files'][name]['new']
-            active = pin(self.source_raw[name])
-            if name == TARGETS[1] and active != reviewed:
+            physical = (ROOT / name).read_bytes()
+            native_reviewed, native_relation = subject._cold_source(name, physical)
+            active = pin(physical)
+            reviewed_active = pin(native_reviewed)
+            if native_relation is not None:
+                self.assertEqual(propagated[name]['native_cold_caller_source'], native_relation)
+            if name == TARGETS[1] and reviewed_active != reviewed:
                 update = composition.evaluate_records(
                     self.source_raw[composition.EVALUATE_FIXTURE])['evaluation_qualifier']
                 from tests.hia_installed_distribution_history import predecessor
-                reviewed_input = predecessor(name, self.source_raw[name])
+                reviewed_input = predecessor(name, native_reviewed)
                 self.assertEqual(pin(reviewed_input), {'bytes': update['new_bytes'], 'sha256': update['new_sha256']})
                 self.assertEqual(propagated[name]['original_evaluation_callers_verified'], 183)
-            elif active != reviewed:
-                self.assertEqual(active, subject.SQLITE_BOUNDARY_SOURCES[name])
+            elif reviewed_active != reviewed:
+                self.assertEqual(reviewed_active, subject.SQLITE_BOUNDARY_SOURCES[name])
                 self.assertEqual(propagated[name]['sqlite_boundary_successor'], {
                     'authority': {'path': subject.SQLITE_BOUNDARY_FIXTURE, **subject.SQLITE_BOUNDARY_FIXTURE_PIN},
                     'restores_reviewed_diagnostic_source_exactly': True,
