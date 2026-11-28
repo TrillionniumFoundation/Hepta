@@ -18,6 +18,10 @@ class ArtifactDeliverySourceTests(unittest.TestCase):
     def setUp(self):
         self.environment = patch.dict(os.environ, clean_environment(), clear=True)
         self.environment.start(); self.addCleanup(self.environment.stop)
+        if self._testMethodName == 'test_original_complete_63_ids_bodies_and_public_policy_are_preserved':
+            from tests.hia_artifact_delivery_source_history import historical_artifact_source_root
+            historical = self.enterContext(historical_artifact_source_root(ROOT))
+            self.enterContext(patch(__name__ + '.ROOT', historical))
 
     def test_original_complete_63_ids_bodies_and_public_policy_are_preserved(self):
         from tools.run_hia_unittest_gate import load_declared_suite

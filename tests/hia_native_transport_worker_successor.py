@@ -1706,7 +1706,7 @@ def delivery_sources(root, inventory, prior):
             continue
         data = capture(root / name)
         selected, native_proof = cold_caller_source(root, name, data, take=capture)
-        previous = _installed_predecessor(name, selected, root=root, take=capture)
+        previous = predecessor(name, selected, root=root, take=capture)
         if previous == data or _pin(previous) != old:
             continue
         adjustment = {

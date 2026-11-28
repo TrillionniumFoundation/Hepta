@@ -84,7 +84,7 @@ def inverse(raw, specification):
 
 class SourceAuthority:
     def __init__(self, root):
-        self.root = Path(root)
+        self.root = Path(root).resolve()
         self.captured = {}
         for name in ('tests/hia_service_artifact_worker_terminal.py',
                      'tools/read_hia_service_artifact_worker_terminal.py'):
@@ -105,7 +105,8 @@ class SourceAuthority:
         for name, spec in self.value['source_successors'].items():
             if Path(name).is_absolute() or '..' in Path(name).parts:
                 raise ValueError('unsafe terminal source path')
-            self.originals[name] = inverse(predecessor(name, self.read(name), inverse), spec)
+            self.originals[name] = inverse(predecessor(name, self.read(name), inverse,
+                root=self.root, take=lambda path: self.read(path.relative_to(self.root).as_posix())), spec)
         if pin(self.read(ORIGINAL_WORKER)) != WORKERS[1]:
             raise ValueError('complete original worker authority changed')
         self.profile = worker_profile(self.read('hepta/hia_agent_worker.py'))

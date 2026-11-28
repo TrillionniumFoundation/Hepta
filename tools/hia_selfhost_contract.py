@@ -228,6 +228,16 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tests/test_hia_cnf_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
+    'tests/hia_artifact_delivery_source_history.py',
+    'tests/hia_component_native_cold_history.py',
+    'tests/fixtures/hia_component_native_cold_history_20261128.json',
+    'tests/test_hia_delivery_source_history_custody.py',
+    'tests/test_hia_artifact_terminal_cold_custody.py',
+    'examples/hia_bootstrap/nominal_tokens.hepta',
+    'tools/build_hia_core_json_bytes.py',
+    'tools/build_hia_nominal_tokens.py',
+    'examples/hia_bootstrap/elf_static_linker.hepta',
+    'examples/hia_bootstrap/core_json_bytes.hepta',
     'tools/hia_cold_caller_sources.py',
     'tests/fixtures/hia_native_cold_caller_relations_20261127.json',
     'tests/fixtures/hia_native_cold_caller_integration_20261127.json',
