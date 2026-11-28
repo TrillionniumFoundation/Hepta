@@ -166,6 +166,7 @@ _PRIVATE_NAMES = PRIVATE_LAYOUTS
 _IMPORT_ARGUMENTS = {
     'behavior_optimization': PUBLIC_ARGUMENTS[0],
     'behavior_widths': PUBLIC_ARGUMENTS[0],
+    'behavior_inputs': PUBLIC_ARGUMENTS[0],
     'subject_layout': PUBLIC_ARGUMENTS[1],
     'verify_emitter': PUBLIC_ARGUMENTS[2],
     'verify_checks': PUBLIC_ARGUMENTS[2],
@@ -846,34 +847,64 @@ class ServiceVerificationFrame:
         self.result = ('unknown', 'Verification cannot exceed the frozen context deadline', {'method': 'context_budget_exhausted', 'reason': 'context wall budget exhausted'})
         return 0
 
+    def _port_behavior_capture_sources(self):
+        d = self.data
+        g = self._global
+        d['sources'] = g('_behavior_source_snapshot')(d['original'], d['revised'])
+        return 0
+
+    def _port_behavior_sources_valid(self):
+        d = self.data
+        g = self._global
+        return 1 if (d['sources'] is not None) else 0
+
+    def _port_behavior_invalid_sources(self):
+        d = self.data
+        g = self._global
+        self.result = ('unknown', 'Behavior-equivalence inputs lack immutable byte identities', {'method': 'behavior_equivalence', 'complete': False, 'source_unchanged': False})
+        return 0
+
+    def _port_behavior_capture_inputs(self):
+        d = self.data
+        g = self._global
+        d['BehaviorInputs'] = self._import('behavior_inputs', d)
+        d['inputs'] = d['BehaviorInputs']((d['original'], d['revised']), d['sources'])
+        return 0
+
     def _port_behavior_canonical(self):
         d = self.data
         g = self._global
-        return 1 if (d['original'].canonical_bytes == d['revised'].canonical_bytes) else 0
+        return 1 if (d['sources'][0][0] == d['sources'][1][0]) else 0
+
+    def _port_behavior_identity_prepare(self):
+        d = self.data
+        g = self._global
+        d['inputs'].prepare()
+        return 0
 
     def _port_behavior_identity_result(self):
         d = self.data
         g = self._global
         self.result = ('proved', 'Reflexivity for the exact admitted canonical Core bytes, including resources and traps',
-            {'method': 'canonical_core_identity', 'base_sha256': d['original'].sha256, 'candidate_sha256': d['revised'].sha256, 'all_inputs': True})
+            {'method': 'canonical_core_identity', 'base_sha256': g('sha256')(d['sources'][0][0]).hexdigest(), 'candidate_sha256': g('sha256')(d['sources'][1][0]).hexdigest(), 'all_inputs': True})
         return 0
 
     def _port_behavior_documents(self):
         d = self.data
         g = self._global
-        d['left'], d['right'] = d['original'].as_dict(), d['revised'].as_dict()
+        d['left'], d['right'] = d['inputs'].programs[0].as_dict(), d['inputs'].programs[1].as_dict()
         return 0
 
     def _port_behavior_signatures(self):
         d = self.data
         g = self._global
-        d['signatures'] = g('_signatures')(d['original'])
+        d['signatures'] = g('_signatures')(d['inputs'].programs[0])
         return 0
 
     def _port_behavior_initial_finite(self):
         d = self.data
         g = self._global
-        d['finite'] = d['signatures'] == g('_signatures')(d['revised']) and g('bool')(d['signatures'])
+        d['finite'] = d['signatures'] == g('_signatures')(d['inputs'].programs[1]) and g('bool')(d['signatures'])
         return 0
 
     def _port_behavior_documents_iter(self):
@@ -1074,6 +1105,12 @@ class ServiceVerificationFrame:
         d['deadline'] = g('time').monotonic_ns() + g('min')(10000, d['timeout_ms']) * 1_000_000
         return 0
 
+    def _port_behavior_prepare(self):
+        d = self.data
+        g = self._global
+        d['inputs'].prepare()
+        return 0
+
     def _port_behavior_domain_iter(self):
         d = self.data
         g = self._global
@@ -1125,16 +1162,40 @@ class ServiceVerificationFrame:
         d['case'] = {'function': d['name'], 'arguments': g('list')(d['arguments'])}
         return 0
 
+    def _port_behavior_before_binding(self):
+        d = self.data
+        g = self._global
+        d['observer'] = g('_vm_observation')
+        return 1 if (d['observer'] is g('_REFERENCE_VM_OBSERVATION')) else 0
+
+    def _port_behavior_before_unbound(self):
+        d = self.data
+        g = self._global
+        d['before'] = d['inputs'].unbound_observation(0, d['observer'], d['case'], steps=10000)
+        return 0
+
     def _port_behavior_before(self):
         d = self.data
         g = self._global
-        d['before'] = g('_vm_observation')(d['original'], d['case'], steps=10000)
+        d['before'] = d['inputs'].bound_observation(0, d['observer'], d['case'], steps=10000)
+        return 0
+
+    def _port_behavior_after_binding(self):
+        d = self.data
+        g = self._global
+        d['observer'] = g('_vm_observation')
+        return 1 if (d['observer'] is g('_REFERENCE_VM_OBSERVATION')) else 0
+
+    def _port_behavior_after_unbound(self):
+        d = self.data
+        g = self._global
+        d['after'] = d['inputs'].unbound_observation(1, d['observer'], d['case'], steps=10000)
         return 0
 
     def _port_behavior_after(self):
         d = self.data
         g = self._global
-        d['after'] = g('_vm_observation')(d['revised'], d['case'], steps=10000)
+        d['after'] = d['inputs'].bound_observation(1, d['observer'], d['case'], steps=10000)
         return 0
 
     def _port_behavior_reference_budget(self):
@@ -1219,13 +1280,13 @@ class ServiceVerificationFrame:
         self.result = ('proved', 'Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger',
             {'method': 'finite_domain', 'checked': d['checked'], 'required': d['total'], 'complete': True,
             'all_inputs_in_declared_widths': True, 'transcript_sha256': d['transcript'].hexdigest(),
-            'base_sha256': d['original'].sha256, 'candidate_sha256': d['revised'].sha256})
+            'base_sha256': g('sha256')(d['sources'][0][0]).hexdigest(), 'candidate_sha256': g('sha256')(d['sources'][1][0]).hexdigest()})
         return 0
 
     def _port_behavior_solver(self):
         d = self.data
         g = self._global
-        d['report'] = d['verify_optimization'](d['original'], d['revised'], {**d['DEFAULT_POLICY'], 'timeout_ms': g('min')(5000, d['timeout_ms'])})
+        d['report'] = d['verify_optimization'](d['inputs'].programs[0], d['inputs'].programs[1], {**d['DEFAULT_POLICY'], 'timeout_ms': g('min')(5000, d['timeout_ms'])})
         return 0
 
     def _port_behavior_solver_status(self):
@@ -1238,6 +1299,45 @@ class ServiceVerificationFrame:
         d = self.data
         g = self._global
         self.result = (d['status'], 'Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects', d['report'])
+        return 0
+
+    def _port_behavior_terminal_sources(self):
+        d = self.data
+        g = self._global
+        return 1 if d['inputs'].current() else 0
+
+    def _port_behavior_changed_evidence(self):
+        d = self.data
+        g = self._global
+        d['changed_evidence'] = {'method': self.result[2].get('method', 'behavior_equivalence'), 'complete': False, 'source_unchanged': False}
+        return 0
+
+    def _port_behavior_changed_has_checked(self):
+        d = self.data
+        g = self._global
+        return 1 if 'checked' in self.result[2] else 0
+
+    def _port_behavior_changed_checked(self):
+        d = self.data
+        g = self._global
+        d['changed_evidence']['checked'] = self.result[2]['checked']
+        return 0
+
+    def _port_behavior_changed_has_required(self):
+        d = self.data
+        g = self._global
+        return 1 if 'required' in self.result[2] else 0
+
+    def _port_behavior_changed_required(self):
+        d = self.data
+        g = self._global
+        d['changed_evidence']['required'] = self.result[2]['required']
+        return 0
+
+    def _port_behavior_changed_result(self):
+        d = self.data
+        g = self._global
+        self.result = ('unknown', 'Core bytes or execution bindings changed during behavior-equivalence observation', d['changed_evidence'])
         return 0
 
     def _port_behavior_release(self):
