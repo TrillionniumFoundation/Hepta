@@ -1,6 +1,6 @@
 """Explicit, bounded reuse of one admitted sealed native ranking image.
 
-Every call starts and reaps a new original NDU process. Only source/receipt
+Every call starts and reaps a new source-owned HIA NDU process. Only source/receipt
 admission and executable sealing are reused; responses and ranking work are
 never cached. This is a different transport profile from the one-shot caller:
 its owner deliberately retains immutable bytes, not a live pathname binding.
@@ -43,7 +43,7 @@ class PreparedNduRanker:
     an explicit separately charged caller decision, never an automatic retry.
     """
 
-    def __init__(self, bridge, *, max_requests=MAX_REQUESTS):
+    def __init__(self, bridge=None, *, max_requests=MAX_REQUESTS):
         started = time.perf_counter_ns()
         if type(max_requests) is not int or not 1 <= max_requests <= MAX_REQUESTS:
             _reject("max_requests must be an integer in 1..256")

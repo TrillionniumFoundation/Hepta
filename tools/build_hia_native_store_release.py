@@ -947,8 +947,13 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     source_capture = captured('hia-source-capture')
 
     def capture_sources(named):
-        from tools.build_hia_source_capture import capture_named_sources
+        from tools.build_hia_source_capture import capture_named_sources, capture_root_sources
 
+        prefixes = ('examples/', 'docs/', 'hepta/', 'tools/')
+        if any(type(path) is str and path.startswith(prefixes) for path in named.values()):
+            explicit = {alias: path if path.startswith(prefixes) else
+                        'examples/hia_bootstrap/' + path for alias, path in named.items()}
+            return capture_root_sources(source_capture, ROOT, explicit, admitted, work)
         return capture_named_sources(source_capture, ROOT, named, admitted, work)
 
     policy_sources = capture_sources({
@@ -1095,6 +1100,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     _stage_agent_helper_images(work, seed, builds, call, compiler_bytes, publish)
     from tools.hia_core_companion_release import stage_core_companions
     stage_core_companions(work, seed, builds, call, compiler_bytes, publish)
+    from tools.hia_ndu_evaluator_release import stage_ndu_evaluator
+    stage_ndu_evaluator(work, seed, builds, call, compiler_bytes, publish)
     _stage_agent_store(work, seed, builds, call, compiler_bytes, admitted, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), builds, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, builds, call, admitted, publish)

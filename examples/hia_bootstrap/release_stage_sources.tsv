@@ -1,4 +1,4 @@
-stage	17	106
+stage	18	108
 need	1	0	hia-source-build
 compile	1	proof	cnf.hepta	cnf.hepta
 compile	1	proof	core_admission.hepta	core_admission.hepta
@@ -801,3 +801,23 @@ output	17	core-integer.image.bin
 output	17	core-unpack-manifest.json
 output	17	core-unpack.image.bin
 framing	17	0	HIASTD01	source-bound-native-release-dag
+stage	18	native-release-dag-ndu_evaluator
+need	18	0	selfhost.image.bin
+resource	18	docs/HIA_NATIVE_NDU_EVALUATOR_BUILD.json
+resource	18	docs/HIA_NATIVE_NDU_EVALUATOR_QUALIFICATION.json
+resource	18	docs/HIA_NATIVE_NDU_EVALUATOR_RECIPE.json
+resource	18	examples/hia_bootstrap/native_filter_packer.hepta
+resource	18	examples/hia_bootstrap/ndu_evaluator.hepta
+resource	18	examples/hia_bootstrap/ndu_evaluator_debug.hepta
+resource	18	examples/hia_bootstrap/ndu_evaluator_number.hepta
+resource	18	examples/hia_bootstrap/ndu_evaluator_packer.hepta
+resource	18	examples/hia_bootstrap/ndu_evaluator_transport.hepta
+resource	18	examples/hia_bootstrap/ndu_evaluator_unicode.hiadat
+resource	18	examples/hia_bootstrap/release_stage_ndu_evaluator.hiastd
+resource	18	examples/hia_bootstrap/selfhost.hepta
+resource	18	examples/hia_bootstrap/source_ndu_evaluator.hepta
+resource	18	tools/hia_ndu_evaluator_join.S
+resource	18	tools/hia_ndu_evaluator_syscalls.S
+output	18	_hia_ndu_evaluator.elf
+output	18	_hia_ndu_evaluator_build.json
+framing	18	0	HIASTD01	source-bound-native-release-dag

@@ -76,6 +76,51 @@ def capture_named_sources(executable, root, named, admitted, work):
     return captured
 
 
+
+def capture_root_sources(executable, root, named, admitted, work):
+    """Capture explicit repository-relative native inputs through HIA HIARAW01.
+
+    The original named compile-source interface stays unchanged.  This separate
+    entry admits declared native/data paths, including docs and mechanical
+    capsules, and never grants host-language source access.
+    """
+    from hashlib import sha256
+    from tools.hia_native_worker_source_authority import checked_paths
+
+    if type(named) is not dict or not 1 <= len(named) <= 128:
+        raise ValueError("native raw capture requires 1..128 explicit names")
+    checked_paths(tuple(sorted(named.values())))
+    rows = []
+    for alias, relative in named.items():
+        if type(alias) is not str:
+            raise ValueError("native raw capture alias must be text")
+        name, path = alias.encode("ascii"), relative.encode("ascii")
+        if (not 1 <= len(name) <= 127
+                or any(not (48 <= c <= 57 or 65 <= c <= 90 or 97 <= c <= 122
+                            or c in (45, 46, 95)) for c in name)):
+            raise ValueError("native raw capture alias differs from the original domain")
+        pin = admitted.get(relative)
+        if (type(pin) is not str or len(pin) != 64
+                or bytes.fromhex(pin).hex() != pin):
+            raise ValueError("native raw capture has no exact admitted digest: " + relative)
+        rows.append((alias, path, name, pin))
+    directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    captured = {}
+    try:
+        for alias, path, name, pin in rows:
+            frame = (struct.pack("<8sQ8sQ", b"HIACAP02", directory, b"HIARAW01", 1)
+                     + struct.pack("<3Q", len(path), len(name), 0)
+                     + bytes.fromhex(pin) + path + name)
+            result = _run_captured(executable, (), frame, work, pass_fds=(directory,))
+            if (result.returncode or result.stderr or not 0 < len(result.stdout) <= 1 << 20
+                    or sha256(result.stdout).hexdigest() != pin):
+                raise ValueError("native raw source capture refused: " + path.decode("ascii"))
+            captured[alias] = result.stdout
+    finally:
+        os.close(directory)
+    return captured
+
+
 def build(output, compiler, cold_report):
     output, compiler, cold_report = map(Path, (output, compiler, cold_report))
     compiler_bytes, report_bytes = compiler.read_bytes(), cold_report.read_bytes()
