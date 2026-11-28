@@ -377,5 +377,79 @@ class RuntimeDispatchComparisonTests(unittest.TestCase):
             dispatch._handler(parts, ordinal, body, "compare.unknown")
 
 
+class RuntimeDispatchOpcodeChoiceTests(unittest.TestCase):
+    def prepare(self, opcode):
+        parameters = [("a", "i32"), ("b", "i32")]
+        document = m(f("calculate", parameters, ["i32"], ["trap"], [
+            b("entry", parameters, [i(opcode, ["a", "b"], [("value", "i32")])],
+              ret("value"))]))
+        checked = verify_program(document)
+        program = metadata.prepare_runtime_program(checked)
+        plan = dispatch.prepare_runtime_dispatch(program)
+        self.assertIsNotNone(plan)
+        handler, prepared = plan.functions["calculate"][1]["entry"][0]
+        return program, plan, handler, prepared
+
+    def test_all_static_choices_preserve_original_selected_operations(self):
+        for opcode in sorted(dispatch._STATIC_ARITHMETIC):
+            program, plan, handler, prepared = self.prepare(opcode)
+            self.assertEqual(plan.relations[0]["specialization"], "static-opcode-expressions.v1")
+            for args in ((5, 2), (-3, 1), (2147483647, 1), (-2147483648, 31)):
+                with self.subTest(opcode=opcode, args=args):
+                    observations = []
+                    for fast in (False, True):
+                        machine = (plan.new_machine(program, *LIMITS) if fast else
+                                   runtime._Machine(program, *LIMITS))
+                        try:
+                            result = ("return", machine.invoke(machine.functions["calculate"], list(args)))
+                        except (runtime.HIAProgramTrap, runtime.HIAProgramBudgetExceeded) as error:
+                            result = ("exception", type(error), str(error), vars(error))
+                        observations.append((result, machine.steps))
+                    self.assertEqual(*observations)
+
+    def test_selected_global_check_and_wrap_are_still_dynamic(self):
+        for opcode, name in (("int.add.checked", "_checked"), ("int.mul.wrap", "_wrap"),
+                             ("int.shl.checked", "_wrap"), ("bit.xor", "_wrap")):
+            program, plan, handler, prepared = self.prepare(opcode)
+            machine = runtime._Machine(program, *LIMITS)
+            calls = []
+            error = RuntimeError("selected original helper")
+            def changed(*args):
+                calls.append(args)
+                raise error
+            with patch.object(runtime, name, changed):
+                for invoke in (lambda env: machine.operation(prepared[0], env, 0),
+                               lambda env: handler(machine, prepared, env, 0)):
+                    calls.clear()
+                    with self.assertRaises(RuntimeError) as caught:
+                        invoke({"a": 5, "b": 2})
+                    self.assertIs(caught.exception, error)
+                    self.assertEqual(len(calls), 1)
+
+    def test_non_builtin_operands_keep_only_the_original_selected_operator(self):
+        events = []
+        class Number(int):
+            def __add__(self, other): events.append("add"); return int(self) + int(other)
+            def __sub__(self, other): events.append("sub"); return int(self) - int(other)
+            def __mul__(self, other): events.append("mul"); return int(self) * int(other)
+            def __and__(self, other): events.append("and"); return int(self) & int(other)
+            def __or__(self, other): events.append("or"); return int(self) | int(other)
+            def __xor__(self, other): events.append("xor"); return int(self) ^ int(other)
+        for opcode in sorted(dispatch._STATIC_ARITHMETIC - {"int.shl.checked", "int.shr.checked"}):
+            program, plan, handler, prepared = self.prepare(opcode)
+            machine = runtime._Machine(program, *LIMITS)
+            events.clear();old_env = {"a": Number(5), "b": 2}
+            machine.operation(prepared[0], old_env, 0);old_events = list(events)
+            events.clear();new_env = {"a": Number(5), "b": 2}
+            handler(machine, prepared, new_env, 0)
+            self.assertEqual(events, old_events)
+            self.assertEqual(len(events), 1)
+            self.assertEqual(new_env["value"], old_env["value"])
+
+    def test_unknown_static_opcode_is_rejected(self):
+        with self.assertRaises(ValueError):
+            dispatch._opcode_body([], "int.add.unknown")
+
+
 if __name__ == "__main__":
     unittest.main()

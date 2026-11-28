@@ -190,6 +190,50 @@ def _comparison_body(branch, opcode):
     return body
 
 
+_STATIC_ARITHMETIC = frozenset((
+    "int.add.checked", "int.add.wrap", "int.sub.checked", "int.sub.wrap",
+    "int.mul.checked", "int.mul.wrap", "int.shl.checked", "int.shr.checked",
+    "bit.and", "bit.or", "bit.xor",
+))
+
+
+def _opcode_body(branch, opcode):
+    """Fold only exact opcode-derived choices; keep all selected expressions."""
+    if opcode not in _STATIC_ARITHMETIC:
+        raise ValueError("unknown static arithmetic opcode")
+    decisions = {
+        "kind == 'add'": opcode.split(".")[1] == "add",
+        "kind == 'sub'": opcode.split(".")[1] == "sub",
+        "op.endswith('checked')": opcode.endswith("checked"),
+        "op == 'int.shl.checked'": opcode == "int.shl.checked",
+        "op == 'bit.and'": opcode == "bit.and",
+        "op == 'bit.or'": opcode == "bit.or",
+    }
+    class Choices(ast.NodeTransformer):
+        count = 0
+        def visit_Assign(self, node):
+            if (len(node.targets) == 1 and ast.unparse(node.targets[0]) == "kind"
+                    and ast.unparse(node.value) == "op.split('.')[1]"):
+                self.count += 1
+                node.value = ast.Constant(value=opcode.split(".")[1])
+                return node
+            return self.generic_visit(node)
+        def visit_IfExp(self, node):
+            text = ast.unparse(node.test)
+            if text in decisions:
+                self.count += 1
+                return self.visit(node.body if decisions[text] else node.orelse)
+            return self.generic_visit(node)
+    transform = Choices()
+    body = [transform.visit(copy.deepcopy(node)) for node in branch]
+    expected = (3 if opcode.startswith("int.add.") else
+                4 if opcode.startswith(("int.sub.", "int.mul.")) else
+                1 if opcode.startswith(("int.shl.", "int.shr.")) or opcode == "bit.and" else 2)
+    if transform.count != expected:
+        raise ValueError("the fixed opcode-choice relation changed")
+    return body, transform.count
+
+
 def _handler(parts, ordinal, branch, opcode=None):
     tree, native, package, prefix, tail, unused, fallback = parts
     function = copy.deepcopy(tree)
@@ -222,8 +266,15 @@ def _handler(parts, ordinal, branch, opcode=None):
                  "_expected_loads", "_expected_stores"):
         function.args.args.append(ast.arg(arg=name))
         function.args.defaults.append(ast.Constant(value=None))
-    selected_body = copy.deepcopy(branch) if opcode is None else _comparison_body(branch, opcode)
-    if opcode is not None:
+    comparison = opcode is not None and opcode.startswith("compare.")
+    folded_choices = 0
+    if opcode is None:
+        selected_body = copy.deepcopy(branch)
+    elif comparison:
+        selected_body = _comparison_body(branch, opcode)
+    else:
+        selected_body, folded_choices = _opcode_body(branch, opcode)
+    if comparison:
         for name in ("_builtin_type", "_builtin_int"):
             function.args.args.append(ast.arg(arg=name))
             function.args.defaults.append(ast.Constant(value=None))
@@ -236,13 +287,20 @@ def _handler(parts, ordinal, branch, opcode=None):
         "body_sha256": sha256(_ast_bytes(branch)).hexdigest(),
         "tail_sha256": sha256(_ast_bytes(tail)).hexdigest(),
     }
-    if opcode is not None:
+    if comparison:
         relation.update(
             specialization="exact-int-comparison.v1", opcode=opcode,
             original_fallback_sha256=sha256(_ast_bytes(
                 [selected_body[0]] + selected_body[1].orelse)).hexdigest(),
             selected_body_sha256=sha256(_ast_bytes(selected_body)).hexdigest())
-    reviewed_body = branch if opcode is None else _comparison_body(branch, opcode)
+    elif opcode is not None:
+        relation.update(
+            specialization="static-opcode-expressions.v1", opcode=opcode,
+            folded_choices=folded_choices,
+            selected_body_sha256=sha256(_ast_bytes(selected_body)).hexdigest())
+    reviewed_body = (branch if opcode is None else
+                     _comparison_body(branch, opcode) if comparison else
+                     _opcode_body(branch, opcode)[0])
     if (_ast_bytes(second.orelse) != _ast_bytes(reviewed_body)
             or _ast_bytes(function.body[-len(tail):]) != _ast_bytes(tail)):
         raise ValueError("operation body or result validation was changed")
@@ -252,7 +310,7 @@ def _handler(parts, ordinal, branch, opcode=None):
          _runtime.__dict__, local)
     actual = local[function.name]
     actual.__defaults__ = (_METHODS[1], _CODES[1], MethodType, _LOADS, _STORES)
-    if opcode is not None:
+    if comparison:
         actual.__defaults__ += (type, int)
     return actual, MappingProxyType(relation)
 
@@ -363,7 +421,7 @@ class RuntimeDispatch:
                             selected = ordinal, body
                             break
                     ordinal, body = selected
-                    comparison = op if ordinal == comparison_branch else None
+                    comparison = op if ordinal == comparison_branch or op in _STATIC_ARITHMETIC else None
                     handler_key = ordinal, comparison
                     if handler_key not in handlers:
                         handlers[handler_key], relation = _handler(parts, ordinal, body, comparison)
