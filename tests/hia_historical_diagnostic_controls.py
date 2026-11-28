@@ -50,6 +50,7 @@ def historical_bootstrap_dependencies(root, sources, scopes):
 
 def historical_terminal_pair(root, sources, current, physical):
     from tests.hia_installed_distribution_history import predecessor
+    from tools.hia_frozen_component_sources import cold_caller_source
 
     def capture(name):
         if name not in physical:
@@ -57,7 +58,12 @@ def historical_terminal_pair(root, sources, current, physical):
         return physical[name]
 
     for name, expected in current.items():
-        raw = delivery._installed_predecessor(name, sources[name], root=root,
+        # These three terminal callers arrive as complete physical sources.
+        # Restore their admitted cold view before applying the older history.
+        # The full physical capture and terminal equality below remain intact.
+        source, _ = cold_caller_source(root, name, sources[name],
+            take=lambda path: capture(path.relative_to(root).as_posix()))
+        raw = delivery._installed_predecessor(name, source, root=root,
             take=lambda path: capture(path.relative_to(root).as_posix()))
         if diagnostics.pin(raw) != expected:
             if name == delivery.TRANSPORT:
