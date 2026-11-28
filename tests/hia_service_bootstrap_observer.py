@@ -107,13 +107,16 @@ class CaseBytes(tuple):
 class VMEntry:
     def __init__(self, program):
         self.program, self.calls = program, 0
+        from hepta.hia_program_runtime_dispatch import prepare_runtime_dispatch
+        self.dispatch = prepare_runtime_dispatch(program)
     def __call__(self, source, size, output, capacity, state, extent):
         import ctypes
         from hepta.hia_program_runtime import _Machine, _Owner, _View
         raw = ctypes.string_at(source, size)
         owners = [_Owner(i+1, bytearray(data)) for i, data in enumerate((
             raw, ctypes.string_at(output, capacity), ctypes.string_at(state, extent)))]
-        machine = _Machine(self.program, 4_000_000, 16 << 20, None, 128)
+        from hepta.hia_program_runtime_dispatch import fresh_machine
+        machine = fresh_machine(self.program, (4_000_000, 16 << 20, None, 128), self.dispatch)
         code = machine.invoke(machine.functions["f0"],
                               [_View(owner, i != 0) for i, owner in enumerate(owners)])[0]
         if bytes(owners[0].data) != raw:

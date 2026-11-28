@@ -359,6 +359,11 @@ class CaseTerminalTests(unittest.TestCase):
 
 
 class CaseByteStorageTests(unittest.TestCase):
+    def setUp(self):
+        from tests.hia_runtime_dispatch_source_history import observer_source_view
+        view = self.enterContext(observer_source_view(ROOT))
+        self.enterContext(patch.object(sys.modules[__name__], "ROOT", view))
+
     def test_all_original_case_bytes_order_and_slices_are_exact(self):
         cases = oracle.cases()[0]
         storage = observer.CaseBytes(cases)
