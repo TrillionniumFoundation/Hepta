@@ -8,6 +8,10 @@ import gc
 import gzip
 from hashlib import sha256
 import json
+import os
+import signal
+import subprocess
+import time
 from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
@@ -352,6 +356,199 @@ class CaseTerminalTests(unittest.TestCase):
         self.assertEqual(ast.dump(budget(old_child), include_attributes=False),
                          ast.dump(budget(new_child), include_attributes=False))
 
+
+
+class CaseByteStorageTests(unittest.TestCase):
+    def test_all_original_case_bytes_order_and_slices_are_exact(self):
+        cases = oracle.cases()[0]
+        storage = observer.CaseBytes(cases)
+        self.assertEqual(len(storage), 232)
+        self.assertEqual(oracle.canonical(list(storage)), oracle.canonical(cases))
+        self.assertEqual(storage[:], cases)
+        self.assertEqual(storage[-1], cases[-1])
+        self.assertEqual(storage[::-3], cases[::-3])
+        self.assertEqual([row["id"] for row in storage], [row["id"] for row in cases])
+
+    def test_mutation_of_a_decoded_case_does_not_change_later_views(self):
+        cases = oracle.cases()[0]
+        original = oracle.canonical(cases)
+        storage = observer.CaseBytes(cases)
+        decoded = storage[0]
+        decoded["id"] = "changed-private-copy"
+        decoded["added"] = [{"mutable": True}]
+        cases[1]["id"] = "changed-original-input-object"
+        self.assertEqual(oracle.canonical(list(storage)), original)
+        self.assertIsNot(storage[0], storage[0])
+        with self.assertRaises(IndexError):
+            storage[len(storage)]
+        with self.assertRaises(TypeError):
+            storage[0] = decoded
+
+    def test_non_json_object_lists_do_not_create_a_case_store(self):
+        for value in (None, (), {}, b"[]", [None], [1]):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                observer.CaseBytes(value)
+        class Foreign(dict):
+            pass
+        with self.assertRaises(ValueError):
+            observer.CaseBytes([Foreign(id="not-an-admitted-json-object")])
+
+    def test_observer_full_predecessor_and_full_collection_body_are_preserved(self):
+        raw = (ROOT / "tests/hia_service_bootstrap_observer.py").read_text()
+        start = raw.index("class CaseBytes(tuple):\n")
+        end = raw.index("class VMEntry:\n", start)
+        prior = raw[:start] + raw[end:]
+        insertion = "    cases = CaseBytes(cases)\n    del input_value\n"
+        self.assertEqual(prior.count(insertion), 1)
+        prior = prior.replace(insertion, "")
+        self.assertEqual(sha256(prior.encode()).hexdigest(),
+                         "659fb6e0266d19a60bb03417a47869e8a17e3621daa8dcbc41c79fe74cf66b65")
+        # The complete predecessor comparison also retains finish(), with its
+        # one full gc.collect(), unchanged; it does not replace a generation.
+
+
+@unittest.skipUnless(sys.platform.startswith("linux"), "actual Linux pidfd/subreaper controls")
+class OwnedChildTreeTests(unittest.TestCase):
+    def _command(self, root, mode, *, clear_child_environment=False):
+        grandchild = (
+            "import os,json,time,sys; from pathlib import Path; "
+            "Path(sys.argv[1]).write_text(json.dumps({'pid':os.getpid(),"
+            "'pgid':os.getpgrp(),'sid':os.getsid(0)})); time.sleep(60)")
+        program = (
+            "import os,json,time,sys,subprocess; from pathlib import Path\n"
+            "root=Path(sys.argv[1]); mode=sys.argv[2]\n"
+            "child=subprocess.Popen([sys.executable,'-I','-B','-c',"
+            + repr(grandchild) + ",str(root/'grandchild.json')],start_new_session=True,"
+            + ("env={}" if clear_child_environment else "env=os.environ.copy()") + ")\n"
+            "limit=time.monotonic()+2\n"
+            "while not (root/'grandchild.json').exists():\n"
+            " if time.monotonic()>=limit: raise RuntimeError('child not ready')\n"
+            " time.sleep(.002)\n"
+            "(root/'parent.json').write_text(json.dumps({'pid':os.getpid(),'pgid':os.getpgrp()}))\n"
+            "if mode=='exit':\n"
+            " (root/'run').mkdir(); (root/'run/report.json').write_text("
+            "json.dumps({'pid':os.getpid(),'pgid':os.getpgrp()}))\n"
+            "else: time.sleep(60)\n")
+        return [sys.executable, "-I", "-B", "-c", program, str(root), mode]
+
+    def _read(self, root, name):
+        return json.loads((root / name).read_bytes())
+
+    def _assert_complete(self, root):
+        result = self._read(root, "run.result.json")
+        terminal = self._read(root, "run.tree-terminal.json")
+        parent = self._read(root, "parent.json")
+        child = self._read(root, "grandchild.json")
+        self.assertNotEqual(parent["pgid"], child["pgid"])
+        self.assertEqual(child["pid"], child["pgid"])
+        self.assertEqual(child["pid"], child["sid"])
+        self.assertTrue(terminal["all_captured_reaped"])
+        self.assertEqual(terminal["unattributed_children"], [])
+        self.assertIn(child["pid"], [row["pid"] for row in terminal["descendants_captured"]])
+        self.assertIn(str(child["pid"]), terminal["descendants_reaped"])
+        self.assertFalse((Path("/proc") / str(child["pid"])).exists())
+        self.assertFalse((Path("/proc") / str(parent["pid"])).exists())
+        self.assertEqual(result["cleanup"]["after"], [])
+        self.assertEqual(result["cleanup_seconds"], 3)
+        self.assertEqual(terminal["restored_subreaper"],
+                         self._read(root, "run.tree-start.json")["previous_subreaper"])
+        return result
+
+    def test_timeout_cleans_actual_independent_session_and_reaps_it(self):
+        with TemporaryDirectory(prefix="hia-bootstrap-owned-timeout-") as directory:
+            root = Path(directory)
+            with self.assertRaisesRegex(RuntimeError, "complete owned bootstrap child failed"):
+                support.run_owned_tree(root, "run", self._command(root, "block"), seconds=1)
+            result = self._assert_complete(root)
+            self.assertIs(result["timeout"], True)
+            self.assertEqual(result["returncode"], -signal.SIGKILL)
+            self.assertLess(result["elapsed_seconds"], 4)
+
+    def test_natural_parent_exit_still_cleans_actual_session_descendant(self):
+        with TemporaryDirectory(prefix="hia-bootstrap-owned-natural-") as directory:
+            root = Path(directory)
+            result, report, raw = support.run_owned_tree(
+                root, "run", self._command(root, "exit"), seconds=3)
+            self._assert_complete(root)
+            self.assertEqual(result["returncode"], 0)
+            self.assertIs(result["timeout"], False)
+
+    def test_existing_unrelated_process_is_not_signaled(self):
+        unrelated = subprocess.Popen([sys.executable, "-I", "-B", "-c",
+                                      "import time; time.sleep(60)"],
+                                     start_new_session=True)
+        try:
+            with TemporaryDirectory(prefix="hia-bootstrap-owned-unrelated-") as directory:
+                root = Path(directory)
+                support.run_owned_tree(root, "run", self._command(root, "exit"), seconds=3)
+                self._assert_complete(root)
+                self.assertIsNone(unrelated.poll())
+                captured = self._read(root, "run.tree-terminal.json")["descendants_captured"]
+                self.assertNotIn(unrelated.pid, [row["pid"] for row in captured])
+        finally:
+            unrelated.kill()
+            unrelated.wait(timeout=3)
+
+    def test_supervisor_exception_keeps_descendant_cleanup_and_original_budget(self):
+        with TemporaryDirectory(prefix="hia-bootstrap-owned-interrupt-") as directory:
+            root = Path(directory)
+            old = signal.getsignal(signal.SIGUSR1)
+            def interrupt(signum, frame):
+                raise RuntimeError("actual controller interruption")
+            signal.signal(signal.SIGUSR1, interrupt)
+            sent = []
+            def notify_ready():
+                limit = time.monotonic() + 2
+                while not (root / "parent.json").exists() and time.monotonic() < limit:
+                    time.sleep(.002)
+                if (root / "parent.json").exists():
+                    sent.append(True)
+                    os.kill(os.getpid(), signal.SIGUSR1)
+            notifier = threading.Thread(target=notify_ready)
+            notifier.start()
+            try:
+                with self.assertRaisesRegex(RuntimeError, "complete owned bootstrap child failed"):
+                    support.run_owned_tree(root, "run", self._command(root, "block"), seconds=3)
+                result = self._assert_complete(root)
+                self.assertEqual(result["supervisor_error"]["type"], "RuntimeError")
+                self.assertEqual(result["supervisor_error"]["text"], "actual controller interruption")
+                self.assertIs(result["timeout"], False)
+            finally:
+                notifier.join(timeout=3)
+                signal.signal(signal.SIGUSR1, old)
+            self.assertEqual(sent, [True])
+            self.assertFalse(notifier.is_alive())
+
+    def test_unattributed_adopted_child_is_refused_without_signaling_it(self):
+        with TemporaryDirectory(prefix="hia-bootstrap-owned-unattributed-") as directory:
+            root = Path(directory)
+            try:
+                with self.assertRaisesRegex(RuntimeError, "complete owned bootstrap child failed"):
+                    support.run_owned_tree(root, "run",
+                        self._command(root, "exit", clear_child_environment=True), seconds=3)
+                result = self._read(root, "run.result.json")
+                terminal = self._read(root, "run.tree-terminal.json")
+                child = self._read(root, "grandchild.json")
+                self.assertIn("no verified owned-tree identity", result["cleanup_error"]["text"])
+                self.assertFalse(terminal["all_captured_reaped"])
+                self.assertIn(child["pid"], [row["pid"] for row in terminal["unattributed_children"]])
+                self.assertTrue((Path("/proc") / str(child["pid"])).exists())
+            finally:
+                # This test created the clean-environment child and retained its
+                # explicit PID. The controller correctly did not claim it.
+                child_path = root / "grandchild.json"
+                if child_path.exists():
+                    pid = self._read(root, "grandchild.json")["pid"]
+                    try:
+                        descriptor = os.pidfd_open(pid)
+                    except ProcessLookupError:
+                        descriptor = None
+                    if descriptor is not None:
+                        try:
+                            signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+                            os.waitpid(pid, 0)
+                        finally:
+                            os.close(descriptor)
 
 if __name__ == "__main__":
     unittest.main()
