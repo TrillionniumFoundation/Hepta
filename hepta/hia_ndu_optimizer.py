@@ -1,4 +1,4 @@
-"""Finite, proof-gated proposals ranked by the original native NDU evaluator.
+"""Finite, proof-gated proposals ranked by the source-owned HIA NDU evaluator.
 
 Measurements are explicit trusted-host observations, not safety certificates.
 Every proposal is reverified and compared with the incumbent by the independent
@@ -170,36 +170,19 @@ def _seal_bridge_image(raw):
 
 
 def _bridge_identity(bridge):
+    from .hia_ndu_evaluator_native import admit_ndu_bridge, default_ndu_bridge
+    if bridge is None:
+        bridge = default_ndu_bridge()
     if type(bridge) is not dict or set(bridge) != {"binary", "build_receipt"}:
         _reject("bridge requires binary and build_receipt paths")
     binary = Path(bridge["binary"]).resolve()
     receipt_path = Path(bridge["build_receipt"]).resolve()
     receipt_bytes = _read_file(receipt_path, 4 * 1024 * 1024)
     receipt = _json(receipt_bytes)
-    locked = _json((ROOT / "rust/hia-ndu-bridge/upstream.json").read_bytes())
-    expected = {"schema": "hepta.hia.ndu-build.v1", "upstream": locked,
-                "original_rust_sources_unchanged": True,
-                "all_original_non_manifest_inputs_unchanged": True,
-                "build_inputs_unchanged": True, "locked_dependencies": True,
-                "isolated_production_manifests": True, "production_activation": False}
-    if type(receipt) is not dict or any(receipt.get(k) != v for k, v in expected.items()):
-        _reject("bridge build receipt has wrong source, scope or build gates")
-    adapter = ROOT / "rust/hia-ndu-bridge"
-    inputs = {str(p.relative_to(adapter)): sha256(p.read_bytes()).hexdigest()
-              for p in sorted(adapter.rglob("*")) if p.is_file()}
-    if (receipt.get("adapter_files") != inputs
-            or receipt.get("cargo_lock_sha256") != inputs.get("Cargo.lock")
-            or receipt.get("builder_sha256") != sha256((ROOT / "tools/build_hia_ndu_bridge.py").read_bytes()).hexdigest()):
-        _reject("bridge adapter, lock or builder differs from the recorded build")
-    data = _read_file(binary, 128 * 1024 * 1024)
-    binary_sha = sha256(data).hexdigest()
-    if binary_sha != receipt.get("binary_sha256"):
-        _reject("bridge executable differs from the recorded build")
-    return _VerifiedBridgeImage(binary, data), {
-        "upstream_commit": locked["commit"], "binary_sha256": binary_sha,
-        "build_receipt_sha256": sha256(receipt_bytes).hexdigest(),
-        "build_inputs_sha256": _digest(receipt.get("build_inputs")),
-        "source_attestation": "trusted_local_build_receipt"}
+    image, identity = admit_ndu_bridge(binary, receipt_bytes, receipt)
+    if _read_file(receipt_path, 4 * 1024 * 1024) != receipt_bytes:
+        _reject("native NDU build receipt changed during identity admission")
+    return image, identity
 
 
 def _native_rank(bridge, request, *, timeout_s, observer=None):
@@ -284,8 +267,9 @@ def _validate_native_rank_response(request, data, stdout, identity):
     and explicitly prepared transports must establish those facts themselves.
     """
     response = _json(stdout)
-    expected = {"schema": "hepta.hia.ndu-response.v1", "upstream_commit": identity["upstream_commit"],
-                "entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+    expected = {"schema": "hepta.hia.ndu-native-response.v1", "upstream_commit": identity["upstream_commit"],
+                "entry_point": "hepta.hia.ndu_evaluator.v1",
+                "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
                 "objective_sha256": request["objective_sha256"], "generation": request["generation"],
                 "request_sha256": sha256(data).hexdigest(), "authority": "ADVISORY_ONLY",
                 "proves_program_safety": False, "global_optimality_established": False}
@@ -319,7 +303,7 @@ def _fresh_proof(before, after, function, timeout_ms):
     return proved, proof
 
 
-def rank_candidates(baseline, candidates, observations, *, function, bridge, objective,
+def rank_candidates(baseline, candidates, observations, *, function, bridge=None, objective,
                     generation=1, timeout_ms=2000, bridge_timeout_s=10.0):
     """Return a fresh, bounded decision; never execute or publish a candidate.
 

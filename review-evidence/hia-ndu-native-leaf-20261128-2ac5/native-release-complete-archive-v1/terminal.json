@@ -1,0 +1,68 @@
+{
+  "started": 1795831855.031158,
+  "passed": true,
+  "complete_readback": true,
+  "remote": {
+    "archive": "/home/qq/hia-ndu-current-native-20261128-2ac5/native-release-complete-v1.tar.gz",
+    "manifest": "/home/qq/hia-ndu-current-native-20261128-2ac5/native-release-complete-v1.manifest.json",
+    "archive_bytes": 22372760,
+    "archive_sha256": "4f6114526ec4ba5a2813858bfeae90529f931d92f999b3e5d7682507fbbbdd01",
+    "manifest_sha256": "3e114f3188521989cbeea6da62753f61dcc233257318231893d55811db0bf075",
+    "entries": 2112,
+    "files": 1814,
+    "raw_bytes": 112567851,
+    "source_snapshots": [
+      "/home/qq/hia-ndu-current-native-20261128-2ac5/release-source-v1",
+      "/home/qq/hia-ndu-current-native-20261128-2ac5/release-source-v2",
+      "/home/qq/hia-ndu-current-native-20261128-2ac5/release-source-v3"
+    ]
+  },
+  "terminals": {
+    "qualification/native-release-component-v1/terminal.json": {
+      "started": 1795831149.3354177,
+      "passed": false,
+      "scope": "DEVELOPMENT_COMPONENT_NATIVE_CONSTRUCTION",
+      "matching_cold": false,
+      "exception": "Traceback (most recent call last):\n  File \"/home/qq/hia-ndu-current-native-20261128-2ac5/native-release-driver-v1.py\", line 56, in <module>\n    builds=NativeReleaseSources(seed,compile_sources,capture_sources,call)\n  File \"/home/qq/hia-ndu-current-native-20261128-2ac5/release-source-v1/tools/build_hia_native_store_release.py\", line 739, in __init__\n    group, _, _ = compile_sources(_kit_sources('source_release_kit.hepta', 'source_build_packer.hepta'))\n                  ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-ndu-current-native-20261128-2ac5/native-release-driver-v1.py\", line 45, in compile_sources\n    captured=capture_sources(named)\n  File \"/home/qq/hia-ndu-current-native-20261128-2ac5/native-release-driver-v1.py\", line 43, in capture_sources\n    return capture_root_sources(capture,S,normalized,pins,Q)\n  File \"/home/qq/hia-ndu-current-native-20261128-2ac5/release-source-v1/tools/build_hia_source_capture.py\", line 105, in capture_root_sources\n    raise ValueError(\"native raw capture has no exact admitted digest: \" + relative)\nValueError: native raw capture has no exact admitted digest: examples/hia_bootstrap/source_release_kit.hepta\n",
+      "source_unchanged": true,
+      "finished": 1795831150.8655922
+    },
+    "qualification/native-release-component-v2/terminal.json": {
+      "started": 1795831275.837405,
+      "passed": false,
+      "scope": "DEVELOPMENT_COMPONENT_NATIVE_CONSTRUCTION",
+      "matching_cold": false,
+      "exception": "Traceback (most recent call last):\n  File \"/home/qq/hia-ndu-current-native-20261128-2ac5/native-release-driver-v2.py\", line 117, in <module>\n    control_report=controls_module.run_controls(R/'qualification/native-leaf-v2/default-package',Q/'strict-default-controls')\n  File \"/home/qq/hia-ndu-current-native-20261128-2ac5/release-source-v2/tests/hia_ndu_native_controls.py\", line 136, in run_controls\n    raise ValueError(\"native NDU control failed: \" + case)\nValueError: native NDU control failed: binary-byte\n",
+      "source_unchanged": true,
+      "finished": 1795831286.1658823
+    },
+    "qualification/native-release-component-v3/terminal.json": {
+      "started": 1795831342.9315886,
+      "passed": true,
+      "scope": "DEVELOPMENT_COMPONENT_NATIVE_CONSTRUCTION",
+      "matching_cold": false,
+      "default_resource_refusals": 24,
+      "ordinary_constructions": 2,
+      "actual_native_calls": 12,
+      "native_captures": 82,
+      "core_raw_paths": {
+        "compare.json": "hepta/hia_core_compare_abi.json",
+        "integer.json": "hepta/hia_core_integer_abi.json",
+        "unpack.json": "hepta/hia_core_unpack_abi.json",
+        "custody.hiadat": "examples/hia_bootstrap/core_host_custody.hiadat"
+      },
+      "core_raw_capture_passed": true,
+      "raw_negative_controls": 9,
+      "policy_native_refusals": 10,
+      "published": {
+        "_hia_ndu_evaluator.elf": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+        "_hia_ndu_evaluator_build.json": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2"
+      },
+      "dag_sha256": "ed06879bff08c880ae9a1d735c98e75c2254cbb6d32aa0a16689076e54c63e13",
+      "installed_whole_rebuild_qualified_here": false,
+      "source_unchanged": true,
+      "finished": 1795831353.080394
+    }
+  },
+  "finished": 1795831875.15637
+}
