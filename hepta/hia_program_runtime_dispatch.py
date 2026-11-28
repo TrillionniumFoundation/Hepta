@@ -160,7 +160,37 @@ def _operation_parts():
     return tree, native, package, tree.body[:position], tree.body[position + 1:], branches, fallback
 
 
-def _handler(parts, ordinal, branch):
+def _comparison_body(branch, opcode):
+    """Specialize only exact int operands; retain the complete old fallback."""
+    if (len(branch) != 2 or ast.unparse(branch[0]) != "a, b = args"
+            or not isinstance(branch[1], ast.Assign)
+            or ast.unparse(branch[1].targets[0]) != "result"):
+        raise ValueError("the fixed comparison body changed")
+    value = branch[1].value
+    if (not isinstance(value, ast.List) or len(value.elts) != 1
+            or not isinstance(value.elts[0], ast.Subscript)
+            or ast.unparse(value.elts[0].slice) != "op"
+            or not isinstance(value.elts[0].value, ast.Dict)):
+        raise ValueError("the fixed comparison lookup changed")
+    table = value.elts[0].value
+    names = tuple(ast.literal_eval(key) for key in table.keys)
+    if names != ("compare.eq", "compare.ne", "compare.lt", "compare.le",
+                 "compare.gt", "compare.ge") or opcode not in names:
+        raise ValueError("unknown fixed comparison opcode")
+    selected = copy.deepcopy(branch[1])
+    selected.value = ast.List(elts=[copy.deepcopy(table.values[names.index(opcode)])],
+                              ctx=ast.Load())
+    guarded = ast.If(
+        test=ast.parse("_builtin_type(a) is _builtin_int and "
+                       "_builtin_type(b) is _builtin_int", mode="eval").body,
+        body=[selected], orelse=[copy.deepcopy(branch[1])])
+    body = [copy.deepcopy(branch[0]), guarded]
+    if _ast_bytes([body[0]] + guarded.orelse) != _ast_bytes(branch):
+        raise ValueError("the original comparison fallback changed")
+    return body
+
+
+def _handler(parts, ordinal, branch, opcode=None):
     tree, native, package, prefix, tail, unused, fallback = parts
     function = copy.deepcopy(tree)
     function.name = "_operation_metadata_" + str(ordinal)
@@ -192,8 +222,13 @@ def _handler(parts, ordinal, branch):
                  "_expected_loads", "_expected_stores"):
         function.args.args.append(ast.arg(arg=name))
         function.args.defaults.append(ast.Constant(value=None))
+    selected_body = copy.deepcopy(branch) if opcode is None else _comparison_body(branch, opcode)
+    if opcode is not None:
+        for name in ("_builtin_type", "_builtin_int"):
+            function.args.args.append(ast.arg(arg=name))
+            function.args.defaults.append(ast.Constant(value=None))
     first, second = copy.deepcopy(native), copy.deepcopy(package)
-    second.orelse = copy.deepcopy(branch)
+    second.orelse = selected_body
     first.orelse = [second]
     function.body = preamble + kept + [first] + copy.deepcopy(tail)
     relation = {
@@ -201,7 +236,14 @@ def _handler(parts, ordinal, branch):
         "body_sha256": sha256(_ast_bytes(branch)).hexdigest(),
         "tail_sha256": sha256(_ast_bytes(tail)).hexdigest(),
     }
-    if (_ast_bytes(second.orelse) != _ast_bytes(branch)
+    if opcode is not None:
+        relation.update(
+            specialization="exact-int-comparison.v1", opcode=opcode,
+            original_fallback_sha256=sha256(_ast_bytes(
+                [selected_body[0]] + selected_body[1].orelse)).hexdigest(),
+            selected_body_sha256=sha256(_ast_bytes(selected_body)).hexdigest())
+    reviewed_body = branch if opcode is None else _comparison_body(branch, opcode)
+    if (_ast_bytes(second.orelse) != _ast_bytes(reviewed_body)
             or _ast_bytes(function.body[-len(tail):]) != _ast_bytes(tail)):
         raise ValueError("operation body or result validation was changed")
     local = {}
@@ -210,6 +252,8 @@ def _handler(parts, ordinal, branch):
          _runtime.__dict__, local)
     actual = local[function.name]
     actual.__defaults__ = (_METHODS[1], _CODES[1], MethodType, _LOADS, _STORES)
+    if opcode is not None:
+        actual.__defaults__ += (type, int)
     return actual, MappingProxyType(relation)
 
 
@@ -297,6 +341,8 @@ class RuntimeDispatch:
         }
         parts = _operation_parts()
         branches, fallback = parts[-2:]
+        comparison_branch = next(index for index, (test, body) in enumerate(branches)
+                                 if ast.unparse(test) == "op.startswith('compare.')")
         predicates = tuple(compile(ast.Expression(copy.deepcopy(test)),
                                    "<static-opcode-metadata>", "eval")
                            for test, body in branches)
@@ -317,13 +363,15 @@ class RuntimeDispatch:
                             selected = ordinal, body
                             break
                     ordinal, body = selected
-                    if ordinal not in handlers:
-                        handlers[ordinal], relation = _handler(parts, ordinal, body)
+                    comparison = op if ordinal == comparison_branch else None
+                    handler_key = ordinal, comparison
+                    if handler_key not in handlers:
+                        handlers[handler_key], relation = _handler(parts, ordinal, body, comparison)
                         relations.append(relation)
                     metadata = (instruction, op, attrs, instruction["args"], outputs,
                                 outputs[0]["type"] if outputs else None,
                                 "cast." + attrs["mode"] if op == "int.cast" else op)
-                    prepared.append((handlers[ordinal], metadata))
+                    prepared.append((handlers[handler_key], metadata))
                     instructions += 1
                 records[block["id"]] = tuple(prepared)
             functions[function["name"]] = blocks, MappingProxyType(records)

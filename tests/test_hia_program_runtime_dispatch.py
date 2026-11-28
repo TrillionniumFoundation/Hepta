@@ -276,5 +276,106 @@ class RuntimeDispatchAdmissionTests(unittest.TestCase):
         self.assertIsNotNone(dispatch.prepare_runtime_dispatch(self.program))
 
 
+class RuntimeDispatchComparisonTests(unittest.TestCase):
+    def prepare(self, opcode):
+        parameters = [("a", "i32"), ("b", "i32")]
+        document = m(f("compare", parameters, ["bool"], [], [
+            b("entry", parameters, [i(opcode, ["a", "b"], [("value", "bool")])],
+              ret("value"))]))
+        program = metadata.prepare_runtime_program(verify_program(document))
+        plan = dispatch.prepare_runtime_dispatch(program)
+        self.assertIsNotNone(plan)
+        handler, prepared = plan.functions["compare"][1]["entry"][0]
+        return program, plan, handler, prepared
+
+    def test_all_six_exact_integer_comparisons_keep_results_and_machine_ticks(self):
+        for suffix in ("eq", "ne", "lt", "le", "gt", "ge"):
+            program, plan, handler, prepared = self.prepare("compare." + suffix)
+            relation = dict(plan.relations[0])
+            self.assertEqual(relation["specialization"], "exact-int-comparison.v1")
+            self.assertEqual(relation["original_fallback_sha256"], relation["body_sha256"])
+            for arguments in ((0, 0), (-2, 3), (3, -2), (-2147483648, 2147483647)):
+                with self.subTest(opcode=suffix, arguments=arguments):
+                    old = runtime._Machine(program, *LIMITS)
+                    new = plan.new_machine(program, *LIMITS)
+                    expected = old.invoke(old.functions["compare"], list(arguments))
+                    actual = new.invoke(new.functions["compare"], list(arguments))
+                    self.assertEqual(actual, expected)
+                    self.assertEqual(
+                        {k: v for k, v in vars(new).items() if type(v) in (int, bool, str, float, type(None))},
+                        {k: v for k, v in vars(old).items() if type(v) in (int, bool, str, float, type(None))})
+
+    def test_integer_subclass_retains_all_six_original_comparison_effects(self):
+        events = []
+        class Number(int):
+            def __eq__(self, other): events.append("eq"); return int(self) == int(other)
+            def __ne__(self, other): events.append("ne"); return int(self) != int(other)
+            def __lt__(self, other): events.append("lt"); return int(self) < int(other)
+            def __le__(self, other): events.append("le"); return int(self) <= int(other)
+            def __gt__(self, other): events.append("gt"); return int(self) > int(other)
+            def __ge__(self, other): events.append("ge"); return int(self) >= int(other)
+        for suffix in ("eq", "ne", "lt", "le", "gt", "ge"):
+            program, plan, handler, prepared = self.prepare("compare." + suffix)
+            machine = runtime._Machine(program, *LIMITS)
+            old_env, new_env = {"a": Number(2), "b": 3}, {"a": Number(2), "b": 3}
+            events.clear()
+            expected = machine.operation(prepared[0], old_env, 0)
+            old_events = list(events)
+            events.clear()
+            actual = handler(machine, prepared, new_env, 0)
+            self.assertEqual(actual, expected)
+            self.assertEqual(events, old_events)
+            self.assertEqual(events, ["eq", "ne", "lt", "le", "gt", "ge"])
+            self.assertIs(new_env["value"], old_env["value"])
+
+    def test_nonselected_comparison_exception_identity_is_not_removed(self):
+        error = RuntimeError("original unselected rich comparison")
+        events = []
+        class Number(int):
+            def __eq__(self, other): events.append("eq"); return True
+            def __ne__(self, other): events.append("ne"); return False
+            def __lt__(self, other): events.append("lt"); raise error
+        program, plan, handler, prepared = self.prepare("compare.eq")
+        machine = runtime._Machine(program, *LIMITS)
+        for invoke in (lambda env: machine.operation(prepared[0], env, 0),
+                       lambda env: handler(machine, prepared, env, 0)):
+            events.clear()
+            with self.assertRaises(RuntimeError) as caught:
+                invoke({"a": Number(2), "b": 3})
+            self.assertIs(caught.exception, error)
+            self.assertEqual(events, ["eq", "ne", "lt"])
+
+    def test_live_native_and_package_scalar_prefixes_still_win(self):
+        program, plan, handler, prepared = self.prepare("compare.lt")
+        calls = []
+        class Scalar:
+            def operation(self, opcode, typ, args):
+                calls.append(("native", opcode, typ, args))
+                return False
+            def package_integer_operation(self, opcode, typ, args):
+                calls.append(("package", opcode, typ, args))
+                return False
+        machine = runtime._Machine(program, *LIMITS)
+        machine.scalar_reference = Scalar()
+        env = {"a": 2, "b": 3}
+        handler(machine, prepared, env, 0)
+        self.assertIs(env["value"], False)
+        machine.scalar_reference = None
+        machine.package_scalar_reference = lambda: Scalar()
+        env = {"a": 2, "b": 3}
+        handler(machine, prepared, env, 0)
+        self.assertIs(env["value"], False)
+        self.assertEqual(calls, [
+            ("native", "compare.lt", "bool", [2, 3]),
+            ("package", "compare.lt", "bool", [2, 3])])
+
+    def test_unknown_opcode_cannot_acquire_a_comparison_specialization(self):
+        parts = dispatch._operation_parts()
+        ordinal, (_, body) = next((index, item) for index, item in enumerate(parts[-2])
+                                  if ast.unparse(item[0]) == "op.startswith('compare.')")
+        with self.assertRaises(ValueError):
+            dispatch._handler(parts, ordinal, body, "compare.unknown")
+
+
 if __name__ == "__main__":
     unittest.main()
