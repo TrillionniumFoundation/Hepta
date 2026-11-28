@@ -11,6 +11,7 @@ from tools.generate_hia_cold_cli import source as cli_source
 from tools.generate_hia_cold_master_common import helpers
 from tools.generate_hia_cold_document import bulk_document
 from tools.hia_cold_byte_loops import accelerate
+from tools.hia_cold_guarded_read import guarded_u64_read
 from tools.generate_hia_native_filter import LINK_SOURCE
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -1602,7 +1603,7 @@ def source():
     count=(len(stores)+63)//64
     text+='\ndef constants(w:mutbuf) -> u64:\n'+''.join(f'    constants_{i}(w)\n' for i in range(count))+'    return 0\n'
     for i in range(count):text+=f'\ndef constants_{i}(w:mutbuf) -> u64:\n'+'\n'.join(stores[i*64:(i+1)*64])+'\n    return 0\n'
-    return accelerate(text,bulk=True)
+    return guarded_u64_read(accelerate(text,bulk=True))
 
 if __name__=='__main__':
     for name,text in [('cold_build_entry',source()),('cold_build_entry_packer',packer())]:
