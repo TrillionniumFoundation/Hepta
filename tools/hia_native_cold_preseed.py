@@ -228,7 +228,7 @@ class Builder:
         self.save()
         self.publish("tmp-build-entry-policy", self.flat("cold_build_entry"), executable=False)
         self.publish("tmp-build-entry-packer", self.tool("cold_build_entry_packer").read_bytes())
-        self.publish("tmp-source-bootstrap-entry-policy", self.flat("cold_source_bootstrap_entry", "cold-bulk"), executable=False)
+        self.publish("tmp-source-bootstrap-entry-policy", self.flat("cold_source_bootstrap_entry", "cold-bulk-word"), executable=False)
         self.publish("tmp-source-bootstrap-entry-packer", self.tool("cold_source_bootstrap_entry_packer", "v1").read_bytes())
         for name, expected in self.record["sources"].items():
             assert pin((self.source / name).read_bytes()) == expected, name

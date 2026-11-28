@@ -2,7 +2,8 @@
 from pathlib import Path
 from hashlib import sha256
 from hepta.hia_agent_assembly import render_assembly
-from tools.generate_hia_cold_allocator_witness import document
+from tools.generate_hia_cold_allocator_witness import document as packer_document
+from tools.hia_cold_guarded_write import document
 from tools.generate_hia_cold_master_common import helpers,packer
 from tools.hia_cold_guarded_read import guarded_u64_read
 ROOT=Path(__file__).resolve().parents[1]
@@ -922,5 +923,5 @@ def source():
 
 if __name__=='__main__':
     for name,text in [('cold_master',source()),('cold_master_packer',packer(b'HIAQMP01'))]:
-        doc=document(text);raw=render_assembly(doc).encode();path=ROOT/'examples/hia_bootstrap'/(name+'.hepta');path.write_bytes(raw)
+        doc=document(text) if name == 'cold_master' else packer_document(text);raw=render_assembly(doc).encode();path=ROOT/'examples/hia_bootstrap'/(name+'.hepta');path.write_bytes(raw)
         print(name,len(raw),len(doc['functions']),sum(len(f['blocks']) for f in doc['functions']),sum(len(b['ops']) for f in doc['functions'] for b in f['blocks']),sha256(raw).hexdigest(),flush=True)

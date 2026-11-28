@@ -419,7 +419,7 @@ def stage_orchestration(build, entry=True):
     if entry:
         s.publish(s.flat("cold_build_entry"), "tmp-build-entry-policy", executable=False)
         s.publish(s.tool("cold_build_entry_packer"), "tmp-build-entry-packer")
-        s.publish(s.flat("cold_source_bootstrap_entry", "cold-bulk"),
+        s.publish(s.flat("cold_source_bootstrap_entry", "cold-bulk-word"),
                   "tmp-source-bootstrap-entry-policy", executable=False)
         s.publish(s.tool("cold_source_bootstrap_entry_packer", "v1"),
                   "tmp-source-bootstrap-entry-packer")
