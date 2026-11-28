@@ -25,7 +25,11 @@ BASE_GROUPS = {
     'controller': (11,), 'runtime': (12,), 'future': (13,),
     'generation_lease': (14,),
 }
-INITIAL_PRODUCTS = frozenset(('hia-source-build', 'hia-elf-link', 'selfhost.image.bin'))
+# These exact capabilities are supplied by the cold release request before any
+# registered DAG executes. release_owner.dag_import resolves runner and capture
+# from the existing cold base product table, before registered publications.
+INITIAL_PRODUCTS = frozenset(('hia-source-build', 'hia-elf-link', 'selfhost.image.bin',
+                              'hia-subprocess', 'hia-source-capture'))
 PREFIX = 'native-release-dag-'
 
 

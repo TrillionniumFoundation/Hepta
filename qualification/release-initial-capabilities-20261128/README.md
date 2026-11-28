@@ -1,0 +1,3 @@
+# Exact initial release capabilities
+
+The real Linux native-controller author refused the complete stage-20 graph because its development catalog did not recognize the existing runner and capture base products. The exact initial set now includes hia-subprocess and hia-source-capture. Unknown names still fail before publication. All previous catalog/controller methods are unchanged; all 21 source controls pass, including both new controls. Original failure streams and the complete source-control inputs/results are retained. The two complete real Linux author replays and final native cold/install gates remain pending; these source controls do not qualify the installed product.

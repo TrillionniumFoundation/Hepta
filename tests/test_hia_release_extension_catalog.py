@@ -66,5 +66,45 @@ class ReleaseExtensionCatalogControls(unittest.TestCase):
                 self.fail('wrong historical take accepted')
 
 
+
+class InitialReleaseCapabilityControls(unittest.TestCase):
+    def test_complete_worker_compat_uses_only_explicit_stage_zero_capabilities(self):
+        from tools.generate_hia_release_extension_catalog import INITIAL_PRODUCTS, imports
+        path = "examples/hia_bootstrap/release_stage_worker_compat.hiastd"
+        self.assertEqual(imports((ROOT / path).read_bytes()),
+                         ("selfhost.image.bin", "hia-source-build",
+                          "hia-subprocess", "hia-source-capture"))
+        self.assertEqual(INITIAL_PRODUCTS, frozenset((
+            "hia-source-build", "hia-elf-link", "selfhost.image.bin",
+            "hia-subprocess", "hia-source-capture")))
+        current, report = generated_table(ROOT)
+        number = report["extension_stages"]["worker_compat"]
+        rows = [row.split("\t") for row in current.decode("ascii").splitlines()
+                if row.startswith("need\t" + str(number) + "\t")]
+        self.assertEqual(rows, [["need", str(number), "0", name]
+                               for name in imports((ROOT / path).read_bytes())])
+        self.assertEqual(current, (ROOT / TABLE).read_bytes())
+
+    def test_similar_unknown_runner_and_capture_imports_are_rejected(self):
+        import tempfile
+        from tools.hia_native_release_dependencies import PROGRAMS, registered_dags
+        path = PROGRAMS + "release_stage_worker_compat.hiastd"
+        names = [TABLE, "tools/generate_hia_release_owner.py"]
+        names += [PROGRAMS + "release_stage_" + name + ".hiastd"
+                  for name in registered_dags(ROOT)]
+        original = (ROOT / path).read_bytes()
+        for product in (b"hia-subprocess", b"hia-source-capture"):
+            with self.subTest(product=product), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                for name in names:
+                    target = root / name
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes((ROOT / name).read_bytes())
+                self.assertEqual(original.count(product), 1)
+                (root / path).write_bytes(original.replace(product, product[:-1] + b"z", 1))
+                with self.assertRaisesRegex(ValueError, "product not yet published"):
+                    generated_table(root)
+                self.assertEqual((root / TABLE).read_bytes(), (ROOT / TABLE).read_bytes())
+
 if __name__ == '__main__':
     unittest.main()
