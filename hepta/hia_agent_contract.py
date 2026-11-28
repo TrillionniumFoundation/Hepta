@@ -30,6 +30,9 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/carrier_cell_policy.hepta',
+    'examples/hia_bootstrap/carrier_image_policy.hepta',
+    'examples/hia_bootstrap/release_stage_carrier_policies.hiastd',
     'docs/HIA_NATIVE_NDU_EVALUATOR_BUILD.json',
     'docs/HIA_NATIVE_NDU_EVALUATOR_QUALIFICATION.json',
     'docs/HIA_NATIVE_NDU_EVALUATOR_RECIPE.json',
