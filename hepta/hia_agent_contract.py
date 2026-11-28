@@ -30,6 +30,7 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/release_stage_worker_compat.hiastd',
     'examples/hia_bootstrap/carrier_cell_policy.hepta',
     'examples/hia_bootstrap/carrier_image_policy.hepta',
     'examples/hia_bootstrap/release_stage_carrier_policies.hiastd',

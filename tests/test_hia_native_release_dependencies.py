@@ -50,5 +50,36 @@ class NativeReleaseDependencyTests(unittest.TestCase):
             self.assertEqual(table.read_bytes(), first)
 
 
+
+class NativeMemberCaptureDependencyTests(unittest.TestCase):
+    def test_complete_compatibility_member_captures_have_exact_sources_and_products(self):
+        from tools.hia_native_release_dependencies import read_recipe
+        from tools.generate_hia_worker_compat_release import RECIPE, SOURCES, OUTPUTS
+        record = read_recipe((ROOT / RECIPE).read_bytes())
+        self.assertEqual(record['sources'], sorted(SOURCES))
+        self.assertEqual(record['publications'], list(OUTPUTS))
+        self.assertEqual(record['nodes'], 939)
+
+    def test_unknown_member_capture_tag_is_refused_at_each_complete_node(self):
+        import struct
+        from tools.hia_native_release_dependencies import read_recipe
+        from tools.generate_hia_worker_compat_release import RECIPE
+        original = (ROOT / RECIPE).read_bytes()
+        nodes, = struct.unpack_from('<Q', original, 8)
+        cursor, checked = 24, 0
+        for index in range(nodes):
+            op, identity, argc, size = struct.unpack_from('<4Q', original, cursor)
+            cursor += 32
+            if op == 1 and original[cursor:cursor + 8] == b'HIAMUL01':
+                changed = bytearray(original)
+                changed[cursor:cursor + 8] = b'HIAMUL02'
+                with self.subTest(node=index), self.assertRaisesRegex(
+                        ValueError, 'invalid native source capture operation'):
+                    read_recipe(bytes(changed))
+                checked += 1
+            cursor += argc * 8 + size
+        self.assertEqual(cursor, len(original))
+        self.assertEqual(checked, 4)
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,4 @@
-stage	19	111
+stage	20	116
 need	1	0	hia-source-build
 compile	1	proof	cnf.hepta	cnf.hepta
 compile	1	proof	core_admission.hepta	core_admission.hepta
@@ -831,3 +831,70 @@ output	19	carrier-image-policy.flat
 output	19	carrier-cell-policy.flat
 output	19	carrier-policies.hiadat
 framing	19	0	HIASTD01	source-bound-native-release-dag
+stage	20	native-release-dag-worker_compat
+need	20	0	selfhost.image.bin
+need	20	0	hia-source-build
+need	20	0	hia-subprocess
+need	20	0	hia-source-capture
+resource	20	examples/hia_bootstrap/release_stage_worker_compat.hiastd
+resource	20	examples/hia_bootstrap/selfhost.hepta
+resource	20	examples/hia_bootstrap/sha256_stream.hepta
+resource	20	examples/hia_bootstrap/source_build_packer.hepta
+resource	20	examples/hia_bootstrap/source_filter_member.hepta
+resource	20	examples/hia_bootstrap/source_release_kit.hepta
+resource	20	examples/hia_bootstrap/source_worker_manifest_compat_v1.hepta
+resource	20	examples/hia_bootstrap/source_worker_manifest_current.hepta
+resource	20	examples/hia_bootstrap/worker_install_v1_byte_wrapper.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_core_emitter.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_core_lowering.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_dag.hepta
+resource	20	examples/hia_bootstrap/worker_install_v1_entry.hepta
+resource	20	examples/hia_bootstrap/worker_install_v1_entry.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_entry_bind.hepta
+resource	20	examples/hia_bootstrap/worker_install_v1_entry_packer.hepta
+resource	20	examples/hia_bootstrap/worker_install_v1_evaluate_full.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_evaluate_intake.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_evaluate_replay.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_execution_observation.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_helpers.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_identity.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_machine_object.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_native.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_owner.hepta
+resource	20	examples/hia_bootstrap/worker_install_v1_owner_packer.hepta
+resource	20	examples/hia_bootstrap/worker_install_v1_profile.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_read.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_readonly.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v1_report.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_byte_wrapper.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_core_emitter.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_core_lowering.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_dag.hepta
+resource	20	examples/hia_bootstrap/worker_install_v2_entry.hepta
+resource	20	examples/hia_bootstrap/worker_install_v2_entry.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_entry_bind.hepta
+resource	20	examples/hia_bootstrap/worker_install_v2_entry_packer.hepta
+resource	20	examples/hia_bootstrap/worker_install_v2_evaluate_full.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_evaluate_intake.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_evaluate_replay.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_execution_observation.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_helpers.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_identity.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_machine_object.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_native.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_owner.hepta
+resource	20	examples/hia_bootstrap/worker_install_v2_owner_packer.hepta
+resource	20	examples/hia_bootstrap/worker_install_v2_profile.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_read.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_readonly.hiastd
+resource	20	examples/hia_bootstrap/worker_install_v2_report.hiastd
+resource	20	examples/hia_bootstrap/worker_manifest_compat_v1_tables.hiastd
+resource	20	examples/hia_bootstrap/worker_manifest_current_tables.hiastd
+resource	20	tools/hia_worker_install_entry_syscalls.S
+resource	20	tools/hia_worker_install_owner_syscalls.S
+output	20	hia-worker-install-owner-v1
+output	20	hia-worker-install-v1
+output	20	hia-worker-install-owner-v2
+output	20	hia-worker-install-v2
+output	20	worker-compat-publication.bin
+framing	20	0	HIASTD01	source-bound-native-release-dag

@@ -22,7 +22,7 @@ OWNER = 'tools/generate_hia_release_owner.py'
 TABLE = PROGRAMS + 'release_stage_sources.tsv'
 AUTHORITY = 'docs/HIA_NATIVE_SOURCE_AUTHORITY.json'
 COLD_FILES = 'docs/HIA_COLD_NATIVE_SOURCE_FILES.json'
-CAPTURE_TAGS = {int.from_bytes(x, 'little') for x in (b'HIANAM01', b'HIARAW01', b'HIAKOBJ1')}
+CAPTURE_TAGS = {int.from_bytes(x, 'little') for x in (b'HIANAM01', b'HIARAW01', b'HIAKOBJ1', b'HIAMUL01')}
 
 
 def registered_dags(root):

@@ -1013,6 +1013,9 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'examples/hia_bootstrap/release_stage_worker_compat.hiastd',
+    'tools/generate_hia_worker_compat_release.py',
+    'tools/qualify_hia_worker_compat_release.py',
     'hepta/hia_carrier_default.py',
     'tests/test_hia_carrier_default_install.py',
     'tools/install_hia_carrier_compat.py',
