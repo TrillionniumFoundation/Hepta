@@ -114,7 +114,15 @@ def main():
                     raise ValueError('original source test module changed during preparation: ' + name)
             result['original_test_modules'] = {n: history.pin(raw) for n, raw in raw_modules.items()}
             result['all_original_test_modules_byte_identical'] = True
-            argv = [str(args.python.resolve(strict=True)), '-B',
+            # Invoke the requested venv entrypoint. Resolving its symlink first
+            # selects the base interpreter and loses the original Z3 environment.
+            python_entry = args.python.absolute()
+            resolved_entry = python_entry.resolve(strict=True)
+            if not resolved_entry.is_file() or not os.access(python_entry, os.X_OK):
+                raise ValueError('original source gate interpreter is not executable')
+            result['python_entrypoint'] = {'invoked': str(python_entry),
+                                          'resolved_binary': str(resolved_entry)}
+            argv = [str(python_entry), '-B',
                     'tools/run_hia_unittest_gate.py', *SELECTORS]
             result['argv'] = argv
             save()
