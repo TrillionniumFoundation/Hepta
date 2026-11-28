@@ -3179,6 +3179,8 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/source_artifact_page_manifest.hepta',
     'examples/hia_bootstrap/artifact_page_manifest_tables.hiastd',
     'docs/HIA_ARTIFACT_PAGE_MANIFEST_RECORDS.json',
+    'tests/test_hia_artifact_page_service_boundary.py',
+    'tests/fixtures/hia_artifact_page_service_admission_v1.json',
 )
 
 

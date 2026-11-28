@@ -4151,6 +4151,14 @@ _SERVICE_BOOTSTRAP_IMPORT_PORTS = {
 
 def _service_bootstrap_dispatch___init__(self, state_root, *, artifact_roots=(), native_store=None,
                                          native_edit_query=None, native_candidate_import=None):
+    # Explicit Page admission precedes every Store construction, including
+    # the complete native bootstrap owner. Page effects still run only at read.
+    page_selector = _service_bootstrap_os.environ.get('HEPTA_HIA_ARTIFACT_PAGE_MANIFEST')
+    if page_selector is not None:
+        if 'HEPTA_HIA_SERVICE_READ_MANIFEST' in _service_bootstrap_os.environ:
+            raise ValueError('artifact page and complete service read require separate explicit selections')
+        from .hia_artifact_page_native import installed_artifact_page
+        installed_artifact_page(page_selector)
     selected = _service_bootstrap_os.environ.get('HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST')
     arguments = {'self': self, 'state_root': state_root, 'artifact_roots': artifact_roots}
     native_options = {'native_store': native_store, 'native_edit_query': native_edit_query,
