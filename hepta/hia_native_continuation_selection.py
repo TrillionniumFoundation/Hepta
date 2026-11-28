@@ -14,6 +14,7 @@ from .hia_machine_object_native import NativeMachineObject
 
 SCHEMA='hepta.hia.native-continuation.v1'
 INPROCESS_SCHEMA='hepta.hia.native-continuation-inprocess.v1'
+INPROCESS_SCHEMA_V2='hepta.hia.native-continuation-inprocess.v2'
 _RUNTIME=('hia_native_continuation.py','hia_native_continuation_selection.py','hia_native_continuation_inprocess.py','hia_native_helpers.py','hia_core_lowering_native.py')
 _OWNER_CACHE=[]
 
@@ -38,13 +39,30 @@ _FAMILIES={
 }
 
 
+# The Core v2 scheduler extends only this explicitly selected family. Every
+# original v1 resource remains pinned for the other four native owners.
+_CORE_V2_RESOURCES = (
+    'docs/HIA_CORE_CONTINUATION_ABI_V2.json',
+    'examples/hia_bootstrap/continuation_policy_v2.hepta',
+    'examples/hia_bootstrap/continuation_inprocess_packer_v2.hepta',
+)
+
+
+def resource_names(kind, *, core_v2=False):
+    from .hia_agent_contract import CONTINUATION_BUILD_FILES
+    if type(kind) is not str or kind not in _FAMILIES:
+        raise ValueError('native continuation family differs')
+    if type(core_v2) is not bool or (core_v2 and kind != 'core-lowering'):
+        raise ValueError('native Core continuation profile differs')
+    return CONTINUATION_BUILD_FILES + (_CORE_V2_RESOURCES if core_v2 else ())
+
+
 def installed_native_continuation(manifest_path,namespace,*,kind='execution-observation'):
     from .hia_native_helpers import check_native_scheduling_scope, pinned_scheduling
     captured = pinned_scheduling(manifest_path, kind, namespace)
     if captured is not None:
         return captured
     check_native_scheduling_scope()
-    from .hia_agent_contract import CONTINUATION_BUILD_FILES
     from importlib import import_module
     if type(kind) is not str or kind not in _FAMILIES:raise ValueError('native continuation family differs')
     module_name,factory=_FAMILIES[kind]
@@ -56,14 +74,15 @@ def installed_native_continuation(manifest_path,namespace,*,kind='execution-obse
     value=json.loads(raw,object_pairs_hook=_unique_manifest_pairs)
     fields={'schema','kind','policy_bundle','policy_bundle_sha256','compiler_sha256',
         'image_path','image_sha256','resource_sha256','runtime_sha256'}
-    if (type(value) is not dict or set(value)!=fields or value['schema'] not in (SCHEMA,INPROCESS_SCHEMA)
-            or value['kind']!=kind or (value['schema']==SCHEMA and kind!='execution-observation') or value['policy_bundle']!='policy/manifest.json'
-            or value['image_path']!=('continuation.image.bin' if value['schema']==INPROCESS_SCHEMA else 'continuation.native')):
+    if (type(value) is not dict or set(value)!=fields or value['schema'] not in (SCHEMA,INPROCESS_SCHEMA,INPROCESS_SCHEMA_V2)
+            or value['kind']!=kind or (value['schema']==SCHEMA and kind!='execution-observation')
+            or (value['schema']==INPROCESS_SCHEMA_V2 and kind!='core-lowering') or value['policy_bundle']!='policy/manifest.json'
+            or value['image_path']!=('continuation.image.bin' if value['schema'] in (INPROCESS_SCHEMA,INPROCESS_SCHEMA_V2) else 'continuation.native')):
         raise ValueError('native continuation bundle shape differs')
     def digest(v):return type(v) is str and len(v)==64 and all(c in '0123456789abcdef' for c in v)
     if any(not digest(value[k]) for k in ('policy_bundle_sha256','compiler_sha256','image_sha256')):
         raise ValueError('native continuation bundle identity differs')
-    resources={name:sha256(_source_resource_path(name).read_bytes()).hexdigest() for name in CONTINUATION_BUILD_FILES}
+    resources={name:sha256(_source_resource_path(name).read_bytes()).hexdigest() for name in resource_names(kind, core_v2=value['schema']==INPROCESS_SCHEMA_V2)}
     runtime={'hepta/'+name:sha256((Path(__file__).parent/name).read_bytes()).hexdigest() for name in _RUNTIME}
     if value['resource_sha256']!=resources or value['runtime_sha256']!=runtime:
         raise ValueError('native continuation resource or runtime source identity mismatch')
@@ -73,6 +92,10 @@ def installed_native_continuation(manifest_path,namespace,*,kind='execution-obse
     base=json.loads(base_raw,object_pairs_hook=_unique_manifest_pairs)
     if type(base) is not dict or base.get('compiler_sha256')!=value['compiler_sha256']:
         raise ValueError('native continuation compiler identity differs across bundles')
+    if kind == 'core-lowering':
+        expected = selection.SCHEMA_V2 if value['schema'] == INPROCESS_SCHEMA_V2 else selection.SCHEMA
+        if base.get('schema') != expected:
+            raise ValueError('native Core continuation and policy profiles differ')
     image=path.parent/value['image_path'];image_raw=_read(image,MAX_EXECUTABLE).raw
     if sha256(image_raw).hexdigest()!=value['image_sha256']:
         raise ValueError('native continuation executable identity mismatch')
@@ -90,7 +113,7 @@ def installed_native_continuation(manifest_path,namespace,*,kind='execution-obse
     else:
         owner=factory(loaded.images[1:],loaded.images[0],loaded.abi,namespace)
     owner._admitted_bundle=loaded
-    if value['schema']==INPROCESS_SCHEMA:
+    if value['schema'] in (INPROCESS_SCHEMA,INPROCESS_SCHEMA_V2):
         from .hia_native_continuation_inprocess import InProcessContinuation
         owner._continuation=InProcessContinuation(image_raw,value['image_sha256'],pool_bytes=loaded.abi['pool_bytes'])
     else:owner._continuation=NativeContinuation(image,value['image_sha256'],pool_bytes=loaded.abi['pool_bytes'])

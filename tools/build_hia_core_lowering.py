@@ -12,8 +12,12 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 
-def build(output: Path, compiler: Path, cold_report: Path) -> Path:
-    from hepta.hia_core_lowering_selection import ABI_SOURCE, SCHEMA, UNIT_SCHEMA, checked_abi
+def build(output: Path, compiler: Path, cold_report: Path, *, profile='v1') -> Path:
+    from hepta.hia_core_lowering_selection import SCHEMA, SCHEMA_V2, bundle_profile
+    if type(profile) is not str or profile not in ('v1', 'v2'):
+        raise ValueError('native Core lowering build profile differs')
+    schema = SCHEMA_V2 if profile == 'v2' else SCHEMA
+    ABI_SOURCE, UNIT_SCHEMA, checked_abi, pool = bundle_profile(schema)
     from tools.build_hia_json_preflight import admit_cold_build, current_sources
     from tools.hia_selfhost_contract import PROFILE
     from tools.qualify_hia_selfhost import compile_stage
@@ -22,7 +26,7 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     sources = admit_cold_build(compiler_bytes, cold_bytes)
     abi_raw = (ROOT / ABI_SOURCE).read_bytes()
     abi = checked_abi(abi_raw)
-    names = ('core_lowering_pool', *abi['units'])
+    names = (pool, *abi['units'])
     inputs = {ABI_SOURCE: abi_raw}
     for name in names:
         relative = 'examples/hia_bootstrap/' + name + '.hepta'
@@ -61,23 +65,26 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
             or any(path.read_bytes() != raw for path, raw in (*images, *manifest_inputs))):
         raise ValueError('Core lowering complete build inputs or images changed')
     bundle = {
-        'schema': SCHEMA, 'abi_sha256': sha256(abi_raw).hexdigest(),
+        'schema': schema, 'abi_sha256': sha256(abi_raw).hexdigest(),
         'compiler_sha256': compiler_sha, 'unit_manifests': manifests,
     }
     manifest_path = output / 'manifest.json'
     with manifest_path.open('xb') as stream:
         stream.write((json.dumps(bundle, sort_keys=True, indent=2) + '\n').encode())
     report = {
-        'schema': 'hepta.hia.core-lowering-build.v1', 'status': 'NATIVE_CANDIDATE_BUILT',
+        'schema': 'hepta.hia.core-lowering-build.' + profile, 'status': 'NATIVE_CANDIDATE_BUILT',
         'profile': PROFILE, 'source_manifest': sources,
         'cold_report_sha256': sha256(cold_bytes).hexdigest(),
         'compiler_sha256': compiler_sha, 'bundle': bundle,
         'abi_sha256': sha256(abi_raw).hexdigest(), 'units': receipts,
         'expected_unit_count': len(names), 'actual_unit_count': len(receipts),
         'complete_Function_methods': 22, 'complete_shared_helpers': 5,
-        'hosted_object_primitive_kinds': 18,
+        'hosted_object_primitive_kinds': 19 if profile == 'v2' else 18,
         'ordinary_entry_requires_explicit_selector': True,
-        'module_Emitter_control_and_native_object_runtime_still_hosted': True,
+        'module_Emitter_control_and_native_object_runtime_still_hosted': profile == 'v1',
+        'complete_Emitter_methods': 6 if profile == 'v2' else 0,
+        'native_lazy_generator_modes': 2 if profile == 'v2' else 0,
+        'native_object_runtime_still_hosted': True,
         'native_persistence_or_linking_claimed': False,
         'whole_stack_rewritten_in_hia': False, 'production_activated': False,
     }
@@ -91,5 +98,6 @@ if __name__ == '__main__':
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--compiler', required=True, type=Path)
     parser.add_argument('--cold-report', required=True, type=Path)
+    parser.add_argument('--profile', choices=('v1', 'v2'), default='v1')
     args = parser.parse_args()
-    print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()))
+    print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(), profile=args.profile))

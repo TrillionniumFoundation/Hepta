@@ -63,6 +63,11 @@ class InProcessContinuation:
         return self.run(LoweringSession(owner, mode['number'], arguments))
 
     def run(self, session):
+        # Ordinary calls never cross a generator frame: a foreign StopIteration
+        # must retain its original exception instead of acquiring PEP479.
+        return self._run_v2(session) if session.v2 else self._run_v1(session)
+
+    def _run_v1(self, session):
         if session.finished or getattr(session, '_native_started', False):
             raise RuntimeError('native continuation session is already consumed')
         session._native_started = True
@@ -141,6 +146,205 @@ class InProcessContinuation:
                         return value
                     opcode, count, vector, results = words[2:6]
                     if (not 1 <= opcode <= 18 or count > 8 or results > 3
+                            or len(body) != 128 + vector * 8):
+                        raise RuntimeError('native in-process primitive framing differs')
+                    session.status, session.pending = 1, True
+                    session.request = (words, struct.unpack_from('<' + 'Q' * vector, body, 128))
+                    packet = session.observe()
+            finally:
+                guards()
+        finally:
+            session._close()
+            if source is not None:
+                source.close()
+
+    def _run_v2(self, session):
+        if session.finished or getattr(session, '_native_started', False):
+            raise RuntimeError('native continuation session is already consumed')
+        session._native_started = True
+        source = None
+        try:
+            check_native_scheduling_scope(session.owner, engine=self)
+            owner = session.owner
+            if not 128 <= owner.output_bytes <= OUTPUT:
+                raise ValueError('native in-process owner output extent differs')
+            # One private, read-only input page between inaccessible pages.
+            page = mmap.PAGESIZE
+            source = mmap.mmap(-1, page * 3, prot=mmap.PROT_READ | mmap.PROT_WRITE)
+            base = ctypes.addressof(ctypes.c_char.from_buffer(source))
+            address = base + page
+            _protect(base, page, 0)
+            _protect(address + page, page, 0)
+            arrays = [ctypes.create_string_buffer(n + 32) for n in (OUTPUT, WORK)]
+            addresses = [ctypes.addressof(a) + 16 for a in arrays]
+            for target, size in zip(addresses, (OUTPUT, WORK)):
+                ctypes.memset(target - 16, 0xa7, 16)
+                ctypes.memset(target + size, 0xa7, 16)
+
+            def guards():
+                if any(ctypes.string_at(target - 16, 16) != b'\xa7' * 16
+                        or ctypes.string_at(target + size, 16) != b'\xa7' * 16
+                        for target, size in zip(addresses, (OUTPUT, WORK))):
+                    raise RuntimeError('native in-process buffer canary changed')
+
+            def enter(packet):
+                if type(packet) is not bytes or len(packet) != 128:
+                    raise TypeError('exact native in-process input packet required')
+                _protect(address, page, mmap.PROT_READ | mmap.PROT_WRITE)
+                ctypes.memset(address, 0x6d, page)
+                ctypes.memmove(address, packet, 128)
+                _protect(address, page, mmap.PROT_READ)
+                try:
+                    returned = self._entry(address, 128, addresses[0], OUTPUT, addresses[1], WORK)
+                finally:
+                    guards()
+                if (ctypes.string_at(address, 128) != packet
+                        or ctypes.string_at(address + 128, page - 128) != b'\x6d' * (page - 128)):
+                    raise RuntimeError('native in-process read-only input changed')
+                return returned
+
+            packet = session.initial
+            seen_pool = False
+            try:
+                while True:
+                    status = enter(packet)
+                    if status not in ((0, 1, 3, 4) if session.v2 else (0, 1, 3)):
+                        raise RuntimeError('native in-process protocol refusal: ' + str(status))
+                    header = EVENT.unpack(ctypes.string_at(addresses[1], EVENT.size))
+                    if header[0] != RPC or header[1] != status or header[6:] != (0, 0):
+                        raise RuntimeError('native in-process event identity differs')
+                    if status == 3:
+                        if seen_pool or header[2] != self.pool_bytes:
+                            raise RuntimeError('native in-process literal extent differs')
+                        pool = ctypes.string_at(addresses[0], header[2])
+                        if _decode_pool(pool, len(owner.literals)) != owner.literals:
+                            raise RuntimeError('native in-process literal values differ')
+                        seen_pool = True
+                        continue
+                    if not seen_pool or not 128 <= header[2] <= owner.output_bytes:
+                        raise RuntimeError('native in-process event extent differs')
+                    body = ctypes.string_at(addresses[0], header[2])
+                    words = FRAME.unpack_from(body)
+                    if words[0] != session.magic:
+                        raise RuntimeError('native in-process output identity differs')
+                    if status == 0:
+                        if len(body) != 128 or words[2] != 0:
+                            raise RuntimeError('native in-process return framing differs')
+                        value = session.value(words[3])
+                        session.native_observation = header
+                        if enter(packet) != 16:
+                            raise RuntimeError('closed native in-process phase was replayable')
+                        return value
+                    if status == 4:
+                        raise RuntimeError('ordinary native lowering method unexpectedly yielded')
+                    opcode, count, vector, results = words[2:6]
+                    if (not 1 <= opcode <= (19 if session.v2 else 18) or count > 8
+                            or results > (4 if session.v2 else 3)
+                            or len(body) != 128 + vector * 8):
+                        raise RuntimeError('native in-process primitive framing differs')
+                    session.status, session.pending = 1, True
+                    session.request = (words, struct.unpack_from('<' + 'Q' * vector, body, 128))
+                    packet = session.observe()
+            finally:
+                guards()
+        finally:
+            session._close()
+            if source is not None:
+                source.close()
+
+    def iterate(self, session):
+        if not session.v2:
+            raise ValueError('native generator suspension requires the explicit Core v2 profile')
+        if session.finished or getattr(session, '_native_started', False):
+            raise RuntimeError('native continuation session is already consumed')
+        session._native_started = True
+        source = None
+        try:
+            check_native_scheduling_scope(session.owner, engine=self)
+            owner = session.owner
+            if not 128 <= owner.output_bytes <= OUTPUT:
+                raise ValueError('native in-process owner output extent differs')
+            # One private, read-only input page between inaccessible pages.
+            page = mmap.PAGESIZE
+            source = mmap.mmap(-1, page * 3, prot=mmap.PROT_READ | mmap.PROT_WRITE)
+            base = ctypes.addressof(ctypes.c_char.from_buffer(source))
+            address = base + page
+            _protect(base, page, 0)
+            _protect(address + page, page, 0)
+            arrays = [ctypes.create_string_buffer(n + 32) for n in (OUTPUT, WORK)]
+            addresses = [ctypes.addressof(a) + 16 for a in arrays]
+            for target, size in zip(addresses, (OUTPUT, WORK)):
+                ctypes.memset(target - 16, 0xa7, 16)
+                ctypes.memset(target + size, 0xa7, 16)
+
+            def guards():
+                if any(ctypes.string_at(target - 16, 16) != b'\xa7' * 16
+                        or ctypes.string_at(target + size, 16) != b'\xa7' * 16
+                        for target, size in zip(addresses, (OUTPUT, WORK))):
+                    raise RuntimeError('native in-process buffer canary changed')
+
+            def enter(packet):
+                if type(packet) is not bytes or len(packet) != 128:
+                    raise TypeError('exact native in-process input packet required')
+                _protect(address, page, mmap.PROT_READ | mmap.PROT_WRITE)
+                ctypes.memset(address, 0x6d, page)
+                ctypes.memmove(address, packet, 128)
+                _protect(address, page, mmap.PROT_READ)
+                try:
+                    returned = self._entry(address, 128, addresses[0], OUTPUT, addresses[1], WORK)
+                finally:
+                    guards()
+                if (ctypes.string_at(address, 128) != packet
+                        or ctypes.string_at(address + 128, page - 128) != b'\x6d' * (page - 128)):
+                    raise RuntimeError('native in-process read-only input changed')
+                return returned
+
+            packet = session.initial
+            seen_pool = False
+            try:
+                while True:
+                    status = enter(packet)
+                    if status not in ((0, 1, 3, 4) if session.v2 else (0, 1, 3)):
+                        raise RuntimeError('native in-process protocol refusal: ' + str(status))
+                    header = EVENT.unpack(ctypes.string_at(addresses[1], EVENT.size))
+                    if header[0] != RPC or header[1] != status or header[6:] != (0, 0):
+                        raise RuntimeError('native in-process event identity differs')
+                    if status == 3:
+                        if seen_pool or header[2] != self.pool_bytes:
+                            raise RuntimeError('native in-process literal extent differs')
+                        pool = ctypes.string_at(addresses[0], header[2])
+                        if _decode_pool(pool, len(owner.literals)) != owner.literals:
+                            raise RuntimeError('native in-process literal values differ')
+                        seen_pool = True
+                        continue
+                    if not seen_pool or not 128 <= header[2] <= owner.output_bytes:
+                        raise RuntimeError('native in-process event extent differs')
+                    body = ctypes.string_at(addresses[0], header[2])
+                    words = FRAME.unpack_from(body)
+                    if words[0] != session.magic:
+                        raise RuntimeError('native in-process output identity differs')
+                    if status == 0:
+                        if len(body) != 128 or words[2] != 0:
+                            raise RuntimeError('native in-process return framing differs')
+                        value = session.value(words[3])
+                        session.native_observation = header
+                        if enter(packet) != 16:
+                            raise RuntimeError('closed native in-process phase was replayable')
+                        return value
+                    if status == 4:
+                        if not session.v2 or len(body) != 128 or words[2] != 20:
+                            raise RuntimeError('native in-process yield framing differs')
+                        if header[5] >= len(owner.images):
+                            raise RuntimeError('native in-process yield unit differs')
+                        session.unit = header[5]
+                        session.status, session.pending, session.request = 3, True, words
+                        session.native_observation = header
+                        yield session.value(words[3])
+                        packet = session.resume()
+                        continue
+                    opcode, count, vector, results = words[2:6]
+                    if (not 1 <= opcode <= (19 if session.v2 else 18) or count > 8
+                            or results > (4 if session.v2 else 3)
                             or len(body) != 128 + vector * 8):
                         raise RuntimeError('native in-process primitive framing differs')
                     session.status, session.pending = 1, True
