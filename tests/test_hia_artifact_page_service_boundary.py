@@ -219,8 +219,18 @@ class ArtifactPageServiceNativeTests(unittest.TestCase):
                 page_arguments = (deepcopy(arguments) if route == 'ordinary-tool'
                                   else {'artifact': deepcopy(ref), 'max_bytes': 512})
                 initial_rows = _rows(service.store)
-                with patch.dict(os.environ, {}, clear=True):
+                target = service.store.artifacts / ref['sha256']
+                reference_reads = []
+                def original_read(path, limit, **kwargs):
+                    if Path(path) == target:
+                        reference_reads.append({'path': str(path), 'limit': limit})
+                    return real_stable_read(path, limit, **kwargs)
+                with patch.dict(os.environ, {}, clear=True), patch.object(
+                        store_module, 'stable_read', original_read):
+                    if route == 'resource-alias':
+                        page_arguments['artifact'] = service.store.resolve_uri(captured['uri'])
                     expected = ORIGINAL(service, page_arguments)
+                self.assertEqual(len(reference_reads), 1 if route == 'ordinary-tool' else 2)
                 expected_rows = _rows(service.store)
                 _restore_rows(service.store, initial_rows)
                 target = service.store.artifacts / ref['sha256']
@@ -249,12 +259,13 @@ class ArtifactPageServiceNativeTests(unittest.TestCase):
                 self.assertEqual(response['status'], 'completed', response)
                 self.assertEqual(response['result'], expected)
                 self.assertEqual(_rows(service.store), expected_rows)
-                self.assertEqual(len(calls), 1)
+                self.assertEqual(calls, reference_reads)
                 self.assertGreater(len(frames), 1)
                 self.assertEqual(frames[-1]['result'], 2)
                 self.assertNotEqual(arguments, captured)
                 records.append({'route': route, 'captured_arguments': captured, 'producer_after': arguments,
                                 'result': response['result'], 'actual_read_calls': calls,
+                                'original_reference_read_calls': reference_reads,
                                 'immutable_actual_native_packets': frames})
             finally:
                 service.close()
@@ -268,12 +279,12 @@ class ArtifactPageServiceNativeTests(unittest.TestCase):
                 ('over-230000', b'\0' * 17690 + b'a' * 12, 230002),
                 ('two-halvings', b'\0' * 65536, None)):
             ref = {'id': 'artifact-boundary', 'sha256': sha256(data).hexdigest(), 'uri': 'hia://boundary'}
-            before = len(wire(wire(data.decode()).decode()))
+            before = len(wire(data.decode())) + len(wire(wire(data.decode()).decode()))
             if exact is not None: self.assertEqual(before, exact)
             pair = [self._observed_page(data, ref, 65536, None, native) for native in (False, True)]
             self.assertEqual(*pair)
             content = pair[1][0]['content']
-            self.assertLessEqual(len(wire(wire(content).decode())), 230000)
+            self.assertLessEqual(len(wire(content)) + len(wire(wire(content).decode())), 230000)
             expected_length = len(data) if name == 'exact-230000' else len(data) // 2 if name == 'over-230000' else 16384
             self.assertEqual(len(content), expected_length)
             records.append({'case': name, 'initial_double_wire_bytes': before,
