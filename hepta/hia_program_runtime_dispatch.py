@@ -93,7 +93,10 @@ def _source_methods():
                 or _constant_signature(actual.__defaults__) != _constant_signature(defaults)
                 or _constant_signature(actual.__kwdefaults__) != _constant_signature(keywords)):
             return None
-    return methods
+    # Keep immutable source bytes between preparations, not a permanently
+    # reachable AST graph that every ordinary full collection must traverse.
+    return MappingProxyType({name: ast.unparse(node).encode()
+                             for name, node in methods.items()})
 
 
 _TREES = _source_methods()
@@ -108,6 +111,9 @@ def _ordinary_bindings():
             or _LOADS != _LOAD_VALUES or _STORES != _STORE_VALUES):
         return False
     namespace = vars(_MACHINE)
+    if (_MACHINE.__getattribute__ is not object.__getattribute__
+            or "__getattr__" in namespace):
+        return False
     return all(namespace.get(name) is method and method.__code__ is code
                and method.__defaults__ is defaults[0]
                and method.__kwdefaults__ is defaults[1]
@@ -130,7 +136,7 @@ def _ast_bytes(nodes):
 
 
 def _operation_parts():
-    tree = _TREES["operation"]
+    tree = ast.parse(_TREES["operation"]).body[0]
     candidates = [node for node in tree.body if isinstance(node, ast.If)
                   and ast.unparse(node.test).startswith("self.scalar_reference is not None")]
     if len(candidates) != 1:
@@ -170,15 +176,22 @@ def _handler(parts, ordinal, branch):
     # Earlier fixed opcode tests cannot be affected by either later word map.
     # Preserve the live word binding guard wherever it can affect dispatch.
     word_guard = ("" if ordinal < word_branch else
-                  "\n        or WORD_LOADS is not self._dispatch_loads"
-                  "\n        or WORD_STORES is not self._dispatch_stores")
+                  "\n        or WORD_LOADS is not _expected_loads"
+                  "\n        or WORD_STORES is not _expected_stores")
     preamble = ast.parse(
         "original, op, attrs, names, outputs, typ, scalar_op = prepared\n"
-        "if (self.__class__.operation is not self._dispatch_operation\n"
-        "        or self._dispatch_operation.__code__ is not self._dispatch_operation_code\n"
-        "        or 'operation' in self.__dict__" + word_guard + "):\n"
-        "    return self.operation(original, env, depth)\n"
+        "current = self.operation\n"
+        "if (type(current) is not _expected_bound_type\n"
+        "        or current.__func__ is not _expected_operation\n"
+        "        or current.__self__ is not self\n"
+        "        or _expected_operation.__code__ is not _expected_code"
+        + word_guard + "):\n"
+        "    return current(original, env, depth)\n"
     ).body
+    for name in ("_expected_operation", "_expected_code", "_expected_bound_type",
+                 "_expected_loads", "_expected_stores"):
+        function.args.args.append(ast.arg(arg=name))
+        function.args.defaults.append(ast.Constant(value=None))
     first, second = copy.deepcopy(native), copy.deepcopy(package)
     second.orelse = copy.deepcopy(branch)
     first.orelse = [second]
@@ -195,7 +208,9 @@ def _handler(parts, ordinal, branch):
     module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
     exec(compile(module, "<explicit-prepared-vm-operation>", "exec"),
          _runtime.__dict__, local)
-    return local[function.name], MappingProxyType(relation)
+    actual = local[function.name]
+    actual.__defaults__ = (_METHODS[1], _CODES[1], MethodType, _LOADS, _STORES)
+    return actual, MappingProxyType(relation)
 
 
 class _Invocation(ast.NodeTransformer):
@@ -239,7 +254,7 @@ class _Invocation(ast.NodeTransformer):
 
 def _invocation():
     transform = _Invocation()
-    function = transform.visit(copy.deepcopy(_TREES["invoke"]))
+    function = transform.visit(ast.parse(_TREES["invoke"]).body[0])
     if (transform.blocks, transform.loops, transform.calls) != (1, 1, 1):
         raise ValueError("the fixed invocation relation changed")
     function.body = ast.parse(
@@ -282,6 +297,9 @@ class RuntimeDispatch:
         }
         parts = _operation_parts()
         branches, fallback = parts[-2:]
+        predicates = tuple(compile(ast.Expression(copy.deepcopy(test)),
+                                   "<static-opcode-metadata>", "eval")
+                           for test, body in branches)
         handlers, relations, functions, originals = {}, [], {}, {}
         instructions = 0
         for function in document["functions"]:
@@ -295,9 +313,7 @@ class RuntimeDispatch:
                     context = dict(_runtime.__dict__, op=op, attrs=attrs)
                     selected = len(branches), fallback
                     for ordinal, (test, body) in enumerate(branches):
-                        expression = compile(ast.Expression(copy.deepcopy(test)),
-                                             "<static-opcode-metadata>", "eval")
-                        if eval(expression, context):
+                        if eval(predicates[ordinal], context):
                             selected = ordinal, body
                             break
                     ordinal, body = selected
@@ -330,8 +346,7 @@ class RuntimeDispatch:
 
     def _active(self, machine, function):
         return (type(machine) is _MACHINE and _ordinary_bindings()
-                and function is self.function_objects.get(function["name"])
-                and "operation" not in vars(machine))
+                and function is self.function_objects.get(function["name"]))
 
     def _release(self, machine):
         current = vars(machine).get("invoke")
@@ -353,9 +368,6 @@ class RuntimeDispatch:
             return machine
         machine._dispatch_functions = self.functions
         machine._dispatch_plan = self
-        machine._dispatch_operation = _METHODS[1]
-        machine._dispatch_operation_code = _CODES[1]
-        machine._dispatch_loads, machine._dispatch_stores = _LOADS, _STORES
         machine.invoke = MethodType(self._invoke, machine)
         return machine
 

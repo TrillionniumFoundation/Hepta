@@ -251,6 +251,19 @@ class RuntimeDispatchAdmissionTests(unittest.TestCase):
         self.assertTrue(dispatch._ordinary_bindings())
         self.assertIsNotNone(dispatch._source_methods())
 
+    def test_actual_dynamic_operation_lookup_keeps_original_effect_count(self):
+        calls = []
+        def read_attribute(machine, name):
+            if name == "operation":
+                calls.append(name)
+            return object.__getattribute__(machine, name)
+        with patch.object(runtime._Machine, "__getattribute__", read_attribute):
+            self.assertIsNone(dispatch.prepare_runtime_dispatch(self.program))
+            machine = self.plan.new_machine(self.program, *LIMITS)
+            self.assertNotIn("_dispatch_functions", vars(machine))
+            self.assertEqual(machine.invoke(machine.functions["calculate"], [2, 3]), [5])
+        self.assertEqual(calls, ["operation"])
+
     def test_whole_source_late_change_refuses_new_dispatch_and_is_restored(self):
         path = Path(runtime.__file__)
         before = path.read_bytes()
