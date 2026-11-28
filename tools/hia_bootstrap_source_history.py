@@ -26,6 +26,15 @@ LIVE_CURRENT = {'bytes': 268730, 'sha256': '353bd2673cc4f269c9c2d6cbf226d8956703
 SUCCESSOR_FIXTURE = 'tests/fixtures/hia_bootstrap_service_evaluation_successor_v1.json'
 SUCCESSOR_PIN = {'bytes': 2189, 'sha256': '7d4fb8a6a57ba4c25598f7b0c6cd7e191a5cc869260e46fed37bc5ae7860e97d', 'git_blob': '23645419a63f5c0fbde2f45f2b10a0a569a55b10'}
 _SUCCESSOR_SCHEMA = 'hepta.hia.bootstrap-service-evaluation-successor.v1'
+CURRENT_SERVICE = {'bytes': 274230, 'sha256': '7351b80e8f8d46c6cf1988a56b5eb0d2acb5c31727e3d5e63bf5b6355d1e4525', 'git_blob': '7807e795622088206d1e59e7a1569b2b180f01a9'}
+BEHAVIOR_READER = 'tools/hia_behavior_source_history.py'
+BEHAVIOR_READER_PIN = {'bytes': 7856, 'sha256': 'b8118ce79cd80711e1d6a2e170fcdc5e99b9aa104eee38571ceed423e8c92b7a', 'git_blob': 'af8e08a6d4d14827090cab451d0814d1773a27f6'}
+BEHAVIOR_FIXTURE = 'tests/fixtures/hia_behavior_input_history_v7.json'
+BEHAVIOR_FIXTURE_PIN = {'bytes': 378805, 'sha256': '6215141499231dca05b9edf889d8113ea0745dbfe081d2f6db7c1224adbc215c', 'git_blob': '283cf68f9eae2e903b269dd2e0e2f56f17903e37'}
+
+BEHAVIOR_VERIFICATION = 'hepta/hia_service_verification_native.py'
+BEHAVIOR_VERIFICATION_PRIOR = {'bytes': 127707, 'sha256': 'c93e6d2a59aeb19dbd0c18c2de6af6be31adf16b4547db8b191bf36e504d3a81', 'git_blob': 'cd5bd50ab254810ee316570f7facf337895faff0'}
+
 # Bind the implementation that actually executed, before any caller admission.
 _EXECUTED_PATH = Path(__file__).resolve()
 _EXECUTED_SOURCE = _EXECUTED_PATH.read_bytes()
@@ -156,6 +165,63 @@ def restore(physical, fixture, *, successor=None):
     return historical, proof
 
 
+class _CurrentCapture(dict):
+    """Actual bytes and the separately admitted complete behavior predecessor."""
+    def __init__(self, rows, root, behavior, service):
+        super().__init__(rows)
+        self.root = root
+        self.behavior = behavior
+        self.service = service
+        self.initial = dict(rows)
+
+
+def _current_service(root, saved, take):
+    # The v7 relation admits its complete current group, including its actual
+    # runtime and graph. A single Service splice is not that admission.
+    reader = _actual_bytes(root, BEHAVIOR_READER, take)
+    if identity(reader) != BEHAVIOR_READER_PIN:
+        raise ValueError('Bootstrap current behavior reader differs')
+    from tools import hia_behavior_source_history as behavior
+    if (behavior.SELF != BEHAVIOR_READER or behavior.FIXTURE != BEHAVIOR_FIXTURE
+            or behavior._IMPORTED_SELF != reader
+            or Path(behavior.__file__).read_bytes() != reader):
+        raise ValueError('Bootstrap behavior reader is not the executed fixed implementation')
+    verifier = _actual_bytes(root, BEHAVIOR_VERIFICATION, take)
+    saved[BEHAVIOR_VERIFICATION] = verifier
+    if identity(verifier) == BEHAVIOR_VERIFICATION_PRIOR:
+        view, admitted = behavior.prepare(root, {SOURCE: saved[SOURCE]}, take=take)
+    else:
+        from tools import hia_bootstrap_carrier_predecessor as carrier
+        view, admitted = carrier.prepare(root, {SOURCE: saved[SOURCE]}, take=take)
+    if SOURCE not in view or identity(view[SOURCE]) != LIVE_CURRENT:
+        raise ValueError('complete behavior relation does not restore Bootstrap predecessor')
+    for name, (raw, mode) in admitted['captures'].items():
+        if name in saved and saved[name] != raw:
+            raise ValueError('Bootstrap current source captures disagree')
+        saved[name] = raw
+    if identity(saved[BEHAVIOR_FIXTURE]) != BEHAVIOR_FIXTURE_PIN:
+        raise ValueError('Bootstrap current behavior fixture differs')
+    _verify_current_behavior(admitted)
+    return view[SOURCE], admitted
+
+
+def _verify_current_behavior(admitted):
+    if type(admitted) is dict:
+        from tools import hia_behavior_source_history as behavior
+        behavior.verify_unchanged(admitted)
+    else:
+        from tools import hia_bootstrap_carrier_predecessor as carrier
+        carrier.verify_unchanged(admitted)
+
+
+def current_service_predecessor(saved):
+    """Explicit historical data view; physical captures always remain current."""
+    if type(saved) is not _CurrentCapture:
+        raise ValueError('Bootstrap current predecessor requires its complete admitted capture')
+    unchanged(saved.root, saved)
+    return saved.service
+
+
 def capture(root, *, take=Path.read_bytes):
     root = Path(root).resolve()
     _executed_self()
@@ -164,14 +230,41 @@ def capture(root, *, take=Path.read_bytes):
         raise ValueError('Bootstrap captured reader differs from its executed implementation')
     for name in (SOURCE, FIXTURE):
         saved[name] = _actual_bytes(root, name, take)
-    if identity(saved[SOURCE]) == LIVE_CURRENT:
+    physical = saved[SOURCE]
+    current = identity(physical) == CURRENT_SERVICE
+    admitted = None
+    prior = physical
+    if current:
+        prior, admitted = _current_service(root, saved, take)
+    if identity(prior) == LIVE_CURRENT:
         saved[SUCCESSOR_FIXTURE] = _actual_bytes(root, SUCCESSOR_FIXTURE, take)
-    historical, proof = restore(saved[SOURCE], saved[FIXTURE],
+    historical, proof = restore(prior, saved[FIXTURE],
                                 successor=saved.get(SUCCESSOR_FIXTURE))
+    if current:
+        proof['schema'] = 'hepta.hia.bootstrap-historical-source-admission.v4'
+        proof['physical_source'] = {'path': SOURCE, **identity(physical)}
+        proof['current_source_preparation'] = {
+            'schema': 'hepta.hia.bootstrap-complete-behavior-predecessor.v1',
+            'physical_service': identity(physical),
+            'prior_service': identity(prior),
+            'reader': {'path': BEHAVIOR_READER, **BEHAVIOR_READER_PIN},
+            'fixture': {'path': BEHAVIOR_FIXTURE, **BEHAVIOR_FIXTURE_PIN},
+            'complete_group_scope': admitted['scope'],
+            'complete_group_entries': list(admitted['entries']),
+            'physical_group': {
+                name: {**identity(raw), 'mode': mode}
+                for name, (raw, mode) in sorted(admitted['captures'].items())},
+            'current_semantics_qualified': False,
+            'whole_native_stack_qualified': False,
+        }
+        if 'preparation' in admitted:
+            proof['current_source_preparation']['physical_predecessor_preparation'] = admitted['preparation']
+        saved = _CurrentCapture(saved, root, admitted, prior)
     proof['reader'] = {'path': HELPER, **identity(saved[HELPER])}
     proof['captured_files'] = {name: identity(raw) for name, raw in sorted(saved.items())}
     unchanged(root, saved, take=take)
     return historical, proof, saved
+
 
 def _code(raw):
     root = compile(raw, SOURCE, 'exec')
@@ -242,7 +335,7 @@ def code_bindings(raw):
     }
 
 def graph_bindings(physical, historical):
-    if identity(physical) not in (CURRENT, LIVE_CURRENT) or identity(historical) != HISTORICAL:
+    if identity(physical) not in (CURRENT, LIVE_CURRENT, CURRENT_SERVICE) or identity(historical) != HISTORICAL:
         raise ValueError('Bootstrap graph source pair differs')
     def ports(raw):
         return {node.name: ast.dump(node, include_attributes=False)
@@ -258,6 +351,25 @@ def graph_bindings(physical, historical):
 def unchanged(root, saved, *, take=Path.read_bytes):
     root = Path(root).resolve()
     _executed_self()
+    if type(saved) is _CurrentCapture:
+        from tools import hia_behavior_source_history as behavior
+        required = {HELPER, SOURCE, FIXTURE, SUCCESSOR_FIXTURE} | set(saved.behavior['captures'])
+        if (saved.root != root or saved.behavior['root'] != root
+                or dict(saved) != saved.initial or set(saved) != required
+                or saved[HELPER] != _EXECUTED_SOURCE
+                or identity(saved[SOURCE]) != CURRENT_SERVICE
+                or identity(saved[FIXTURE]) != FIXTURE_PIN
+                or identity(saved[SUCCESSOR_FIXTURE]) != SUCCESSOR_PIN
+                or identity(saved.service) != LIVE_CURRENT
+                or identity(saved[BEHAVIOR_READER]) != BEHAVIOR_READER_PIN
+                or identity(saved[BEHAVIOR_FIXTURE]) != BEHAVIOR_FIXTURE_PIN):
+            raise ValueError('Bootstrap current physical/prior source closure differs')
+        _verify_current_behavior(saved.behavior)
+        for name, raw in saved.items():
+            if type(raw) is not bytes or _actual_bytes(root, name, take) != raw:
+                raise ValueError('Bootstrap current physical source changed: ' + name)
+        _executed_self()
+        return
     if type(saved) is not dict or SOURCE not in saved:
         raise ValueError('Bootstrap terminal capture is incomplete')
     required = {HELPER, SOURCE, FIXTURE}

@@ -75,7 +75,7 @@ def _seal_process_terminal(directory, label, lane, checkpoint_raw, checkpoint,
                    (start["cwd"], result["cwd"], checkpoint["cwd"]))):
         raise ValueError("process terminal seal requires an actual natural exit and empty owned group")
     checkpoint_pin = support.bytes_pin(checkpoint_raw)
-    if (checkpoint["schema"] != "hepta.hia.service-bootstrap-finite-observations.v2"
+    if (checkpoint["schema"] != "hepta.hia.service-bootstrap-finite-observations.v3"
             or checkpoint["status"] != ("CHECKPOINT_ORIGINAL_COMPLETE" if lane == "original"
                                         else "CHECKPOINT_CANDIDATE_COMPLETE")
             or checkpoint["lane"] != lane or checkpoint["process_terminal_required"] is not True
@@ -112,7 +112,7 @@ def _seal_process_terminal(directory, label, lane, checkpoint_raw, checkpoint,
     start_pin, result_pin = support.bytes_pin(start_raw), support.bytes_pin(result_raw)
     late_checkpoint, late_final = checkpoint_files["late-events.jsonl"], final_files["late-events.jsonl"]
     value = {
-        "schema":"hepta.hia.service-bootstrap-process-terminal.v2",
+        "schema":"hepta.hia.service-bootstrap-process-terminal.v3",
         "status":"TERMINAL_COMPLETE", "label":label, "lane":lane,
         "pid":pid, "pgid":pid, "sealer_pid":os.getpid(),
         "sealed_time_ns":time.time_ns(),
@@ -193,7 +193,8 @@ def child(parent,label,lane,inputs,*,authority=None,authority_pin=None,manifest=
         command += ["--manifest",str(manifest)]
     seconds=600 if lane=="original" else 1800
     receipt,checkpoint,raw=support.run_child(parent,label,command,seconds=seconds)
-    if (checkpoint["lane"]!=lane or checkpoint["runtime"]!=sys.version
+    if (checkpoint.get("case_terminal_protocol") != support.CASE_TERMINAL_SCHEMA
+            or checkpoint["lane"]!=lane or checkpoint["runtime"]!=sys.version
             or checkpoint["implementation"]!=sys.implementation.name
             or not support.same(checkpoint["source_before"],checkpoint["source_after"])
             or checkpoint["differences"]!=0 or checkpoint["late_differences"] is not None
@@ -201,6 +202,9 @@ def child(parent,label,lane,inputs,*,authority=None,authority_pin=None,manifest=
             or (lane in ("original","unselected") and checkpoint["native_or_VM_entries"]!=0)
             or (lane in ("vm","native") and checkpoint["native_or_VM_entries"]<=0)):
         raise ValueError("complete bootstrap checkpoint runtime/domain/custody differs")
+    input_raw, input_value, _ = support.capture_json(inputs, checkpoint["input"])
+    support.case_terminals(directory, checkpoint, input_value["cases"])
+    support.exact_reread(inputs, input_raw)
     support.exact_reread(directory/"report.json",raw)
     start_path=Path(parent)/(label+".start.json")
     result_path=Path(parent)/(label+".result.json")
@@ -235,7 +239,7 @@ def originals(output):
         if report["count"]!=232 or report["ordered_ids"]!=[case["id"] for case in base_cases]:
             raise ValueError("original base lane did not execute every frozen input")
         lanes.append(record);reports[label]=report;captured.extend(raws)
-    for channel in ("observations.jsonl","late-events.jsonl","raw-tracebacks.jsonl"):
+    for channel in ("observations.jsonl","late-events.jsonl","raw-tracebacks.jsonl","case-terminals.jsonl"):
         if not support.identical_files(output/"basis-first"/channel,output/"basis-second"/channel,
                 reports["basis-first"]["files"][channel],reports["basis-second"]["files"][channel]):
             raise ValueError("independent base original channels differ: "+channel)
@@ -264,7 +268,7 @@ def originals(output):
         if report["count"]!=len(complete_cases) or report["ordered_ids"]!=[case["id"] for case in complete_cases]:
             raise ValueError("complete original domain was truncated")
         lanes.append(record);reports[label]=report;captured.extend(raws)
-    for channel in ("observations.jsonl","late-events.jsonl","raw-tracebacks.jsonl"):
+    for channel in ("observations.jsonl","late-events.jsonl","raw-tracebacks.jsonl","case-terminals.jsonl"):
         if not support.identical_files(output/"complete-first"/channel,output/"complete-second"/channel,
                 reports["complete-first"]["files"][channel],reports["complete-second"]["files"][channel]):
             raise ValueError("independent complete original channels differ: "+channel)
@@ -274,7 +278,8 @@ def originals(output):
     support.exact_reread(oracle.FIXTURE/"observation-domain.json",domain_raw)
     for path,raw in captured:
         support.exact_reread(path,raw)
-    authority={"schema":"hepta.hia.service-bootstrap-original-authority.v2",
+    authority={"schema":"hepta.hia.service-bootstrap-original-authority.v3",
+               "case_terminal_protocol":support.CASE_TERMINAL_SCHEMA,
                "runtime":sys.version,"implementation":sys.implementation.name,
                "source_before":source_before,"source_after":source_after,
                "base_count":232,"count":len(complete_cases),
@@ -286,7 +291,7 @@ def originals(output):
                "late_channel_complete_and_equal":True,
                "process_terminal_complete":True,
                "checkpoint_reports_preserved":True,
-               "late_comparison_scope":"NATURAL_PROCESS_EXIT",
+               "late_comparison_scope":"CASE_LOCAL_COLLECTION_THEN_NATURAL_PROCESS_EXIT",
                "raw_traceback_channels_preserved":True,
                "whole_native_stack_qualified":False}
     pin=support.write_json(output/"authority.json",authority)
@@ -368,6 +373,10 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
     if not support.identical_files(expected_directory/"observations.jsonl",
             output/"candidate/observations.jsonl",original_pin,actual_pin):
         raise ValueError("complete candidate bytes are not identical to sealed originals")
+    if not support.identical_files(expected_directory/"case-terminals.jsonl",
+            output/"candidate/case-terminals.jsonl",
+            expected_report["files"]["case-terminals.jsonl"], report["files"]["case-terminals.jsonl"]):
+        raise ValueError("complete candidate case-terminal boundaries differ")
     late_count,late_diff_pin=_compare_terminal_late(
         output/"candidate/late-events.jsonl",expected_directory/"late-events.jsonl",
         report["files"]["late-events.jsonl"],expected_report["files"]["late-events.jsonl"],
@@ -385,7 +394,9 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
         support.exact_reread(path,raw)
     if manifest_raw is not None:
         support.exact_reread(manifest,manifest_raw)
-    value={"schema":"hepta.hia.service-bootstrap-finite-comparison.v2",
+    value={"schema":"hepta.hia.service-bootstrap-finite-comparison.v3",
+           "case_terminal_protocol":support.CASE_TERMINAL_SCHEMA,
+           "complete_case_terminals_equal":True,
            "status":"PASS_FINITE_ONLY" if late_count==0 else "HOLD",
            "lane":lane,"runtime":sys.version,
            "authority":authority_pin,"originals":str(Path(authority_path).resolve()),
@@ -397,7 +408,7 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
            "original_terminal":expected_report["process_terminal"],
            "original_observations":original_pin,"actual_observations":actual_pin,
            "full_raw_byte_equality":True,"complete_late_byte_equality":late_count==0,
-           "late_comparison_scope":"BOTH_NATURAL_PROCESS_TERMINALS",
+           "late_comparison_scope":"CASE_LOCAL_COLLECTION_AND_BOTH_NATURAL_PROCESS_TERMINALS",
            "terminal_late_difference_count":late_count,
            "terminal_late_differences":{"relative":"terminal-late-differences.jsonl",**late_diff_pin},
            "checkpoint_reports_preserved":True,

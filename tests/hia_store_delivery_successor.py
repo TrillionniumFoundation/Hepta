@@ -124,6 +124,14 @@ def evaluate_records(frozen):
 def retained_bootstrap_service(raw):
     """Verify and reverse each physical service update back to the original Bootstrap prefix."""
     physical = raw
+    if (type(raw) is bytes and len(raw) == 274230
+            and sha256(raw).hexdigest() == '7351b80e8f8d46c6cf1988a56b5eb0d2acb5c31727e3d5e63bf5b6355d1e4525'):
+        from tools import hia_bootstrap_source_history as bootstrap_history
+        historical, proof, captured = bootstrap_history.capture(ROOT)
+        if captured[SERVICE_PATH] != physical:
+            raise ValueError('Bootstrap caller supplied a different current physical Service')
+        bootstrap_history.unchanged(ROOT, captured)
+        return historical
     raw = restore_service(raw, root=ROOT)
     captures = {ROOT / EVALUATE_FIXTURE: (ROOT / EVALUATE_FIXTURE).read_bytes(),
                 RETAINED_READ: RETAINED_READ.read_bytes(),
