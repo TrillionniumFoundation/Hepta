@@ -30,6 +30,21 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'docs/HIA_NATIVE_NDU_EVALUATOR_BUILD.json',
+    'docs/HIA_NATIVE_NDU_EVALUATOR_QUALIFICATION.json',
+    'docs/HIA_NATIVE_NDU_EVALUATOR_RECIPE.json',
+    'examples/hia_bootstrap/native_filter_packer.hepta',
+    'examples/hia_bootstrap/ndu_evaluator.hepta',
+    'examples/hia_bootstrap/ndu_evaluator_debug.hepta',
+    'examples/hia_bootstrap/ndu_evaluator_number.hepta',
+    'examples/hia_bootstrap/ndu_evaluator_packer.hepta',
+    'examples/hia_bootstrap/ndu_evaluator_transport.hepta',
+    'examples/hia_bootstrap/ndu_evaluator_unicode.hiadat',
+    'examples/hia_bootstrap/release_stage_ndu_evaluator.hiastd',
+    'examples/hia_bootstrap/selfhost.hepta',
+    'examples/hia_bootstrap/source_ndu_evaluator.hepta',
+    'tools/hia_ndu_evaluator_join.S',
+    'tools/hia_ndu_evaluator_syscalls.S',
     'docs/HIA_WORKER_MANIFEST_COMPAT_V1_RECORDS.json',
     'docs/HIA_WORKER_MANIFEST_DEFAULT_RECORDS.json',
     'examples/hia_bootstrap/source_worker_continuation_pack_v2.hepta',
