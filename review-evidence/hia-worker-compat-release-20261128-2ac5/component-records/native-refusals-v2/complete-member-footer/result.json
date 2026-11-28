@@ -1,0 +1,415 @@
+{
+  "commands": [
+    [
+      "/usr/bin/as",
+      "--64",
+      "/home/qq/hia-worker-compat-release-20261128-2ac5/native-refusals-v2/complete-member-footer/mechanical-checkpoint.S",
+      "-o",
+      "/home/qq/hia-worker-compat-release-20261128-2ac5/native-refusals-v2/complete-member-footer/mechanical-checkpoint.o"
+    ],
+    [
+      "/usr/bin/objcopy",
+      "-O",
+      "binary",
+      "-j",
+      ".text",
+      "/home/qq/hia-worker-compat-release-20261128-2ac5/native-refusals-v2/complete-member-footer/mechanical-checkpoint.o",
+      "/home/qq/hia-worker-compat-release-20261128-2ac5/native-refusals-v2/complete-member-footer/mechanical-checkpoint.bin"
+    ],
+    [
+      "/usr/bin/strace",
+      "-f",
+      "-qq",
+      "-s",
+      "120",
+      "-e",
+      "trace=process,execveat",
+      "-o",
+      "/home/qq/hia-worker-compat-release-20261128-2ac5/native-refusals-v2/complete-member-footer/trace.log",
+      "/home/qq/hia-worker-compat-release-20261128-2ac5/native-refusals-v2/complete-member-footer/mechanical-owner"
+    ]
+  ],
+  "executed_dag": {
+    "bytes": 71349,
+    "negative_fixture": true,
+    "path": "/home/qq/hia-worker-compat-release-20261128-2ac5/native-refusals-v1/complete-member-footer.hiastd",
+    "sha256": "e442cea768fedd81bd7f2d1da45c1ebd63bfc88fb81d7a32d808b8a0963893a3"
+  },
+  "expected_native_refusal": {
+    "case": "member-frame",
+    "child_exit_signal_wait": [
+      0,
+      0,
+      0
+    ],
+    "owner_exit": 65
+  },
+  "initial_state": {
+    "bytes": 4194304,
+    "sha256": "2a8850ed741390d90d72b9de7ecd29b6d1fef12b29ab54518dd165b2c35f5aa0"
+  },
+  "inputs": {
+    "examples/hia_bootstrap/release_stage_worker_compat.hiastd": {
+      "bytes": 71349,
+      "sha256": "3ca6629d7059015e61a449039bc188b893167cd9b46ad5c7b465a6a9f9b2f6a8"
+    },
+    "examples/hia_bootstrap/selfhost.hepta": {
+      "bytes": 474960,
+      "sha256": "4280fe2c1b14ee1345e92dd55927b5f4dc2cca35f34da02cca85832151a61359"
+    },
+    "examples/hia_bootstrap/sha256_stream.hepta": {
+      "bytes": 31728,
+      "sha256": "80df3148e5dc8df8ab4c43e5d1edd1b4057dcdcffe5a06c3635bfee17a779054"
+    },
+    "examples/hia_bootstrap/source_build_packer.hepta": {
+      "bytes": 23189,
+      "sha256": "7e57561ac5623e662b86549bdcf02c673f1192aadedebb69a7344b0f51616d69"
+    },
+    "examples/hia_bootstrap/source_filter_member.hepta": {
+      "bytes": 462771,
+      "sha256": "7f2c8e916bc0d7ce419e23f688d2653cdc0c2703e023fcfd5e421ed97200f51b"
+    },
+    "examples/hia_bootstrap/source_release_kit.hepta": {
+      "bytes": 99472,
+      "sha256": "c7f634307652438f8fa4ded55d6a16fd018adb74b77526de49bdfaefd21c962b"
+    },
+    "examples/hia_bootstrap/source_worker_manifest_compat_v1.hepta": {
+      "bytes": 120143,
+      "sha256": "6d4d40b353fd4fc6a7d1e2cd6bc086a272e25b784d59f87400bfc2978cb05607"
+    },
+    "examples/hia_bootstrap/source_worker_manifest_current.hepta": {
+      "bytes": 120143,
+      "sha256": "aa3bfa6c9f5bba6056bd5dc37a2e777dc03aa34eb275ac40ee3aa3e98045c2f4"
+    },
+    "examples/hia_bootstrap/worker_install_v1_byte_wrapper.hiastd": {
+      "bytes": 14235,
+      "sha256": "acd672fbda2443f8711be46dcea80718a7c712f0e4b27adc5e07c19ea066b0e1"
+    },
+    "examples/hia_bootstrap/worker_install_v1_core_emitter.hiastd": {
+      "bytes": 14235,
+      "sha256": "2204f364bbd95b30e9ff85c086e0b086897d9a63755abd8f7b762e20390b649a"
+    },
+    "examples/hia_bootstrap/worker_install_v1_core_lowering.hiastd": {
+      "bytes": 38506,
+      "sha256": "ceef4382edd9b1927a2468716d9e12653c5ccea5dd224b4f631248855f2b693b"
+    },
+    "examples/hia_bootstrap/worker_install_v1_dag.hepta": {
+      "bytes": 425762,
+      "sha256": "1818587133639270937cf1134212eb3fc3053ff50fc3288d116dcea0f20f51b3"
+    },
+    "examples/hia_bootstrap/worker_install_v1_entry.hepta": {
+      "bytes": 253513,
+      "sha256": "cc363007519b21a52ab24495d33fac7d5d38bab58226fbd6e2cf730c92fd03b7"
+    },
+    "examples/hia_bootstrap/worker_install_v1_entry.hiastd": {
+      "bytes": 3862,
+      "sha256": "be5ee9dfdeed29bd210859470c6b687cb3d30d8edb80177660aec16dea044773"
+    },
+    "examples/hia_bootstrap/worker_install_v1_entry_bind.hepta": {
+      "bytes": 48382,
+      "sha256": "fda8f1f2c190512be64919b70c588f2a4e1d2dfab3576907ac60313f75ae0433"
+    },
+    "examples/hia_bootstrap/worker_install_v1_entry_packer.hepta": {
+      "bytes": 23462,
+      "sha256": "2bde73f31f79899c5b1dcf43173c23085f27e38206861e0229587d342ba41d37"
+    },
+    "examples/hia_bootstrap/worker_install_v1_evaluate_full.hiastd": {
+      "bytes": 129328,
+      "sha256": "3ec3c09991b2049ff1684b2ba41bfcba12bd55029fa0c1b5941018a81bc85ad6"
+    },
+    "examples/hia_bootstrap/worker_install_v1_evaluate_intake.hiastd": {
+      "bytes": 114996,
+      "sha256": "800773a43c96e1f9f43051f66553aa14bf0777a772a1cabb7de5e5482567d275"
+    },
+    "examples/hia_bootstrap/worker_install_v1_evaluate_replay.hiastd": {
+      "bytes": 111410,
+      "sha256": "5f9ee8fb5480054fefbd38a489463bef042c87d46a8b1812585a832fa375b815"
+    },
+    "examples/hia_bootstrap/worker_install_v1_execution_observation.hiastd": {
+      "bytes": 13718,
+      "sha256": "ff3ba827a119f6b0c9831d6cfbdc6993c63945ebc6eaed6cef821bd304e94e2c"
+    },
+    "examples/hia_bootstrap/worker_install_v1_helpers.hiastd": {
+      "bytes": 39039,
+      "sha256": "36ec7ebc52f801319435efa380cfa43fae38a358b1a70854ff2c5ef3d835e7d6"
+    },
+    "examples/hia_bootstrap/worker_install_v1_identity.hiastd": {
+      "bytes": 104303,
+      "sha256": "d4c322a3ea67d20d801b6c5a9f1bfc5152bdc28f526f2d0abc692966fb04524b"
+    },
+    "examples/hia_bootstrap/worker_install_v1_machine_object.hiastd": {
+      "bytes": 18483,
+      "sha256": "cab6a6e34d28f3ba9e68c29f528bf8dd12f3f427647ec88f3dc78f8f700b4a02"
+    },
+    "examples/hia_bootstrap/worker_install_v1_native.hiastd": {
+      "bytes": 108484,
+      "sha256": "c2a923797b4ff1b9e64e2356f21c5c775a96a46d85bd082c73d4716b6490f0b5"
+    },
+    "examples/hia_bootstrap/worker_install_v1_owner.hepta": {
+      "bytes": 451248,
+      "sha256": "20c5eecd913cf4e2c90acbd9745d078ee404fbc3bd98fa4b75c52661d9f23336"
+    },
+    "examples/hia_bootstrap/worker_install_v1_owner_packer.hepta": {
+      "bytes": 22190,
+      "sha256": "10bb45ece4ffb7966b0e53563473379bde20911a903c202dcafcadd1697e2c0b"
+    },
+    "examples/hia_bootstrap/worker_install_v1_profile.hiastd": {
+      "bytes": 7174,
+      "sha256": "12a4062af737ad6939c38767d7b97526c37e6ca9a16bb16860cf55e30b266b87"
+    },
+    "examples/hia_bootstrap/worker_install_v1_read.hiastd": {
+      "bytes": 17989,
+      "sha256": "c11f7c25cccde8837d8e56599c6e3ce69a84574cf56a75a01b51d87656f2cfba"
+    },
+    "examples/hia_bootstrap/worker_install_v1_readonly.hiastd": {
+      "bytes": 30213,
+      "sha256": "95a8a83ae5067cd25f7c797d8e1a91026e6120f521554764a74df10f9b12f42e"
+    },
+    "examples/hia_bootstrap/worker_install_v1_report.hiastd": {
+      "bytes": 4524,
+      "sha256": "05b467b2e1d0134e9b85f5411a31fc7c9b5dfafbfeacd511907473b060d15e22"
+    },
+    "examples/hia_bootstrap/worker_install_v2_byte_wrapper.hiastd": {
+      "bytes": 14229,
+      "sha256": "2b6b1252f7c67ad6651cda30cc0a98c1597c27d1105d8d7c9a2372384ada4adc"
+    },
+    "examples/hia_bootstrap/worker_install_v2_core_emitter.hiastd": {
+      "bytes": 14229,
+      "sha256": "e3fdf0a92c42ff57cdc6f46c41fc52a82d98559a77dae598d1bffa3248121e70"
+    },
+    "examples/hia_bootstrap/worker_install_v2_core_lowering.hiastd": {
+      "bytes": 38500,
+      "sha256": "8919a74e5e458b0ef3afe3a39aa39400644869966d8f35d9d1e8a107b7e510d7"
+    },
+    "examples/hia_bootstrap/worker_install_v2_dag.hepta": {
+      "bytes": 425762,
+      "sha256": "eec68d845692a0050a5e1df5ebdc268f6b4cbd3d4c67891fab273e32b8236bfb"
+    },
+    "examples/hia_bootstrap/worker_install_v2_entry.hepta": {
+      "bytes": 253513,
+      "sha256": "d62f24b0f8ef699ffcbe7fd00434798375b1129857e406b96556badf1fb222dd"
+    },
+    "examples/hia_bootstrap/worker_install_v2_entry.hiastd": {
+      "bytes": 3859,
+      "sha256": "db1b3e35f55733b294163dbe1db94a9be74f60340304e0cd99a1cc610ee707d7"
+    },
+    "examples/hia_bootstrap/worker_install_v2_entry_bind.hepta": {
+      "bytes": 48382,
+      "sha256": "fda8f1f2c190512be64919b70c588f2a4e1d2dfab3576907ac60313f75ae0433"
+    },
+    "examples/hia_bootstrap/worker_install_v2_entry_packer.hepta": {
+      "bytes": 23462,
+      "sha256": "2bde73f31f79899c5b1dcf43173c23085f27e38206861e0229587d342ba41d37"
+    },
+    "examples/hia_bootstrap/worker_install_v2_evaluate_full.hiastd": {
+      "bytes": 129325,
+      "sha256": "077029f4df8de8bad6f2ad0f4099b1952069e647277c4d1ce198c0b9e6d94cb8"
+    },
+    "examples/hia_bootstrap/worker_install_v2_evaluate_intake.hiastd": {
+      "bytes": 114993,
+      "sha256": "3e48095b4d06f8bd780f2808149e125769e6a55f30158e4d939fdee444147eb8"
+    },
+    "examples/hia_bootstrap/worker_install_v2_evaluate_replay.hiastd": {
+      "bytes": 111407,
+      "sha256": "3ad3dea4aa2558622a4838d600f11cf8656ac53cdd9db76189d9cc8abb4424d8"
+    },
+    "examples/hia_bootstrap/worker_install_v2_execution_observation.hiastd": {
+      "bytes": 13712,
+      "sha256": "a48708b4da31b5b8cf7fe7376c87296b2e9e0840c13ec9deddbb55c3fc36ea71"
+    },
+    "examples/hia_bootstrap/worker_install_v2_helpers.hiastd": {
+      "bytes": 43186,
+      "sha256": "a8177ff33951be84357ebd2e5125e124f13dcc3c83497dca95ed1c5b66042355"
+    },
+    "examples/hia_bootstrap/worker_install_v2_identity.hiastd": {
+      "bytes": 104303,
+      "sha256": "d4c322a3ea67d20d801b6c5a9f1bfc5152bdc28f526f2d0abc692966fb04524b"
+    },
+    "examples/hia_bootstrap/worker_install_v2_machine_object.hiastd": {
+      "bytes": 18477,
+      "sha256": "8c6a640e9087d3a876cc254e7f16967cb42a91718d1aab39b5bef48c9cc68620"
+    },
+    "examples/hia_bootstrap/worker_install_v2_native.hiastd": {
+      "bytes": 108481,
+      "sha256": "41090611bad33ecbe541a14f064ed30e5446bfe7e186075206c13b4caa9e1bab"
+    },
+    "examples/hia_bootstrap/worker_install_v2_owner.hepta": {
+      "bytes": 451248,
+      "sha256": "c6d66dfa63a4a1af49bac7f2f556fac222b43b8123ba1697278be9259c308328"
+    },
+    "examples/hia_bootstrap/worker_install_v2_owner_packer.hepta": {
+      "bytes": 22190,
+      "sha256": "10bb45ece4ffb7966b0e53563473379bde20911a903c202dcafcadd1697e2c0b"
+    },
+    "examples/hia_bootstrap/worker_install_v2_profile.hiastd": {
+      "bytes": 11248,
+      "sha256": "15c0d8571076779138d99d7231c53bbe0825ccb53c35ee593a688a5bba1ec2e5"
+    },
+    "examples/hia_bootstrap/worker_install_v2_read.hiastd": {
+      "bytes": 17986,
+      "sha256": "2870a38d642c37187d11b96b10706953e48365f55c83143f572f5d67d809c6db"
+    },
+    "examples/hia_bootstrap/worker_install_v2_readonly.hiastd": {
+      "bytes": 30210,
+      "sha256": "86ecd843b6df23532315db08535ed0b82ac6ba84b7afee776c45cd3297b47d98"
+    },
+    "examples/hia_bootstrap/worker_install_v2_report.hiastd": {
+      "bytes": 20116,
+      "sha256": "cceeb02a6e8628e2c2fc5991b194d5b01f12d265ce2c74d4982d6aa94af40335"
+    },
+    "examples/hia_bootstrap/worker_manifest_compat_v1_tables.hiastd": {
+      "bytes": 300239,
+      "sha256": "9eec4c03e90e221cb5c59c4a6b4e903febab67c6a16d5e527fdbf1bd2f4f7924"
+    },
+    "examples/hia_bootstrap/worker_manifest_current_tables.hiastd": {
+      "bytes": 303820,
+      "sha256": "73ac6259e9780988e4957f8cafdd01759262c1b2f72116c7cda5add9c51068f2"
+    },
+    "tools/hia_release_owner_syscalls.S": {
+      "bytes": 3522,
+      "sha256": "f91414c1f20d658d6481276525bc6566b3ea6ce8b885636020e2e22087ba595e"
+    },
+    "tools/hia_worker_install_entry_syscalls.S": {
+      "bytes": 3528,
+      "sha256": "617195dc6553aec4158f1d847cb95690e85f21e3b84b999ebfa36f3c21f3d364"
+    },
+    "tools/hia_worker_install_owner_syscalls.S": {
+      "bytes": 3528,
+      "sha256": "0f79cc912b95c281100da1046cbcc230f1fa05000892707a2b65592e59d7fbae"
+    }
+  },
+  "last_child_receipt": {
+    "exit_code": 0,
+    "magic": "HIASBR01",
+    "pid": 3877732,
+    "signal": 0,
+    "stderr_bytes": 0,
+    "stdout_bytes": 2554274,
+    "wait_status": 0
+  },
+  "mechanical_capsule": {
+    "bytes": 904583,
+    "sha256": "d0ed76080057c0ea24ba4c24b21a10f5a4e7cad4e39f41a10e16d67e2318adc0"
+  },
+  "native_parts": [
+    {
+      "bytes": 558815,
+      "sha256": "bb221b38f97b1989b6479a161050ac4dd9fb3df032173f81090d6c9ddab6c087"
+    },
+    {
+      "bytes": 311494,
+      "sha256": "6bff2851a42a4e316ff3b21d590c5e93de8d6de37924294da6c5d1eb87d39dfb"
+    },
+    {
+      "bytes": 33264,
+      "sha256": "d18077e7a13f00859e61101cf487ae579def62df2f5288066dfbb305ae386bfc"
+    }
+  ],
+  "owner": {
+    "bytes": 904435,
+    "sha256": "9cd34906ad54cb64ab0182cc882741278db2d9ed1b7bd260a665a3fc85bf4c88"
+  },
+  "passed": true,
+  "physical_inputs_unchanged": true,
+  "prerequisites": [
+    {
+      "bytes": 198303,
+      "sha256": "a2d80e53f9616b5ec7acb4e24b600cb2cff9b42fb72024fef0cf5f955c28c684"
+    },
+    {
+      "bytes": 813129,
+      "sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af"
+    },
+    {
+      "bytes": 136645,
+      "sha256": "4acb5f95653a055b76e034ccfa26ce373178c4b4789646e5fce1d7a83df36485"
+    },
+    {
+      "bytes": 641344,
+      "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+    },
+    {
+      "bytes": 184450,
+      "sha256": "9dd1bac3a5bf88422b089f3370fd9443c376b6b322082fab6a3928c9437a2425"
+    }
+  ],
+  "products": {},
+  "request": {
+    "bytes": 5683,
+    "sha256": "cd629097063996834538bfa3f96c545fa31088bbc6575c0fc9acc92d9a212bf8"
+  },
+  "returncode": 65,
+  "schema": "hepta.hia.worker-compat-stage-native-component.v1",
+  "scope": "explicit mutated DAG native refusal component only",
+  "seconds": 11.194446516688913,
+  "source_kit": {
+    "bytes": 796132,
+    "sha256": "68f3086de87e964ba93f0d070976f672e7066a4b736cf6575f2c7fa708496ef7"
+  },
+  "source_kit_calls": [
+    {
+      "input": {
+        "bytes": 597749,
+        "sha256": "e3c3a85b697917e61f7fdce661e0ac32aaf7e668e53c18e3c56ccfd645c70706"
+      },
+      "operation": "sources",
+      "returncode": 0,
+      "seconds": 0.4520230293273926,
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 1393156,
+        "sha256": "f73ec6d31a150d31f320b678af940b38cd4a0352cf4637a4f4f69743b3201c83"
+      }
+    },
+    {
+      "input": {
+        "bytes": 1393156,
+        "sha256": "f73ec6d31a150d31f320b678af940b38cd4a0352cf4637a4f4f69743b3201c83"
+      },
+      "operation": "pack",
+      "returncode": 0,
+      "seconds": 0.4581591170281172,
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 796132,
+        "sha256": "68f3086de87e964ba93f0d070976f672e7066a4b736cf6575f2c7fa708496ef7"
+      }
+    }
+  ],
+  "terminal": {
+    "dag_index": 0,
+    "node_index": 306,
+    "operation": 8,
+    "phase": 99999,
+    "plan": [
+      60,
+      65,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "previous_phase": 5512,
+    "published": 0
+  },
+  "terminal_state": {
+    "bytes": 4194440,
+    "sha256": "0e6cbd931c87b35852c064683669d693f90f4267dee075d0e22ba1ba877b19e3"
+  }
+}
