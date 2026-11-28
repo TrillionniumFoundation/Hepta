@@ -19,10 +19,9 @@ from pathlib import Path
 import struct
 import types
 
-from .hia_emission_native import _global_value
+from .hia_service_artifact_bridge import _global_value, _regular_bytes
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
 from .hia_native_delivery import DeliveryRecord, request_rejections
-from .hia_store_lifecycle_native import _regular_bytes
 from .hia_service_artifact_protocol import (
     SELECTOR, SCHEMA, SOURCE_NAME, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC,
     REQUEST_BYTES, OUTPUT_BYTES, STATE_BYTES, INITIALIZE, CLAIM, SUCCEEDED,
@@ -86,7 +85,35 @@ class ServiceArtifactUnknown(RuntimeError):
 
 
 class NativeServiceArtifact(NativeHiaJsonImage):
-    pass
+    def __init__(self, image, expected_sha256):
+        import platform
+        if (platform.system() != 'Linux' or platform.machine() != 'x86_64'
+                or ctypes.sizeof(ctypes.c_void_p) != 8):
+            raise ValueError('native HIA JSON image requires Linux x86-64 LP64')
+        if (type(image) is not bytes or not 0 < len(image) <= 1 << 20
+                or sha256(image).hexdigest() != expected_sha256):
+            raise ValueError('native HIA JSON executable identity mismatch')
+        from .hia_native_image import selected_extension
+        carrier = selected_extension()
+        self._native_image_carrier = carrier
+        if carrier is None:
+            super().__init__(image, expected_sha256)
+        else:
+            self.image_sha256 = expected_sha256
+            self._mapping = carrier.Image(image)
+            self._entry = self._mapping
+
+
+def _frame_buffer(image, *arguments):
+    carrier = getattr(image, '_native_image_carrier', None)
+    return ctypes.create_string_buffer(*arguments) if carrier is None else carrier.Buffer(*arguments)
+
+
+def _buffer_canary(image, buffer, offset, raw):
+    if getattr(image, '_native_image_carrier', None) is None:
+        ctypes.memmove(ctypes.addressof(buffer) + offset, raw, len(raw))
+    else:
+        memoryview(buffer)[offset:offset + len(raw)] = raw
 
 
 @lru_cache(maxsize=3)
@@ -192,6 +219,9 @@ class ServiceArtifactFrame:
     def __init__(self, image, service, arguments, *, namespace=None):
         if type(image) is not NativeServiceArtifact:
             raise TypeError('native service artifact requires an admitted image')
+        if getattr(image, '_native_image_carrier', None) is not None:
+            from .hia_native_image import admit_runtime
+            admit_runtime()
         from . import hia_agent_service
         self.runtime_namespace = namespace is None
         if namespace is None:
@@ -211,8 +241,8 @@ class ServiceArtifactFrame:
         self.data['service'], self.data['arguments'] = service, arguments
         self.result = None
         self.identity = struct.unpack('<2Q', os.urandom(16))
-        self.buffer = ctypes.create_string_buffer(STATE_BYTES + 16)
-        ctypes.memmove(ctypes.addressof(self.buffer) + STATE_BYTES, b'\xb7' * 16, 16)
+        self.buffer = _frame_buffer(image, STATE_BYTES + 16)
+        _buffer_canary(image, self.buffer, STATE_BYTES, b'\xb7' * 16)
         self.receipt = None
         self.fenced = self.finished = self.native_failed = False
         self._pending_foreign = None
@@ -243,9 +273,9 @@ class ServiceArtifactFrame:
         try:
             port, sequence = (0, 0) if self.receipt is None else (self.receipt.port, self.receipt.sequence)
             raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation, 1, *self.identity, 0, 0)
-            source = ctypes.create_string_buffer(raw + b'\xc9' * 16, REQUEST_BYTES + 16)
-            output = ctypes.create_string_buffer(OUTPUT_BYTES + 16)
-            ctypes.memmove(ctypes.addressof(output) + OUTPUT_BYTES, b'\xa5' * 16, 16)
+            source = _frame_buffer(self.image, raw + b'\xc9' * 16, REQUEST_BYTES + 16)
+            output = _frame_buffer(self.image, OUTPUT_BYTES + 16)
+            _buffer_canary(self.image, output, OUTPUT_BYTES, b'\xa5' * 16)
             record.enter_native()
             handed_off = True
             code = self.image._entry(source, REQUEST_BYTES, output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
@@ -401,3 +431,7 @@ class ServiceArtifactFrame:
             # release. The returned dictionary independently keeps its ref.
             d.clear()
         return 0
+
+
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

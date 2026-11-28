@@ -411,7 +411,14 @@ class ServiceVerificationFrame:
             self.namespace, self.global_builtins, self.import_capsules)
 
     def _make_acyclic(self):
-        return _AcyclicInvocation(self).acyclic
+        from .hia_cell_frame import selected_extension
+        carrier = selected_extension()
+        if carrier is None:
+            return _AcyclicInvocation(self).acyclic
+        captured = self._capture('blocks', 'visiting', 'done', 'acyclic').cells
+        cells = carrier.CellBindings(tuple(captured), tuple(captured.values()), _read_empty_free_cell)
+        return carrier.FrameCallback(ServiceVerificationFrame, self.image, ACYCLIC, cells,
+            self.namespace, self.global_builtins, self.import_capsules)
 
     def _make_finish(self, evidence):
         image, namespace, captured = self.image, self.namespace, self.global_builtins
@@ -3711,3 +3718,7 @@ class ServiceVerificationFrame:
         g = self._global
         self._release_exception_stack()
         return 0
+
+
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)
