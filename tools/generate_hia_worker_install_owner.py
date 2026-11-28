@@ -112,7 +112,9 @@ def raw_policies():
     dag+='\n'+WORKER_DAG
     return policy,dag
 
-def constant_source():
+def constant_source(protocol="03"):
+    from tools.hia_worker_protocols import protocol as selected_protocol
+    selected = selected_protocol(protocol)
     rows=[];words={};cursor=1808000
     def add(name,raw):
         nonlocal cursor
@@ -122,7 +124,7 @@ def constant_source():
         return words['W_C_'+name],len(raw)
     for name,raw in TEXT.items():add(name,raw)
     for i,kind in enumerate(STAGES):
-        pos,size=add('STAGE_'+str(i),('examples/hia_bootstrap/worker_install_'+kind+'.hiastd').encode())
+        pos,size=add('STAGE_'+str(i),('examples/hia_bootstrap/'+selected.install_stem+'_'+kind+'.hiastd').encode())
         rows.extend(('    put(w, %d, %d)'%(1812000+i*16,pos),'    put(w, %d, %d)'%(1812008+i*16,size)))
     if cursor>=1812000:raise ValueError('Worker constants overlap the stage table')
     from tools.generate_hia_controller_install import ROLES
@@ -144,11 +146,11 @@ def constant_source():
     words['W_MAGIC_CONFIG']=int.from_bytes(b'HIAWCF01','little')
     words['W_MAGIC_CONFIG_REQUEST']=int.from_bytes(b'HIAWCB01','little')
     words['W_MAGIC_CONFIG_OK']=int.from_bytes(b'HIAWCO01','little')
-    words['W_MAGIC_OPTIONS']=int.from_bytes(b'HIAWOP01','little')
+    words['W_MAGIC_OPTIONS']=int.from_bytes(selected.options_magic,'little')
     return words,'\ndef worker_constants(w:mutbuf) -> u64:\n'+'\n'.join(rows)+'\n    return 0\n'
 
-def policy_source(*,stage=False):
-    policy,dag=raw_policies();words,constants=constant_source();old=(base.POLICY,base.DAG_POLICY,base.MAGICS['OWNER'])
+def policy_source(*,stage=False,protocol="03"):
+    policy,dag=raw_policies();words,constants=constant_source(protocol);old=(base.POLICY,base.DAG_POLICY,base.MAGICS['OWNER'])
     base.POLICY=policy+constants;base.DAG_POLICY=dag;base.MAGICS['OWNER']=b'HIAWIN01'
     try:source=base.policy_source(stage=stage)
     finally:base.POLICY,base.DAG_POLICY,base.MAGICS['OWNER']=old
@@ -170,8 +172,10 @@ def packer_source():
     finally:base.template=old
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');a=p.parse_args()
-    for name,source in (('worker_install_owner',policy_source()),('worker_install_dag',policy_source(stage=True)),('worker_install_owner_packer',packer_source())):
+    from tools.hia_worker_protocols import protocol, PROTOCOLS
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');p.add_argument('--protocol',choices=PROTOCOLS,default='03');a=p.parse_args()
+    selected=protocol(a.protocol)
+    for name,source in ((selected.install_stem+'_owner',policy_source(protocol=a.protocol)),(selected.install_stem+'_dag',policy_source(stage=True,protocol=a.protocol)),(selected.install_stem+'_owner_packer',packer_source())):
         doc=document(source,name);raw=render_assembly(doc).encode();path=ROOT/'examples/hia_bootstrap'/(name+'.hepta')
         if a.check:
             if path.read_bytes()!=raw:raise SystemExit(name+' differs')
