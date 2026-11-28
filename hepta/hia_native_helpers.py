@@ -129,20 +129,32 @@ _MECHANICAL_SCOPE = None
 _MECHANICAL_SELECTED = False
 
 
+def _ordinary_active_binding():
+    active = _ACTIVE
+    if type(active).__module__ == __package__ + '.hia_current_carrier_worker_bundle':
+        from .hia_current_carrier_worker_bundle import NativeCurrentCarrierWorkerBinding
+        if type(active) is not NativeCurrentCarrierWorkerBinding:
+            raise ValueError('unknown current carrier Worker custody type')
+        return active.ordinary_binding()
+    return active
+
+
 def _core_companion_binding():
     from .hia_core_companion_worker_bundle import NativeCoreCompanionWorkerBinding
-    if type(_ACTIVE) is NativeCoreCompanionWorkerBinding:
-        return _ACTIVE
-    binding = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+    active = _ordinary_active_binding()
+    if type(active) is NativeCoreCompanionWorkerBinding:
+        return active
+    binding = getattr(active, 'base_binding', active)
     return binding if type(binding) is NativeCoreCompanionWorkerBinding else None
 
 
 def _scheduling_owner_binding():
     from .hia_core_companion_worker_bundle import NativeCoreCompanionWorkerBinding
-    if type(_ACTIVE) is NativeCoreCompanionWorkerBinding:
-        scheduling = _ACTIVE.base_binding
+    active = _ordinary_active_binding()
+    if type(active) is NativeCoreCompanionWorkerBinding:
+        scheduling = active.base_binding
     else:
-        scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+        scheduling = getattr(active, 'base_binding', active)
         if type(scheduling) is NativeCoreCompanionWorkerBinding:
             scheduling = scheduling.base_binding
     # Page is optional in an old source/package. Its named extension imports
@@ -439,6 +451,16 @@ def native_helpers_scope(path=None, expected_sha256=None):
             _MECHANICAL_SELECTED = True
             from .hia_mechanical_worker_bundle import NativeMechanicalWorkerBinding
             binding = NativeMechanicalWorkerBinding(captured, expected_sha256)
+            _MECHANICAL_SCOPE = binding
+        elif schema == 'hepta.hia.native-helpers.v6' and abi == 'hia-worker-native-carriers-v1':
+            _MECHANICAL_SELECTED = True
+            from .hia_native_carrier_worker_bundle import NativeCarrierWorkerBinding
+            binding = NativeCarrierWorkerBinding(captured, expected_sha256)
+            _MECHANICAL_SCOPE = binding
+        elif (schema == 'hepta.hia.current-carrier-worker-bundle.v1'
+              and abi == 'hia-worker-current-native-carriers-v1'):
+            from .hia_current_carrier_worker_bundle import NativeCurrentCarrierWorkerBinding
+            binding = NativeCurrentCarrierWorkerBinding(captured, expected_sha256)
             _MECHANICAL_SCOPE = binding
         elif schema == 'hepta.hia.native-helpers.v4' and abi == 'hia-worker-artifact-delivery-v1':
             from .hia_artifact_delivery_worker import NativeArtifactWorkerBinding

@@ -1,0 +1,191 @@
+{
+  "commands": [
+    [
+      "/usr/bin/as",
+      "--64",
+      "/home/qq/hia-native-carrier-policy-20261128-2ac5/stage19-native-component-v2/qualification/mechanical-checkpoint.S",
+      "-o",
+      "/home/qq/hia-native-carrier-policy-20261128-2ac5/stage19-native-component-v2/qualification/mechanical-checkpoint.o"
+    ],
+    [
+      "/usr/bin/objcopy",
+      "-O",
+      "binary",
+      "-j",
+      ".text",
+      "/home/qq/hia-native-carrier-policy-20261128-2ac5/stage19-native-component-v2/qualification/mechanical-checkpoint.o",
+      "/home/qq/hia-native-carrier-policy-20261128-2ac5/stage19-native-component-v2/qualification/mechanical-checkpoint.bin"
+    ],
+    [
+      "/usr/bin/strace",
+      "-f",
+      "-qq",
+      "-s",
+      "120",
+      "-e",
+      "trace=process,execveat",
+      "-o",
+      "/home/qq/hia-native-carrier-policy-20261128-2ac5/stage19-native-component-v2/qualification/trace.log",
+      "/home/qq/hia-native-carrier-policy-20261128-2ac5/stage19-native-component-v2/qualification/mechanical-owner"
+    ]
+  ],
+  "initial_state": {
+    "bytes": 4194304,
+    "sha256": "fa6ec83ff00035624d767c6b9add50afd25a77b48b71535aa50e250082cf52c6"
+  },
+  "inputs": {
+    "examples/hia_bootstrap/carrier_cell_policy.hepta": {
+      "bytes": 61958,
+      "sha256": "e331161060a35599f1233aa9354e5b0b455060b83f9ebae2391279514608d21a"
+    },
+    "examples/hia_bootstrap/carrier_image_policy.hepta": {
+      "bytes": 45032,
+      "sha256": "914e426df69e01fd54ce926c60c9c33c08dcae82482bee77a7ab48ec430d560a"
+    },
+    "examples/hia_bootstrap/release_stage_carrier_policies.hiastd": {
+      "bytes": 2412,
+      "sha256": "ba5a41ac144dd7729e6954b4bce76be22abbf5a1c6245f7fcf91186903901bca"
+    },
+    "tools/hia_release_owner_syscalls.S": {
+      "bytes": 3522,
+      "sha256": "f91414c1f20d658d6481276525bc6566b3ea6ce8b885636020e2e22087ba595e"
+    }
+  },
+  "mechanical_capsule": {
+    "bytes": 904583,
+    "sha256": "d0ed76080057c0ea24ba4c24b21a10f5a4e7cad4e39f41a10e16d67e2318adc0"
+  },
+  "native_parts": [
+    {
+      "bytes": 558815,
+      "sha256": "bb221b38f97b1989b6479a161050ac4dd9fb3df032173f81090d6c9ddab6c087"
+    },
+    {
+      "bytes": 311494,
+      "sha256": "6bff2851a42a4e316ff3b21d590c5e93de8d6de37924294da6c5d1eb87d39dfb"
+    },
+    {
+      "bytes": 33264,
+      "sha256": "d18077e7a13f00859e61101cf487ae579def62df2f5288066dfbb305ae386bfc"
+    }
+  ],
+  "native_record": {
+    "compiler": {
+      "bytes": 641344,
+      "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+    },
+    "roles": {
+      "cell": {
+        "image": {
+          "bytes": 94170,
+          "sha256": "e4058d33734c20fe4c2c55d9416a0f63ba546cc02f63c01c3674f09633a11c6a"
+        },
+        "image_path": "carrier-cell-policy.flat",
+        "source": {
+          "bytes": 61958,
+          "sha256": "e331161060a35599f1233aa9354e5b0b455060b83f9ebae2391279514608d21a"
+        },
+        "source_path": "examples/hia_bootstrap/carrier_cell_policy.hepta"
+      },
+      "image": {
+        "image": {
+          "bytes": 69467,
+          "sha256": "9bd6c60bf41d397d5bbded41994325a23508f9a38a4bdf379fa0554d39c8ec2d"
+        },
+        "image_path": "carrier-image-policy.flat",
+        "source": {
+          "bytes": 45032,
+          "sha256": "914e426df69e01fd54ce926c60c9c33c08dcae82482bee77a7ab48ec430d560a"
+        },
+        "source_path": "examples/hia_bootstrap/carrier_image_policy.hepta"
+      }
+    },
+    "seed": {
+      "bytes": 813129,
+      "sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af"
+    }
+  },
+  "owner": {
+    "bytes": 904435,
+    "sha256": "9cd34906ad54cb64ab0182cc882741278db2d9ed1b7bd260a665a3fc85bf4c88"
+  },
+  "passed": true,
+  "physical_inputs_unchanged": true,
+  "prerequisites": [
+    {
+      "bytes": 198303,
+      "sha256": "a2d80e53f9616b5ec7acb4e24b600cb2cff9b42fb72024fef0cf5f955c28c684"
+    },
+    {
+      "bytes": 813129,
+      "sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af"
+    },
+    {
+      "bytes": 136645,
+      "sha256": "4acb5f95653a055b76e034ccfa26ce373178c4b4789646e5fce1d7a83df36485"
+    },
+    {
+      "bytes": 641344,
+      "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+    },
+    {
+      "bytes": 184450,
+      "sha256": "9dd1bac3a5bf88422b089f3370fd9443c376b6b322082fab6a3928c9437a2425"
+    }
+  ],
+  "products": {
+    "carrier-cell-policy.flat": {
+      "bytes": 94170,
+      "mode": 256,
+      "sha256": "e4058d33734c20fe4c2c55d9416a0f63ba546cc02f63c01c3674f09633a11c6a"
+    },
+    "carrier-image-policy.flat": {
+      "bytes": 69467,
+      "mode": 256,
+      "sha256": "9bd6c60bf41d397d5bbded41994325a23508f9a38a4bdf379fa0554d39c8ec2d"
+    },
+    "carrier-policies.hiadat": {
+      "bytes": 304,
+      "mode": 256,
+      "sha256": "a98a3fe382aac7f62a20de387a87b90197016cf0d1189dd33973698963150214"
+    }
+  },
+  "request": {
+    "bytes": 590,
+    "sha256": "db87e0b52071ef57bba50472eda72fb1d137afc3ee985e442e11248582969e08"
+  },
+  "returncode": 0,
+  "schema": "hepta.hia.carrier-stage-native-component.v1",
+  "scope": "actual native DAG component; no full cold/release/install claim",
+  "seconds": 0.5249202786944807,
+  "terminal": {
+    "dag_index": 1,
+    "node_index": 41,
+    "operation": 7,
+    "phase": 5000,
+    "plan": [
+      3,
+      41,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "previous_phase": 5010,
+    "published": 3
+  },
+  "terminal_state": {
+    "bytes": 4194440,
+    "sha256": "d39a601014e0704ec64835cf1d41ad2135d52a878f4d6dd339f7bb16a2730fa2"
+  }
+}
