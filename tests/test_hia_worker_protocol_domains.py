@@ -33,6 +33,49 @@ class WorkerProtocolDomainTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 protocol(bad)
 
+    def test_product_authors_require_explicit_native_authority(self):
+        from tools.generate_hia_worker_protocol_sources import generated_files
+        from tools.generate_hia_worker_protocol_manifest import generated_files as manifest_files
+        with self.assertRaisesRegex(ValueError,"explicit native source authority"):
+            generated_files()
+        for number in ("01","02","03"):
+            with self.subTest(protocol=number), self.assertRaisesRegex(ValueError,"explicit native source authority"):
+                manifest_files(protocol=number)
+
+    def test_captured_native_authority_parser_ignores_later_path_contents(self):
+        from tools.hia_native_worker_source_authority import parse_native_source_authority, load_native_source_authority
+        first=json.dumps({"schema":"hepta.hia.native-source-authority.v1","paths":["a.hepta"]}).encode()
+        second=json.dumps({"schema":"hepta.hia.native-source-authority.v1","paths":["b.hepta"]}).encode()
+        with tempfile.TemporaryDirectory(prefix="hia-worker-authority-") as tmp:
+            path=Path(tmp)/"authority.json";path.write_bytes(first)
+            captured=path.read_bytes();path.write_bytes(second)
+            self.assertEqual(parse_native_source_authority(captured),("a.hepta",))
+            self.assertEqual(load_native_source_authority(path),("b.hepta",))
+        for bad in (b'{"schema":"hepta.hia.native-source-authority.v1","paths":["a.hepta"],"paths":["b.hepta"]}',
+                    b'{"schema":"hepta.hia.native-source-authority.v1","paths":["x.py"]}',None):
+            with self.subTest(bad=bad),self.assertRaises(ValueError):
+                parse_native_source_authority(bad)
+
+    def test_default_aggregate_cannot_be_rebound_to_new_sources(self):
+        from tools.qualify_hia_default_worker_manifest import check_original_aggregate
+        from copy import deepcopy
+        policy=b"actual installed policy";image=b"actual installed aggregate";compiler=b"actual compiler"
+        resources={"source.hepta":"a"*64};runtime={"packer.hepta":"b"*64}
+        value=dict(schema="hepta.hia.native-continuation-inprocess.v2",
+            policy_bundle_sha256=hashlib.sha256(policy).hexdigest(),
+            image_sha256=hashlib.sha256(image).hexdigest(),
+            compiler_sha256=hashlib.sha256(compiler).hexdigest(),
+            resource_sha256=resources,runtime_sha256=runtime)
+        kwargs=dict(policy=policy,image=image,compiler=compiler,schema=value["schema"],
+                    resource_pins=resources,runtime_pins=runtime)
+        check_original_aggregate(value,**kwargs)
+        for field,replacement in (("policy_bundle_sha256","c"*64),("image_sha256","c"*64),
+                 ("compiler_sha256","c"*64),("resource_sha256",{"source.hepta":"c"*64}),
+                 ("runtime_sha256",{"packer.hepta":"c"*64}),("schema","hepta.hia.native-continuation-inprocess.v1")):
+            changed=deepcopy(value);changed[field]=replacement
+            with self.subTest(field=field),self.assertRaisesRegex(ValueError,"installed aggregate binding"):
+                check_original_aggregate(changed,**kwargs)
+
     def test_all_sixteen_graph_paths_are_separate(self):
         from tools.hia_worker_protocols import recipe_path
         from tools.generate_hia_worker_install_owner import STAGES

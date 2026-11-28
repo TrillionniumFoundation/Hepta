@@ -58,14 +58,19 @@ def checked_paths(value):
     return paths
 
 
-def load_native_source_authority(path):
-    raw = Path(path).read_bytes()
+def parse_native_source_authority(raw):
+    if type(raw) is not bytes:
+        raise ValueError('native source authority must be captured bytes')
     if len(raw) > 1048576:
         raise ValueError('native source authority document exceeds 1 MiB')
     value = json.loads(raw, object_pairs_hook=_object)
     if type(value) is not dict or set(value) != {'schema', 'paths'} or value['schema'] != SCHEMA:
         raise ValueError('invalid native source authority schema')
     return checked_paths(value['paths'])
+
+
+def load_native_source_authority(path):
+    return parse_native_source_authority(Path(path).read_bytes())
 
 
 def path_table(paths):

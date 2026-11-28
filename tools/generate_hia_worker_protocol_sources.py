@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def generated_files(native_source_authority=None):
+    if native_source_authority is None:
+        raise ValueError("native Worker products require an explicit native source authority")
     from tools.hia_worker_protocols import PROTOCOLS, protocol, recipe_path
     from tools.generate_hia_worker_protocol_manifest import generated_files as manifest_files
     from tools.generate_hia_worker_install_recipes import recipes
@@ -74,7 +76,7 @@ def generated_files(native_source_authority=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--native-source-authority", type=Path)
+    parser.add_argument("--native-source-authority", type=Path, required=True)
     args = parser.parse_args()
     captured = (args.native_source_authority.read_bytes()
                 if args.native_source_authority is not None else None)

@@ -1,0 +1,165 @@
+{
+  "current": {
+    "bytes": 21367,
+    "sha256": "57c3c1701a9bbcd70d935c0a22a1cfd691c4c4eab5e9653f88a543377a06fd73"
+  },
+  "current_path": "tools/qualify_hia_default_worker_manifest.py",
+  "execution_status": "not-yet-run",
+  "original_01_02_files_unchanged": true,
+  "predecessor": {
+    "bytes": 18376,
+    "sha256": "ac3f3c02b8b5a6b18cf306d14213a14f9c312fb2f9bd0a8a388d2cbd9bc5602b"
+  },
+  "predecessor_path": "tools/qualify_hia_current_worker_manifest.py",
+  "schema": "hepta.hia.default-worker-qualification-source-relation.v1",
+  "splices": [
+    {
+      "after": "Qualify all protocol-03 Worker records against an actual native installation.",
+      "before": "Qualify protocol-02 current Worker records against an actual installed Worker."
+    },
+    {
+      "after": "b'HIAWMF03'",
+      "before": "b'HIAWMF02'"
+    },
+    {
+      "after": "EXTENDED_INSTALLED_HELPERS, CURRENT_INSTALLED_HELPERS, AGENT_INSTALLED_HELPERS)",
+      "before": "EXTENDED_INSTALLED_HELPERS, CURRENT_INSTALLED_HELPERS)"
+    },
+    {
+      "after": "from hepta.hia_native_continuation_selection import resource_names",
+      "before": "from hepta.hia_agent_contract import CONTINUATION_BUILD_FILES"
+    },
+    {
+      "after": "    captured = {}\n    def read(path):\n        path = Path(path).resolve(strict=True)\n        raw = path.read_bytes()\n        pin = (len(raw), sha256(raw).hexdigest())\n        name = str(path)\n        if name in captured and captured[name] != pin:\n            raise ValueError(\"qualification input changed: \" + name)\n        captured[name] = pin\n        return raw\n\n    compiler = read(args.compiler)\n",
+      "before": "    compiler = args.compiler.read_bytes()\n"
+    },
+    {
+      "after": "    if native_authority is None or source_pin_file is None:\n        raise ValueError('protocol 03 requires explicit native source authority and independent captured source pins')\n",
+      "before": "    if bool(native_authority) != bool(source_pin_file):\n        raise ValueError('native source authority and independent captured source pins must be supplied together')\n"
+    },
+    {
+      "after": "from tools.hia_native_worker_source_authority import (load_native_source_authority,\n            CONTINUATION_RUNTIME, CONTINUATION_RUNTIME_V2, SOURCE_SUFFIXES)",
+      "before": "from tools.hia_native_worker_source_authority import load_native_source_authority, CONTINUATION_RUNTIME, SOURCE_SUFFIXES"
+    },
+    {
+      "after": "table = read(generated / 'examples/hia_bootstrap/worker_manifest_default_tables.hiastd')",
+      "before": "table = (generated / 'examples/hia_bootstrap/worker_manifest_current_tables.hiastd').read_bytes()"
+    },
+    {
+      "after": "generated / 'examples/hia_bootstrap/source_worker_manifest_default.hepta',\n        generated / 'examples/hia_bootstrap/worker_manifest_default_tables.hiastd'",
+      "before": "generated / 'examples/hia_bootstrap/source_worker_manifest_current.hepta',\n        generated / 'examples/hia_bootstrap/worker_manifest_current_tables.hiastd'"
+    },
+    {
+      "after": "schema='hepta.hia.default-worker-manifest-qualification.v1'",
+      "before": "schema='hepta.hia.current-worker-manifest-qualification.v1'"
+    },
+    {
+      "after": "scope='All protocol-03 native records against an independently installed complete Worker; public runtime remains a separate gate'",
+      "before": "scope='Native component framing; full Worker publication is a separate gate'"
+    },
+    {
+      "after": "    images = {}\n    cases = {}\n    outputs = {}\n    source_pins = json.loads(read(source_pin_file))\n    if (type(source_pins) is not dict or set(source_pins) != set(native_paths)\n            or any(type(pin) is not str or len(pin) != 64 or pin != bytes.fromhex(pin).hex()\n                   for pin in source_pins.values())):\n        raise ValueError('captured native source pin inventory differs from its explicit authority')\n    read(native_authority)\n    for name in native_paths:\n        if sha256(read(root / name)).hexdigest() != source_pins[name]:\n            raise ValueError('physical source differs from independent native source capture: ' + name)\n    record['native_source_paths'] = len(native_paths)\n    record['fixed_protocol'] = '03'\n",
+      "before": "    images = {}\n    cases = {}\n    outputs = {}\n"
+    },
+    {
+      "after": "        source = read(root / relative)\n        source_pin = sha256(source).hexdigest()\n        if source_pins.get(relative) != source_pin:\n            raise ValueError('compiled source is outside the captured native authority: ' + relative)\n",
+      "before": "        source = (root / relative).read_bytes()\n        source_pin = sha256(source).hexdigest()\n"
+    },
+    {
+      "after": "        if old_source_pin is not None:\n            if old_source_pin != source_pin or image != old_image:\n                raise AssertionError('current source/image differs from independent installed image: ' + relative)\n",
+      "before": "        if old_source_pin == source_pin:\n            if image != old_image:\n                raise AssertionError('unchanged source differs from independent installed image: ' + relative)\n"
+    },
+    {
+      "after": "        raw = read(manifest_path)\n        value = json.loads(raw)\n",
+      "before": "        raw = manifest_path.read_bytes()\n        value = json.loads(raw)\n"
+    },
+    {
+      "after": "        if value['compiler_sha256'] != sha256(compiler).hexdigest():\n            raise ValueError('installed image compiler differs from current qualification compiler')\n        old_image = read(manifest_path.parent / value['image_path'])\n",
+      "before": "        old_image = (manifest_path.parent / value['image_path']).read_bytes()\n"
+    },
+    {
+      "after": "original_helpers = json.loads(read(worker / 'helpers.json'))",
+      "before": "original_helpers = json.loads((worker / 'helpers.json').read_bytes())"
+    },
+    {
+      "after": "        names = (*original_names, *(name for _, name in EXTENDED_INSTALLED_HELPERS),\n                 *(name for _, name in AGENT_INSTALLED_HELPERS))\n        installed_names = (*CURRENT_INSTALLED_HELPERS, *(name for _, name in AGENT_INSTALLED_HELPERS))\n        assert len(names) == 45 and len(set(names)) == 45\n        assert len(original_helpers['helpers']) == len(names)\n",
+      "before": "        names = (*original_names, *(name for _, name in EXTENDED_INSTALLED_HELPERS))\n        assert len(names) == 41 and len(original_helpers['helpers']) == len(names)\n"
+    },
+    {
+      "after": "if name in installed_names:",
+      "before": "if name in CURRENT_INSTALLED_HELPERS:"
+    },
+    {
+      "after": "report_value = json.loads(read(worker / 'report/manifest.json'))",
+      "before": "report_value = json.loads((worker / 'report/manifest.json').read_bytes())"
+    },
+    {
+      "after": "wrapped_value = json.loads(read(worker / 'report.json'))",
+      "before": "wrapped_value = json.loads((worker / 'report.json').read_bytes())"
+    },
+    {
+      "after": "        # The full physical native inventory was captured before the first\n        # native call. No hosted-source fallback or projected pin map is used.\n",
+      "before": "        if native_paths is None:\n            source_pins = file_digests(root)\n            source_pins[CONTRACT_PATH] = sha256((root / CONTRACT_PATH).read_bytes()).hexdigest()\n        else:\n            source_pins = json.loads(source_pin_file.read_bytes())\n            if (type(source_pins) is not dict or set(source_pins) != set(native_paths)\n                    or any(type(pin) is not str or len(pin) != 64 or pin != bytes.fromhex(pin).hex()\n                           for pin in source_pins.values())):\n                raise ValueError('captured native source pin inventory differs from its explicit authority')\n"
+    },
+    {
+      "after": "        _, continuation_v1 = compile_image('examples/hia_bootstrap/continuation_policy.hepta')\n        _, continuation_v2 = compile_image('examples/hia_bootstrap/continuation_policy_v2.hepta')\n",
+      "before": "        policy_source, continuation = compile_image('examples/hia_bootstrap/continuation_policy.hepta')\n"
+    },
+    {
+      "after": "            core_v2 = kind == 'core-lowering'\n            abi_path = selected.ABI_SOURCE_V2 if core_v2 else selected.ABI_SOURCE\n            abi_raw = read(root / abi_path)\n            abi = selected.checked_abi_v2(abi_raw) if core_v2 else selected.checked_abi(abi_raw)\n            continuation = continuation_v2 if core_v2 else continuation_v1\n            expected_resources = resource_names(kind, core_v2=core_v2)\n            expected_runtime = (CONTINUATION_RUNTIME + CONTINUATION_RUNTIME_V2\n                                if core_v2 else CONTINUATION_RUNTIME)\n",
+      "before": "            abi_raw = (root / selected.ABI_SOURCE).read_bytes()\n            abi = selected.checked_abi(abi_raw)\n"
+    },
+    {
+      "after": "policy_value = json.loads(read(old_policy_path))",
+      "before": "policy_value = json.loads(old_policy_path.read_bytes())"
+    },
+    {
+      "after": "for name in (('core_lowering_v2_pool' if core_v2 else module + '_pool'), *abi['units']):",
+      "before": "for name in (module + '_pool', *abi['units']):"
+    },
+    {
+      "after": "aggregate_value = json.loads(read(aggregate_path))",
+      "before": "aggregate_value = json.loads(aggregate_path.read_bytes())"
+    },
+    {
+      "after": "image = read(aggregate_path.parent / aggregate_value['image_path'])",
+      "before": "image = (aggregate_path.parent / aggregate_value['image_path']).read_bytes()"
+    },
+    {
+      "after": "            assert set(aggregate_value['resource_sha256']) == set(expected_resources)\n            assert set(aggregate_value['runtime_sha256']) == set(expected_runtime)\n            assert aggregate_value['schema'] == ('hepta.hia.native-continuation-inprocess.v2'\n                                                  if core_v2 else 'hepta.hia.native-continuation-inprocess.v1')\n",
+      "before": "            assert set(aggregate_value['resource_sha256']) == set(CONTINUATION_BUILD_FILES)\n"
+    },
+    {
+      "after": "selected = expected_runtime if field == 'runtime_sha256' else expected_resources",
+      "before": "selected = CONTINUATION_RUNTIME if native_paths is not None and field == 'runtime_sha256' else aggregate_value[field]"
+    },
+    {
+      "after": "assert unit_role == 79",
+      "before": "assert unit_role == 72"
+    },
+    {
+      "after": "scheduled_value = json.loads(read(worker / 'schedulers.json'))",
+      "before": "scheduled_value = json.loads((worker / 'schedulers.json').read_bytes())"
+    },
+    {
+      "after": "        runtime_paths = [p for p in native_paths if Path(p).suffix in SOURCE_SUFFIXES]\n        assert set(scheduled_value['runtime_sha256']) == set(runtime_paths)\n",
+      "before": "        runtime_paths = (sorted('hepta/' + p.name for p in (root / 'hepta').glob('*.py')) if native_paths is None\n                         else [p for p in native_paths if Path(p).suffix in SOURCE_SUFFIXES])\n"
+    },
+    {
+      "after": "assert len(record['positive']) == 145",
+      "before": "assert len(record['positive']) == 134"
+    },
+    {
+      "after": "run('unknown-role', 1, 46, cases[1, 1])",
+      "before": "run('unknown-role', 1, 42, cases[1, 1])"
+    },
+    {
+      "after": "needed = CONTINUATION_RUNTIME[0]",
+      "before": "needed = 'hepta/hia_native_helpers.py' if native_paths is None else CONTINUATION_RUNTIME[0]"
+    },
+    {
+      "after": "        # Retain the entire original refusal matrix above, then add explicit\n        # cross-version and Core-v2 source-domain negatives.\n        for prior in (b'HIAWMF01', b'HIAWMF02'):\n            run('cross-protocol-' + prior.decode(), 1, 1, [], raw=prior + sample[8:])\n        core_role = tuple(FAMILIES).index('core-lowering') + 1\n        for name in CONTINUATION_RUNTIME_V2:\n            pieces = list(cases[8, core_role])\n            pieces[3] = source_inventory([(n,p) for n,p in rows if n != name])\n            run('core-v2-missing-' + Path(name).stem, 8, core_role, pieces)\n        pieces = list(cases[10, core_role])\n        run('core-v2-v1-unit-count', 10, core_role, pieces[:-7])\n        for name, expected in captured.items():\n            raw = Path(name).read_bytes()\n            if (len(raw),sha256(raw).hexdigest()) != expected:\n                raise ValueError('qualification input changed at terminal readback: ' + name)\n        record['complete_captured_inputs'] = {\n            name: dict(bytes=pin[0],sha256=pin[1]) for name,pin in sorted(captured.items())}\n        after = {name: sha256(Path(name).read_bytes()).hexdigest() for name in pins_before}\n",
+      "before": "        after = {name: sha256(Path(name).read_bytes()).hexdigest() for name in pins_before}\n"
+    }
+  ]
+}

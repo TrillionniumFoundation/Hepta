@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def generated_files(native_source_authority=None, *, protocol="03"):
+    if native_source_authority is None:
+        raise ValueError("native Worker manifest requires an explicit native source authority")
     selected = selected_protocol(protocol)
     source, table, spec, stats = render(
         ROOT, native_source_authority, protocol=protocol)
@@ -30,7 +32,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--protocol", choices=PROTOCOLS, default="03")
-    parser.add_argument("--native-source-authority", type=Path)
+    parser.add_argument("--native-source-authority", type=Path, required=True)
     args = parser.parse_args()
     files, stats = generated_files(args.native_source_authority, protocol=args.protocol)
     for name, raw in files.items():
