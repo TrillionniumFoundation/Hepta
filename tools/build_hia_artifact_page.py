@@ -36,6 +36,8 @@ INPUTS = (
     'hepta/hia_native_helpers.py', 'hepta/hia_store_lifecycle_native.py',
     'tools/qualify_hia_artifact_read_callers.py',
     'tests/test_hia_artifact_read_native.py', 'tests/hia_artifact_read_cases.py',
+    'tests/test_hia_artifact_page_service_boundary.py',
+    'tests/fixtures/hia_artifact_page_service_admission_v1.json',
 )
 
 

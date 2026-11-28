@@ -1013,6 +1013,11 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tests/fixtures/hia_artifact_page_service_admission_v1.json',
+    'tests/fixtures/hia_query_cli_component_install_preparation_v1.json',
+    'tests/fixtures/hia_query_cli_component_install_preparation_v2.json',
+    'tests/test_hia_artifact_page_service_boundary.py',
+    'tests/test_hia_query_cli_current_native.py',
     'tests/test_hia_core_host_custody.py',
     'examples/hia_bootstrap/core_host_custody.hiadat',
     'examples/hia_bootstrap/source_core_host_custody.hepta',

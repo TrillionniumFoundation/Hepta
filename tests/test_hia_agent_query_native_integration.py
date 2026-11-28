@@ -327,6 +327,10 @@ class AgentQueryIntegrationTests(AgentQueryFixture, unittest.TestCase):
         (stage / oracle).parent.mkdir(parents=True, exist_ok=True)
         (stage / oracle).write_bytes(oracle_bytes)
         environment = runtime_environment()
+        # Current component installation is an explicit qualification mode.
+        # The public native distribution backend remains a separate whole gate.
+        from tests.hia_component_install_fixture import component_wheel, verify_component_install
+        component = component_wheel(stage)
         dist = directory / "dist"
         wheels = directory / "wheels"
         installed = directory / "installed"
@@ -343,17 +347,19 @@ class AgentQueryIntegrationTests(AgentQueryFixture, unittest.TestCase):
             source = archive.extractfile(prefix + "/examples/hia_bootstrap/agent_query.hepta")
             self.assertEqual(source.read(), SOURCE.read_bytes())
         call_checked([sys.executable, "-m", "pip", "wheel", "--no-index", "--no-deps",
-                      "--no-build-isolation", "--wheel-dir", str(wheels), str(sdists[0])],
+                      "--no-build-isolation", "--wheel-dir", str(wheels), str(component)],
                      cwd=directory, environment=environment, directory=directory, name="wheel", timeout=90)
         wheel_files = list(wheels.glob("*.whl"))
         self.assertEqual(len(wheel_files), 1)
         with zipfile.ZipFile(wheel_files[0]) as wheel:
             self.assertEqual(wheel.read("hepta/_data/examples/hia_bootstrap/agent_query.hepta"), SOURCE.read_bytes())
             self.assertFalse(any(name.endswith("hia_compiler_rename_reference.json.gz") for name in wheel.namelist()))
-        call_checked([sys.executable, "-m", "pip", "install", "--no-index", "--no-deps",
+        call_checked([sys.executable, "-m", "pip", "install", "--no-index", "--no-deps", "--no-compile",
                       "--target", str(installed), str(wheel_files[0])],
                      cwd=directory, environment=environment, directory=directory, name="install", timeout=60)
         self.assertFalse(list((installed / "hepta/_data").rglob("hia_compiler_rename_reference.json.gz")))
+        component_install = verify_component_install(component, installed, installed_from=wheel_files[0])
+        record(directory / "current-component-install-custody.json", component_install)
         bundle = directory / "bundle.json"
         pin = make_bundle(bundle, self.manifest)
         source = fixture()
@@ -396,6 +402,11 @@ class AgentQueryIntegrationTests(AgentQueryFixture, unittest.TestCase):
         self.assertIn(b"native helper source identity mismatch", bad.stderr)
         self.assertFalse(rejection_state.exists())
         record(directory / "installed-summary.json", report)
+        # The original private tamper negative control stays recorded above.
+        self.assertEqual(installed_source.read_bytes(), original_source + b"\n")
+        installed_source.write_bytes(original_source)
+        record(directory / "current-component-terminal-custody.json",
+               verify_component_install(component, installed, installed_from=wheel_files[0]))
 
 
 INSTALLED_CHILD = r'''

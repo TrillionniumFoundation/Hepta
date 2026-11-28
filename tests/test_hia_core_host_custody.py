@@ -62,13 +62,14 @@ def damaged_archives(raw):
     return result
 
 
-def vm_decode(wire, *, output_size=64, workspace_size=65536):
+def vm_decode(wire, *, output_size=64, workspace_size=65536, entry='custody', control=None):
     """Observe actual owned buffers before the unchanged VM destructor runs."""
     from tools.hia_selfhost_bulk import Body
     from hepta import hia_program_runtime as runtime
     body, owners, views = Body(0), [], []
+    state = b'' if control is None else struct.pack('<3Q', control[0], 0, control[1])
     for size, initial, fill in ((len(wire), wire, 0), (output_size, b'', 165),
-                                (workspace_size, b'', 0)):
+                                (workspace_size, state, 0)):
         owner = body.value('buffer', 'buffer.new', [body.const('usize', size)])
         view = body.value('mutbuf', 'borrow.mut', [owner])
         body.effect('buffer.fill_range', [view, body.const('usize', 0),
@@ -80,7 +81,7 @@ def vm_decode(wire, *, output_size=64, workspace_size=65536):
         owners.append(owner); views.append(view)
     body.effect('loan.end', [views[0]])
     views[0] = body.value('readbuf', 'borrow.read', [owners[0]])
-    result = body.value('u32', 'call', views, {'function': 'custody'})
+    result = body.value('u32', 'call', views, {'function': entry})
     for view in views:
         body.effect('loan.end', [view])
     for owner in owners:
@@ -127,8 +128,15 @@ class CoreHostCustodySourceControls(unittest.TestCase):
         retained = [f for f in model['functions'] if f['name'] in prior]
         self.assertTrue({'f23', 'f24', 'f25', 'f46'} <= {f['name'] for f in retained})
         for fn in retained:
-            self.assertEqual(fn, prior[fn['name']])
-        self.assertEqual(model['functions'][0]['name'], 'custody')
+            expected = deepcopy(prior[fn['name']])
+            if fn['name'] == 'f0':
+                calls = [op for block in expected['blocks'] for op in block['ops']
+                         if op['op'] == 'call' and op['attrs'].get('function') in ('f1', 'f16', 'f26')]
+                self.assertEqual(len(calls), 3)
+                for op in calls:
+                    op['attrs']['function'] = 'custody'
+            self.assertEqual(fn, expected)
+        self.assertEqual(model['functions'][0]['name'], 'f0')
 
     def test_complete_current_git_inputs_and_six_full_byte_records(self):
         raw, receipt = capture_archive(ROOT)
@@ -175,14 +183,30 @@ class CoreHostCustodySourceControls(unittest.TestCase):
 
     def test_vm_all_six_actual_views_and_canary_extents(self):
         raw = small_archive()
+        cli = struct.pack('<2Q', 1, 5) + b'build'
+        result, output, workspace = vm_decode(cli, entry='f0', control=(0, 0))
+        self.assertEqual(result, 0)
+        self.assertEqual(output, b'\xa5' * len(output))
+        self.assertEqual(struct.unpack_from('<Q', workspace, 16)[0], 1)
         for row in parse_archive(raw):
             wire = request(row['role'], row['kind'], raw)
-            result, output, workspace = vm_decode(wire)
+            result, output, workspace = vm_decode(wire, entry='f0', control=(1, 1))
             self.assertEqual(result, 0)
             self.assertEqual(output[:row['bytes']], row['raw'])
             self.assertEqual(output[row['bytes']:], b'\xa5' * (len(output) - row['bytes']))
             self.assertEqual(struct.unpack_from('<Q', workspace, 88)[0], row['bytes'])
             self.assertEqual(struct.unpack_from('<Q', workspace, 16)[0], 3)
+        result, output, workspace = vm_decode(b'\0', entry='f0', control=(2, 3))
+        self.assertEqual(result, 3)
+        self.assertEqual(output, b'\xa5' * len(output))
+        for wire, state in ((cli[:-1], (0, 0)), (cli + b'\0', (0, 0)),
+                            (struct.pack('<2Q', 1, 5) + b'other', (0, 0)),
+                            (request(11, 1, raw), (0, 1)),
+                            (request(11, 1, raw), (1, 0)),
+                            (request(11, 1, raw), (2, 1))):
+            result, output, workspace = vm_decode(wire, entry='f0', control=state)
+            self.assertEqual(result, 16)
+            self.assertEqual(output, b'\xa5' * len(output))
 
     def test_vm_rejects_unselected_corruption_and_preserves_output_on_refusal(self):
         raw = small_archive()
