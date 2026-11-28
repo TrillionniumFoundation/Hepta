@@ -110,7 +110,7 @@ def create(package, base_path, expected_base, release_path, expected_release,
         return raw
 
     publication, _ = capture_release(release_path, expected_release, package, release_read)
-    bridges = capture_bridge_records(package, expected_receipts, required, captures)
+    bridges = capture_bridge_records(package, expected_receipts, required, captures, current_slot=True)
     captured_receipts = {path.name: raw for path, raw, _limit in captures}
     for name, kind in (("native-image", "image"), ("cell-frame", "cell")):
         receipt_name = BRIDGES[name][3]

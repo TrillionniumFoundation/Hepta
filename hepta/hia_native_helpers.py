@@ -429,8 +429,11 @@ def native_helpers_scope(path=None, expected_sha256=None):
             raise ValueError("worker native helper selection must come only from its explicit pinned bundle")
         package_pin = None
         if path is None:
-            from .hia_default_native import capture_default_bundle
-            packaged = capture_default_bundle()
+            from .hia_carrier_default import capture_default_bundle as capture_carrier_default
+            packaged = capture_carrier_default()
+            if packaged is None:
+                from .hia_default_native import capture_default_bundle
+                packaged = capture_default_bundle()
             if packaged is not None:
                 path, expected_sha256, package_pin = packaged
                 path = str(path)
@@ -460,7 +463,9 @@ def native_helpers_scope(path=None, expected_sha256=None):
         elif (schema == 'hepta.hia.current-carrier-worker-bundle.v1'
               and abi == 'hia-worker-current-native-carriers-v1'):
             from .hia_current_carrier_worker_bundle import NativeCurrentCarrierWorkerBinding
-            binding = NativeCurrentCarrierWorkerBinding(captured, expected_sha256)
+            binding = NativeCurrentCarrierWorkerBinding(
+                captured, expected_sha256, package_snapshots=package_pin or ())
+            package_pin = None  # Already captured before this constructor could load an extension.
             _MECHANICAL_SCOPE = binding
         elif schema == 'hepta.hia.native-helpers.v4' and abi == 'hia-worker-artifact-delivery-v1':
             from .hia_artifact_delivery_worker import NativeArtifactWorkerBinding
