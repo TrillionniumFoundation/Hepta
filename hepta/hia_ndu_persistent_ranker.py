@@ -1,4 +1,4 @@
-"""Explicit bounded persistence of one sealed original native NDU process.
+"""Explicit bounded persistence of one sealed source-owned HIA NDU process.
 
 The native streaming profile evaluates every framed request afresh. Only the
 process and admitted executable are retained; no response cache is present.
@@ -41,9 +41,10 @@ def _frame(sequence, session, body):
 
 
 def _hello(maximum, upstream):
-    return {"schema": "hepta.hia.ndu-stream-hello.v1",
+    return {"schema": "hepta.hia.ndu-native-stream-hello.v1",
             "transport_profile": PROFILE, "upstream_commit": upstream,
-            "entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+            "entry_point": "hepta.hia.ndu_evaluator.v1",
+            "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
             "max_requests": maximum, "max_frame_json_bytes": MAX_WIRE_BYTES,
             "max_session_bytes": MAX_SESSION_BYTES, "authority": "ADVISORY_ONLY",
             "result_cache": False, "evaluates_each_request": True}
@@ -318,7 +319,7 @@ class PersistentNduRanker:
     the caller still owns descriptor/pipe closure and complete outer costing.
     """
 
-    def __init__(self, bridge, *, max_requests=MAX_REQUESTS, lifetime_s=60.0,
+    def __init__(self, bridge=None, *, max_requests=MAX_REQUESTS, lifetime_s=60.0,
                  startup_timeout_s=1.0, observer=None):
         started = time.perf_counter_ns()
         lifetime = _bounded_seconds(lifetime_s, "lifetime")
