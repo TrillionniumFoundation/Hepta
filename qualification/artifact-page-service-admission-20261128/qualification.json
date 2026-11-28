@@ -1,0 +1,71 @@
+{
+  "actual_terminal": {
+    "compiler_unchanged": true,
+    "git_clean": true,
+    "returncode": 0,
+    "scope": "EXPLICIT_DEVELOPMENT_NOT_MATCHING_SOURCE_COLD",
+    "seconds": 36.33153434700216,
+    "source_count": 8243,
+    "source_unchanged": true,
+    "timed_out": false,
+    "whole_native_closure": false
+  },
+  "cleanup_seconds": 3,
+  "complete_evidence": {
+    "active_original_references": [],
+    "all_two_attempts_terminal": true,
+    "archive": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-agent-query-current-native-20261127-2ac5/complete-page-service-two-attempts-v1/complete-page-service-two-attempts.cas.tar.gz",
+    "archive_bytes": 25768778,
+    "archive_sha256": "9effafb933e1347c26713adcc5eb1e459770b203e5e4ae26161e7693104da760",
+    "deleted_originals": false,
+    "mac_archive": "/Users/qianqi/work/hia-agent-query-current-native-20261127-2ac5/complete-page-service-two-attempts-cas-v1/complete-page-service-two-attempts.cas.tar.gz",
+    "mac_complete_member_readback": true,
+    "mac_verified_members": 4748,
+    "manifest_bytes": 1374967,
+    "manifest_sha256": "c3ccce9f1254e155a4714176c9625b7070e843503ff2ebe1a5dddb4d852f92bc",
+    "original_bytes": 333613130,
+    "original_file_count": 4398,
+    "original_member_count": 4748,
+    "scope": "EXPLICIT_DEVELOPMENT_NOT_MATCHING_SOURCE_COLD",
+    "status": "PASS_COMPLETE_SOURCE_AND_ARCHIVE_READBACK",
+    "unique_blobs": 749,
+    "unique_bytes": 66281569
+  },
+  "final_installed_worker_qualified": false,
+  "last_actual_errors": 0,
+  "last_actual_failures": 0,
+  "last_actual_methods": 18,
+  "last_actual_skips": 0,
+  "new_Service_boundary_methods": 7,
+  "original_Page_methods": 11,
+  "original_Page_methods_or_assertions_changed": false,
+  "original_Page_vectors": 42,
+  "original_double_wire_budget": 230000,
+  "original_full_artifact_bytes": 67108864,
+  "original_timeout_seconds": 1800,
+  "prior_failure": {
+    "actual_methods": 18,
+    "cause": [
+      "New boundary oracle counted only the second wire result instead of the sum of both original calls.",
+      "New alias test assumed one get; the actual retained resolve_uri path performs one read before the Page read."
+    ],
+    "head": "d30a4895e821ed9c87558e72eafda57e6d73cc66",
+    "new_test_failures": 2,
+    "original_Page_methods_passed": 11,
+    "repair": "Only the new QA computes both original wire lengths and observes the actual retained alias read sequence; no native policy, original Page test, retained business code, or fixed fixture changed."
+  },
+  "private_adapter_boundary": "The old direct AgentRead adapter copied the input itself; retained Page.read preserves its existing input/reference identity and SQL-callable timing. This deliberate direct-adapter distinction is not presented as all eighteen legacy methods passing.",
+  "public_capture": "Ordinary and alias Service calls copy the complete arguments before any artifact file access; the tests mutate the caller-owned full arguments and compare complete results, SQL rows and actual read order.",
+  "schema": "hepta.hia.artifact-page-service-admission-qualification.v1",
+  "scope": "EXPLICIT_DEVELOPMENT_NOT_MATCHING_SOURCE_COLD",
+  "service": {
+    "bytes": 269796,
+    "change": "Explicit Page selection, including empty text, is admitted before every Store construction; simultaneous complete ServiceRead selection is rejected. The complete existing Bootstrap delegation remains after the admission.",
+    "path": "hepta/hia_agent_service.py",
+    "sha256": "146c30483eb851e08e66cac543a86347eca863c8b0e769fe009a10693c80139f"
+  },
+  "source_count": 8243,
+  "source_head": "36d820671f4d1cce572c4833396bdd9ce00d22b1",
+  "source_tree": "8ecd3e56f715a0416ac1139f6722a4e61382bc7b",
+  "whole_native_closure": false
+}

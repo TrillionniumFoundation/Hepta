@@ -1,0 +1,341 @@
+{
+  "explicit_component_install_compile_bytecode": false,
+  "files": [
+    {
+      "changed_test_methods": [],
+      "current": {
+        "bytes": 37060,
+        "sha256": "f78621bfac4d6b7ca869e9f374af0b16b20c286b417d0edced0e1d512c9bfb3e"
+      },
+      "original": {
+        "bytes": 37272,
+        "sha256": "cd51ec73325bcb245f35ae6dd45d974c0ffada2552dbbc9224b4b4ece495d412"
+      },
+      "path": "tests/test_hia_agent_query_native.py",
+      "splices": [
+        {
+          "after": "",
+          "before": "YnVpbGRf",
+          "offset": 10350
+        },
+        {
+          "after": "Yw==",
+          "before": "anM=",
+          "offset": 10360
+        },
+        {
+          "after": "bGQ=",
+          "before": "bg==",
+          "offset": 10363
+        },
+        {
+          "after": "Y29t",
+          "before": "",
+          "offset": 10365
+        },
+        {
+          "after": "aWxl",
+          "before": "",
+          "offset": 10366
+        },
+        {
+          "after": "",
+          "before": "ZWZsaWdodA==",
+          "offset": 10367
+        },
+        {
+          "after": "cmU=",
+          "before": "",
+          "offset": 10382
+        },
+        {
+          "after": "",
+          "before": "bWl0",
+          "offset": 10384
+        },
+        {
+          "after": "X2lucHV0cw==",
+          "before": "",
+          "offset": 10398
+        },
+        {
+          "after": "",
+          "before": "X2J5dGVz",
+          "offset": 10415
+        },
+        {
+          "after": "cmVhZF9jb2xkX2J1aWxkX2lucHV0cyg=",
+          "before": "",
+          "offset": 10424
+        },
+        {
+          "after": "",
+          "before": "LnJlYWRfYnl0ZXMoKQogICAgICAgICAgICByZXBvcnQgPSBqc29uLmxvYWRzKGNvbGRfYnl0ZXMpCiAgICAgICAgICAgIG5lc3RlZCA9IGpzb24ubG9hZHMoUGF0aChyZXBvcnRbIm5lc3RlZF9yZXBvcnQiXSkucmVhZF9ieXRlcygp",
+          "offset": 10432
+        },
+        {
+          "after": "Y29s",
+          "before": "UGF0aChuZXN0ZQ==",
+          "offset": 10593
+        },
+        {
+          "after": "LmNvbXBpbA==",
+          "before": "WyJnZW4=",
+          "offset": 10604
+        },
+        {
+          "after": "",
+          "before": "YXRpb25zIl1bLTFdWyJwcm9kdWNlZF9pbWFnZSJdKS5yZXNvbHZlKHN0cmljdD1UcnVlKQ==",
+          "offset": 10611
+        },
+        {
+          "after": "",
+          "before": "YWRtaXRf",
+          "offset": 10676
+        },
+        {
+          "after": "Lg==",
+          "before": "X2I=",
+          "offset": 10686
+        },
+        {
+          "after": "bmNoYW5nZQ==",
+          "before": "aWw=",
+          "offset": 10689
+        },
+        {
+          "after": "",
+          "before": "Y2xzLmNvbXBpbGVyLnJlYWRfYnl0ZXMoKSwgY29sZF9ieXRlcw==",
+          "offset": 10693
+        }
+      ],
+      "test_methods": 11
+    },
+    {
+      "changed_test_methods": [
+        {
+          "current": "def test_actual_sdist_wheel_and_worker_bundle_need_no_per_call_environment(self):\n        from hepta.hia_agent_contract import (\n            DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES,\n            COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES,\n        )\n        from tests.test_hia_edit_query import fixture\n        from tools.hia_agent_native_qualification import exhaustive_u8_workload\n        directory = self.directory()\n        stage = directory / \"staged\"\n        stage.mkdir()\n        shutil.copytree(ROOT / \"hepta\", stage / \"hepta\",\n                        ignore=shutil.ignore_patterns(\"__pycache__\", \"*.pyc\", \"_data\"))\n        for filename in (\"setup.py\", \"pyproject.toml\", \"MANIFEST.in\", \"README.md\", \"LICENSE\"):\n            if (ROOT / filename).is_file():\n                shutil.copy2(ROOT / filename, stage / filename)\n        resources = (*('docs/' + name for name in DISCOVERY_FILES),\n                     *NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES,\n                     *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES)\n        self.assertIn(\"examples/hia_bootstrap/agent_query.hepta\", NATIVE_SOURCE_FILES)\n        for relative in resources:\n            target = stage / relative\n            target.parent.mkdir(parents=True, exist_ok=True)\n            shutil.copy2(ROOT / relative, target)\n        oracle = \"tests/fixtures/hia_compiler_rename_reference.json.gz\"\n        oracle_bytes = (ROOT / oracle).read_bytes()\n        self.assertEqual(sha256(oracle_bytes).hexdigest(),\n                         \"0bfb03e219dc31352ae92e22288139e66e1c00ab4a4861648b54712c8e213069\")\n        (stage / oracle).parent.mkdir(parents=True, exist_ok=True)\n        (stage / oracle).write_bytes(oracle_bytes)\n        environment = runtime_environment()\n        # Current component installation is an explicit qualification mode.\n        # The public native distribution backend remains a separate whole gate.\n        from tests.hia_component_install_fixture import component_wheel, verify_component_install\n        component = component_wheel(stage)\n        dist = directory / \"dist\"\n        wheels = directory / \"wheels\"\n        installed = directory / \"installed\"\n        call_checked([sys.executable, \"-B\", \"setup.py\", \"sdist\", \"--dist-dir\", str(dist)],\n                     cwd=stage, environment=environment, directory=directory, name=\"sdist\", timeout=90)\n        sdists = list(dist.glob(\"*.tar.gz\"))\n        self.assertEqual(len(sdists), 1)\n        with tarfile.open(sdists[0], \"r:gz\") as archive:\n            names = archive.getnames()\n            prefix = names[0].split(\"/\", 1)[0]\n            member = archive.extractfile(prefix + \"/\" + oracle)\n            self.assertIsNotNone(member)\n            self.assertEqual(member.read(), oracle_bytes)\n            source = archive.extractfile(prefix + \"/examples/hia_bootstrap/agent_query.hepta\")\n            self.assertEqual(source.read(), SOURCE.read_bytes())\n        call_checked([sys.executable, \"-m\", \"pip\", \"wheel\", \"--no-index\", \"--no-deps\",\n                      \"--no-build-isolation\", \"--wheel-dir\", str(wheels), str(component)],\n                     cwd=directory, environment=environment, directory=directory, name=\"wheel\", timeout=90)\n        wheel_files = list(wheels.glob(\"*.whl\"))\n        self.assertEqual(len(wheel_files), 1)\n        with zipfile.ZipFile(wheel_files[0]) as wheel:\n            self.assertEqual(wheel.read(\"hepta/_data/examples/hia_bootstrap/agent_query.hepta\"), SOURCE.read_bytes())\n            self.assertFalse(any(name.endswith(\"hia_compiler_rename_reference.json.gz\") for name in wheel.namelist()))\n        call_checked([sys.executable, \"-m\", \"pip\", \"install\", \"--no-index\", \"--no-deps\", \"--no-compile\",\n                      \"--target\", str(installed), str(wheel_files[0])],\n                     cwd=directory, environment=environment, directory=directory, name=\"install\", timeout=60)\n        self.assertFalse(list((installed / \"hepta/_data\").rglob(\"hia_compiler_rename_reference.json.gz\")))\n        component_install = verify_component_install(component, installed, installed_from=wheel_files[0])\n        record(directory / \"current-component-install-custody.json\", component_install)\n        bundle = directory / \"bundle.json\"\n        pin = make_bundle(bundle, self.manifest)\n        source = fixture()\n        selection = dict(function=\"calculate\", block=\"entry\", output=\"y\", fields=[\"op\", \"args\", \"attrs\"])\n        program = directory / \"source.core.hepta\"\n        program.write_bytes(json_wire(source))\n        expected = directory / \"expected.json\"\n        expected.write_bytes(json_wire(original_query(source, **selection)))\n        workload = directory / \"workload.json\"\n        workload.write_bytes(json_wire(exhaustive_u8_workload()))\n        result = call_checked([sys.executable, \"-I\", \"-B\", \"-c\", INSTALLED_CHILD,\n                              str(installed), str(bundle), pin, str(program), str(expected),\n                              str(workload), str(directory)],\n                             cwd=directory, environment=environment, directory=directory,\n                             name=\"installed-calls\", timeout=60)\n        report = json.loads(result.stdout)\n        self.assertEqual(report[\"status\"], \"INSTALLED_COMPLETE_QUERY_CALLERS_PASS\")\n        self.assertEqual(report[\"runtime_query_selectors_before_bundle\"], [])\n        self.assertTrue(report[\"worker_report\"][\"complete\"])\n        self.assertEqual(report[\"worker_report\"][\"native_helpers_sha256\"], pin)\n        self.assertEqual(report[\"worker_native_calls\"], 1)\n        self.assertGreaterEqual(report[\"installed_native_calls\"], 2)\n        self.assertEqual(report[\"reference_owner_calls\"], 0)\n        self.assertFalse(report[\"whole_native_closure\"])\n        # A private installed resource can be changed for a negative control;\n        # no checked-out source or historical evidence is edited.\n        installed_source = installed / \"hepta/_data/examples/hia_bootstrap/agent_query.hepta\"\n        original_source = installed_source.read_bytes()\n        installed_source.write_bytes(original_source + b\"\\n\")\n        rejection_state = directory / \"rejected-state\"\n        bad = subprocess.run([sys.executable, \"-I\", \"-B\", \"-c\",\n            \"import sys;sys.path.insert(0,sys.argv.pop(1));from hepta.hia_agent_worker import main;raise SystemExit(main())\",\n            str(installed), \"--state-root\", str(rejection_state), \"--request-json-stdin\",\n            \"--native-helpers-manifest\", str(bundle), \"--expected-native-helpers-sha256\", pin],\n            cwd=directory, env=environment, input=b\"{}\", stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)\n        (directory / \"tampered-resource.stdout\").write_bytes(bad.stdout)\n        (directory / \"tampered-resource.stderr\").write_bytes(bad.stderr)\n        self.assertEqual(bad.returncode, 2)\n        self.assertFalse(bad.stdout)\n        self.assertIn(b\"native helper source identity mismatch\", bad.stderr)\n        self.assertFalse(rejection_state.exists())\n        record(directory / \"installed-summary.json\", report)\n        # The original private tamper negative control stays recorded above.\n        self.assertEqual(installed_source.read_bytes(), original_source + b\"\\n\")\n        installed_source.write_bytes(original_source)\n        record(directory / \"current-component-terminal-custody.json\",\n               verify_component_install(component, installed, installed_from=wheel_files[0]))",
+          "method": "AgentQueryIntegrationTests.test_actual_sdist_wheel_and_worker_bundle_need_no_per_call_environment",
+          "original": "def test_actual_sdist_wheel_and_worker_bundle_need_no_per_call_environment(self):\n        from hepta.hia_agent_contract import (\n            DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES,\n            COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES,\n        )\n        from tests.test_hia_edit_query import fixture\n        from tools.hia_agent_native_qualification import exhaustive_u8_workload\n        directory = self.directory()\n        stage = directory / \"staged\"\n        stage.mkdir()\n        shutil.copytree(ROOT / \"hepta\", stage / \"hepta\",\n                        ignore=shutil.ignore_patterns(\"__pycache__\", \"*.pyc\", \"_data\"))\n        for filename in (\"setup.py\", \"pyproject.toml\", \"MANIFEST.in\", \"README.md\", \"LICENSE\"):\n            if (ROOT / filename).is_file():\n                shutil.copy2(ROOT / filename, stage / filename)\n        resources = (*('docs/' + name for name in DISCOVERY_FILES),\n                     *NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES,\n                     *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES)\n        self.assertIn(\"examples/hia_bootstrap/agent_query.hepta\", NATIVE_SOURCE_FILES)\n        for relative in resources:\n            target = stage / relative\n            target.parent.mkdir(parents=True, exist_ok=True)\n            shutil.copy2(ROOT / relative, target)\n        oracle = \"tests/fixtures/hia_compiler_rename_reference.json.gz\"\n        oracle_bytes = (ROOT / oracle).read_bytes()\n        self.assertEqual(sha256(oracle_bytes).hexdigest(),\n                         \"0bfb03e219dc31352ae92e22288139e66e1c00ab4a4861648b54712c8e213069\")\n        (stage / oracle).parent.mkdir(parents=True, exist_ok=True)\n        (stage / oracle).write_bytes(oracle_bytes)\n        environment = runtime_environment()\n        dist = directory / \"dist\"\n        wheels = directory / \"wheels\"\n        installed = directory / \"installed\"\n        call_checked([sys.executable, \"-B\", \"setup.py\", \"sdist\", \"--dist-dir\", str(dist)],\n                     cwd=stage, environment=environment, directory=directory, name=\"sdist\", timeout=90)\n        sdists = list(dist.glob(\"*.tar.gz\"))\n        self.assertEqual(len(sdists), 1)\n        with tarfile.open(sdists[0], \"r:gz\") as archive:\n            names = archive.getnames()\n            prefix = names[0].split(\"/\", 1)[0]\n            member = archive.extractfile(prefix + \"/\" + oracle)\n            self.assertIsNotNone(member)\n            self.assertEqual(member.read(), oracle_bytes)\n            source = archive.extractfile(prefix + \"/examples/hia_bootstrap/agent_query.hepta\")\n            self.assertEqual(source.read(), SOURCE.read_bytes())\n        call_checked([sys.executable, \"-m\", \"pip\", \"wheel\", \"--no-index\", \"--no-deps\",\n                      \"--no-build-isolation\", \"--wheel-dir\", str(wheels), str(sdists[0])],\n                     cwd=directory, environment=environment, directory=directory, name=\"wheel\", timeout=90)\n        wheel_files = list(wheels.glob(\"*.whl\"))\n        self.assertEqual(len(wheel_files), 1)\n        with zipfile.ZipFile(wheel_files[0]) as wheel:\n            self.assertEqual(wheel.read(\"hepta/_data/examples/hia_bootstrap/agent_query.hepta\"), SOURCE.read_bytes())\n            self.assertFalse(any(name.endswith(\"hia_compiler_rename_reference.json.gz\") for name in wheel.namelist()))\n        call_checked([sys.executable, \"-m\", \"pip\", \"install\", \"--no-index\", \"--no-deps\",\n                      \"--target\", str(installed), str(wheel_files[0])],\n                     cwd=directory, environment=environment, directory=directory, name=\"install\", timeout=60)\n        self.assertFalse(list((installed / \"hepta/_data\").rglob(\"hia_compiler_rename_reference.json.gz\")))\n        bundle = directory / \"bundle.json\"\n        pin = make_bundle(bundle, self.manifest)\n        source = fixture()\n        selection = dict(function=\"calculate\", block=\"entry\", output=\"y\", fields=[\"op\", \"args\", \"attrs\"])\n        program = directory / \"source.core.hepta\"\n        program.write_bytes(json_wire(source))\n        expected = directory / \"expected.json\"\n        expected.write_bytes(json_wire(original_query(source, **selection)))\n        workload = directory / \"workload.json\"\n        workload.write_bytes(json_wire(exhaustive_u8_workload()))\n        result = call_checked([sys.executable, \"-I\", \"-B\", \"-c\", INSTALLED_CHILD,\n                              str(installed), str(bundle), pin, str(program), str(expected),\n                              str(workload), str(directory)],\n                             cwd=directory, environment=environment, directory=directory,\n                             name=\"installed-calls\", timeout=60)\n        report = json.loads(result.stdout)\n        self.assertEqual(report[\"status\"], \"INSTALLED_COMPLETE_QUERY_CALLERS_PASS\")\n        self.assertEqual(report[\"runtime_query_selectors_before_bundle\"], [])\n        self.assertTrue(report[\"worker_report\"][\"complete\"])\n        self.assertEqual(report[\"worker_report\"][\"native_helpers_sha256\"], pin)\n        self.assertEqual(report[\"worker_native_calls\"], 1)\n        self.assertGreaterEqual(report[\"installed_native_calls\"], 2)\n        self.assertEqual(report[\"reference_owner_calls\"], 0)\n        self.assertFalse(report[\"whole_native_closure\"])\n        # A private installed resource can be changed for a negative control;\n        # no checked-out source or historical evidence is edited.\n        installed_source = installed / \"hepta/_data/examples/hia_bootstrap/agent_query.hepta\"\n        original_source = installed_source.read_bytes()\n        installed_source.write_bytes(original_source + b\"\\n\")\n        rejection_state = directory / \"rejected-state\"\n        bad = subprocess.run([sys.executable, \"-I\", \"-B\", \"-c\",\n            \"import sys;sys.path.insert(0,sys.argv.pop(1));from hepta.hia_agent_worker import main;raise SystemExit(main())\",\n            str(installed), \"--state-root\", str(rejection_state), \"--request-json-stdin\",\n            \"--native-helpers-manifest\", str(bundle), \"--expected-native-helpers-sha256\", pin],\n            cwd=directory, env=environment, input=b\"{}\", stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)\n        (directory / \"tampered-resource.stdout\").write_bytes(bad.stdout)\n        (directory / \"tampered-resource.stderr\").write_bytes(bad.stderr)\n        self.assertEqual(bad.returncode, 2)\n        self.assertFalse(bad.stdout)\n        self.assertIn(b\"native helper source identity mismatch\", bad.stderr)\n        self.assertFalse(rejection_state.exists())\n        record(directory / \"installed-summary.json\", report)",
+          "original_assertions_preserved_in_order": true
+        }
+      ],
+      "current": {
+        "bytes": 36832,
+        "sha256": "30e0bad79c360e95061b90fa4301145c4714896f4f5de8c5986b759e46c9a2f2"
+      },
+      "original": {
+        "bytes": 35949,
+        "sha256": "3cd16b1c2242df8c8ec2bd4fe51a924c43029bff1a1e9a629e3779561a2f862f"
+      },
+      "path": "tests/test_hia_agent_query_native_integration.py",
+      "splices": [
+        {
+          "after": "IyBDdXJyZW50IGNvbXBvbmVudCBpbnN0YWxsYXRpb24gaXMgYW4gZXhwbGljaXQgcXVhbGlmaWNhdGlvbiBtb2RlLgogICAgICAgICMgVGhlIHB1YmxpYyBuYXRpdmUgZGlzdHJpYnV0aW9uIGJhY2tlbmQgcmVtYWlucyBhIHNlcGFyYXRlIHdob2xlIGdhdGUuCiAgICAgICAgZnJvbSB0ZXN0cy5oaWFfY29tcG9uZW50X2luc3RhbGxfZml4dHVyZSBpbXBvcnQgY29tcG9uZW50X3doZWVsLCB2ZXJpZnlfY29tcG9uZW50X2luc3RhbGwKICAgICAgICBjb21wb25lbnQgPSBjb21wb25lbnRfd2hlZWwoc3RhZ2UpCiAgICAgICAg",
+          "before": "",
+          "offset": 22011
+        },
+        {
+          "after": "Y29tcG9uZW4=",
+          "before": "c2Rpcw==",
+          "offset": 23031
+        },
+        {
+          "after": "",
+          "before": "c1swXQ==",
+          "offset": 23036
+        },
+        {
+          "after": "ICItLW5vLWNvbXBpbGUiLA==",
+          "before": "",
+          "offset": 23627
+        },
+        {
+          "after": "KQogICAgICAgIGNvbXBvbmVudF9pbnN0YWxsID0gdmVyaWZ5X2NvbXBvbmVudF9pbnN0YWxsKGNvbXBvbmVudCwgaW5zdGFsbGVkLCBpbnN0YWxsZWRfZnJvbT13aGVlbF9maWxlc1swXSkKICAgICAgICByZWNvcmQoZGlyZWN0b3J5IC8gImN1cnJlbnQtY29tcG9uZW50LWluc3RhbGwtY3VzdG9keS5qc29uIiwgY29tcG9uZW50X2luc3RhbGw=",
+          "before": "",
+          "offset": 23915
+        },
+        {
+          "after": "KQogICAgICAgICMgVGhlIG9yaWdpbmFsIHByaXZhdGUgdGFtcGVyIG5lZ2F0aXZlIGNvbnRyb2wgc3RheXMgcmVjb3JkZWQgYWJvdmUuCiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChpbnN0YWxsZWRfc291cmNlLnJlYWRfYnl0ZXMoKSwgb3JpZ2luYWxfc291cmNlICsgYiJcbiIpCiAgICAgICAgaW5zdGFsbGVkX3NvdXJjZS53cml0ZV9ieXRlcyhvcmlnaW5hbF9zb3VyY2UpCiAgICAgICAgcmVjb3JkKGRpcmVjdG9yeSAvICJjdXJyZW50LWNvbXBvbmVudC10ZXJtaW5hbC1jdXN0b2R5Lmpzb24iLAogICAgICAgICAgICAgICB2ZXJpZnlfY29tcG9uZW50X2luc3RhbGwoY29tcG9uZW50LCBpbnN0YWxsZWQsIGluc3RhbGxlZF9mcm9tPXdoZWVsX2ZpbGVzWzBdKQ==",
+          "before": "",
+          "offset": 26778
+        }
+      ],
+      "test_methods": 4
+    },
+    {
+      "changed_test_methods": [
+        {
+          "current": "def test_real_sdist_wheel_installed_cli_uses_package_owned_source(self):\n        from hepta.hia_agent_contract import (\n            DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES)\n        root = self.folder / 'installed'\n        root.mkdir()\n        source = root / 'source'\n        source.mkdir()\n        shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))\n        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + \\\n            SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES\n        for name in (*resources, 'pyproject.toml', 'setup.py', 'MANIFEST.in',\n                     'tests/fixtures/hia_compiler_rename_reference.json.gz'):\n            target = source / name\n            target.parent.mkdir(parents=True, exist_ok=True)\n            shutil.copyfile(ROOT / name, target)\n        environment = clean_environment()\n        def run(argv, cwd=None, timeout=90):\n            result = subprocess.run(argv, cwd=cwd, env=environment, capture_output=True, timeout=timeout)\n            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)\n            return result\n        from tests.hia_component_install_fixture import component_wheel, verify_component_install\n        component = component_wheel(source)\n        run([sys.executable, '-B', 'setup.py', 'sdist', '--formats=gztar'], source)\n        archives = list((source / 'dist').glob('*.tar.gz'))\n        self.assertEqual(len(archives), 1)\n        wheels = root / 'wheels'\n        run([sys.executable, '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',\n             str(component), '-w', str(wheels)])\n        built = list(wheels.glob('*.whl'))\n        self.assertEqual(len(built), 1)\n        installed = root / 'site'\n        run([sys.executable, '-m', 'pip', 'install', '--no-deps', '--no-compile',\n             '--target', str(installed), str(built[0])], timeout=60)\n        self.assertEqual((installed / 'hepta/_data/examples/hia_bootstrap/cli_inspect.hepta').read_bytes(), SOURCE.read_bytes())\n        self.assertFalse((installed / 'hepta/_data/tests/fixtures/hia_compiler_rename_reference.json.gz').exists())\n        record(root / 'current-component-install-custody.json',\n               verify_component_install(component, installed, installed_from=built[0]))\n        input_path, expected_path = root / 'input.json', root / 'expected.txt'\n        input_path.write_text(json.dumps(choose_loan()))\n        expected_path.write_text(json.dumps(reference(choose_loan()), ensure_ascii=False, indent=2, sort_keys=True) + '\\n')\n        code = r'''\nimport contextlib,io,json,os,pathlib,sys\nfrom unittest.mock import patch\nsys.path.insert(0,sys.argv[1])\nfrom hepta import hia_cli_inspect_native as adapter,hia_program_tools as ordinary\nfrom hepta.cli import hia_main\nassert pathlib.Path(adapter.__file__).is_relative_to(pathlib.Path(sys.argv[1]))\nassert adapter.SOURCE==pathlib.Path(sys.argv[1])/'hepta/_data/examples/hia_bootstrap/cli_inspect.hepta'\nos.environ[adapter.SELECTOR]=sys.argv[2]\nnative=adapter.installed_cli_inspect(sys.argv[2])\nactual=native._entry\ncalls=[]\ndef entry(*args):\n    calls.append(1)\n    return actual(*args)\nnative._entry=entry\ndef absent(*args,**kwargs):raise AssertionError('host inspect report fallback')\noutput=io.StringIO()\nwith patch.object(ordinary,'function_signature',side_effect=absent),contextlib.redirect_stdout(output):\n    status=hia_main(['inspect',sys.argv[3]])\nassert status==0 and output.getvalue()==pathlib.Path(sys.argv[4]).read_text()\nassert calls==[1]\nold=adapter.SOURCE.read_bytes()\nadapter.SOURCE.write_bytes(old+b'\\n')\ntry:adapter.installed_cli_inspect(sys.argv[2])\nexcept ValueError as error:assert 'source identity mismatch' in str(error)\nelse:raise AssertionError('installed resource drift was hidden')\nprint(json.dumps({'installed_actual_native_entries':len(calls),'resource_owned':True,'installation_resource_tamper_rejected':True}))\n'''\n        result = run([sys.executable, '-I', '-B', '-c', code, str(installed), str(self.manifest),\n                      str(input_path), str(expected_path)], timeout=90)\n        self.assertEqual(json.loads(result.stdout)['installed_actual_native_entries'], 1)\n        record(root / 'installed-result.json', json.loads(result.stdout))\n        installed_source = installed / 'hepta/_data/examples/hia_bootstrap/cli_inspect.hepta'\n        self.assertEqual(installed_source.read_bytes(), SOURCE.read_bytes() + b'\\n')\n        installed_source.write_bytes(SOURCE.read_bytes())\n        record(root / 'current-component-terminal-custody.json',\n               verify_component_install(component, installed, installed_from=built[0]))",
+          "method": "CliInspectNativeTests.test_real_sdist_wheel_installed_cli_uses_package_owned_source",
+          "original": "def test_real_sdist_wheel_installed_cli_uses_package_owned_source(self):\n        from hepta.hia_agent_contract import (\n            DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES)\n        root = self.folder / 'installed'\n        root.mkdir()\n        source = root / 'source'\n        source.mkdir()\n        shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))\n        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + \\\n            SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES\n        for name in (*resources, 'pyproject.toml', 'setup.py', 'MANIFEST.in',\n                     'tests/fixtures/hia_compiler_rename_reference.json.gz'):\n            target = source / name\n            target.parent.mkdir(parents=True, exist_ok=True)\n            shutil.copyfile(ROOT / name, target)\n        environment = clean_environment()\n        def run(argv, cwd=None, timeout=90):\n            result = subprocess.run(argv, cwd=cwd, env=environment, capture_output=True, timeout=timeout)\n            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)\n            return result\n        run([sys.executable, '-B', 'setup.py', 'sdist', '--formats=gztar'], source)\n        archives = list((source / 'dist').glob('*.tar.gz'))\n        self.assertEqual(len(archives), 1)\n        wheels = root / 'wheels'\n        run([sys.executable, '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',\n             str(archives[0]), '-w', str(wheels)])\n        built = list(wheels.glob('*.whl'))\n        self.assertEqual(len(built), 1)\n        installed = root / 'site'\n        run([sys.executable, '-m', 'pip', 'install', '--no-deps', '--no-compile',\n             '--target', str(installed), str(built[0])], timeout=60)\n        self.assertEqual((installed / 'hepta/_data/examples/hia_bootstrap/cli_inspect.hepta').read_bytes(), SOURCE.read_bytes())\n        self.assertFalse((installed / 'hepta/_data/tests/fixtures/hia_compiler_rename_reference.json.gz').exists())\n        input_path, expected_path = root / 'input.json', root / 'expected.txt'\n        input_path.write_text(json.dumps(choose_loan()))\n        expected_path.write_text(json.dumps(reference(choose_loan()), ensure_ascii=False, indent=2, sort_keys=True) + '\\n')\n        code = r'''\nimport contextlib,io,json,os,pathlib,sys\nfrom unittest.mock import patch\nsys.path.insert(0,sys.argv[1])\nfrom hepta import hia_cli_inspect_native as adapter,hia_program_tools as ordinary\nfrom hepta.cli import hia_main\nassert pathlib.Path(adapter.__file__).is_relative_to(pathlib.Path(sys.argv[1]))\nassert adapter.SOURCE==pathlib.Path(sys.argv[1])/'hepta/_data/examples/hia_bootstrap/cli_inspect.hepta'\nos.environ[adapter.SELECTOR]=sys.argv[2]\nnative=adapter.installed_cli_inspect(sys.argv[2])\nactual=native._entry\ncalls=[]\ndef entry(*args):\n    calls.append(1)\n    return actual(*args)\nnative._entry=entry\ndef absent(*args,**kwargs):raise AssertionError('host inspect report fallback')\noutput=io.StringIO()\nwith patch.object(ordinary,'function_signature',side_effect=absent),contextlib.redirect_stdout(output):\n    status=hia_main(['inspect',sys.argv[3]])\nassert status==0 and output.getvalue()==pathlib.Path(sys.argv[4]).read_text()\nassert calls==[1]\nold=adapter.SOURCE.read_bytes()\nadapter.SOURCE.write_bytes(old+b'\\n')\ntry:adapter.installed_cli_inspect(sys.argv[2])\nexcept ValueError as error:assert 'source identity mismatch' in str(error)\nelse:raise AssertionError('installed resource drift was hidden')\nprint(json.dumps({'installed_actual_native_entries':len(calls),'resource_owned':True,'installation_resource_tamper_rejected':True}))\n'''\n        result = run([sys.executable, '-I', '-B', '-c', code, str(installed), str(self.manifest),\n                      str(input_path), str(expected_path)], timeout=90)\n        self.assertEqual(json.loads(result.stdout)['installed_actual_native_entries'], 1)\n        record(root / 'installed-result.json', json.loads(result.stdout))",
+          "original_assertions_preserved_in_order": true
+        }
+      ],
+      "current": {
+        "bytes": 20772,
+        "sha256": "b511667f0ce99f1f8f5138f422dd1caa31af9c4f1206f9fa8e8736247d4333fb"
+      },
+      "original": {
+        "bytes": 20203,
+        "sha256": "d655e364dd7d6bc85e0c039a4ffcc9847c393d78245ba7d59e3691782891c2b8"
+      },
+      "path": "tests/test_hia_cli_inspect_native.py",
+      "splices": [
+        {
+          "after": "Zg==",
+          "before": "",
+          "offset": 4838
+        },
+        {
+          "after": "b20gdG9vbHMuaGlhX2NvbGRfY29tcGls",
+          "before": "",
+          "offset": 4839
+        },
+        {
+          "after": "ciBpbQ==",
+          "before": "",
+          "offset": 4840
+        },
+        {
+          "after": "",
+          "before": "PSBqc29uLmxvYWRzKFBhdGgoY29sZCku",
+          "offset": 4845
+        },
+        {
+          "after": "Y29sZF8=",
+          "before": "",
+          "offset": 4874
+        },
+        {
+          "after": "dWlsZF9pbnB1",
+          "before": "eQ==",
+          "offset": 4875
+        },
+        {
+          "after": "",
+          "before": "ZQ==",
+          "offset": 4877
+        },
+        {
+          "after": "",
+          "before": "KCkp",
+          "offset": 4879
+        },
+        {
+          "after": "",
+          "before": "IyBNYXRjaA==",
+          "offset": 4895
+        },
+        {
+          "after": "cHV0cw==",
+          "before": "Zw==",
+          "offset": 4904
+        },
+        {
+          "after": "PSByZWFkX2NvbGRf",
+          "before": "",
+          "offset": 4906
+        },
+        {
+          "after": "Xw==",
+          "before": "cyByZXRh",
+          "offset": 4911
+        },
+        {
+          "after": "cHU=",
+          "before": "IA==",
+          "offset": 4919
+        },
+        {
+          "after": "",
+          "before": "aGUgcHJvZHVjdGlvbiBzdHJpY3Qgc291cmNlIGFkbWlzc2lvbi4KICAgICAgICAgICAgbmVzdGVkID0ganNvbi5sb2Fk",
+          "offset": 4921
+        },
+        {
+          "after": "Yw==",
+          "before": "UGF0aChyZXA=",
+          "offset": 4992
+        },
+        {
+          "after": "bA==",
+          "before": "cnRbJ25lc3Rl",
+          "offset": 5001
+        },
+        {
+          "after": "",
+          "before": "X3JlcG9ydCddKS5yZWFkX2J5dGVzKCk=",
+          "offset": 5011
+        },
+        {
+          "after": "aW5wdXRzLmNvbXBpbGVyCiAgICAgICAgICAgIGlucHV0cy51bmNo",
+          "before": "UA==",
+          "offset": 5059
+        },
+        {
+          "after": "",
+          "before": "dGgo",
+          "offset": 5061
+        },
+        {
+          "after": "Zw==",
+          "before": "ZXN0",
+          "offset": 5065
+        },
+        {
+          "after": "",
+          "before": "WydnZW5lcmF0aW9ucyddWy0xXVsncHJvZHVjZWRfaW1hZ2UnXSkucmVzb2x2ZQ==",
+          "offset": 5070
+        },
+        {
+          "after": "",
+          "before": "c3RyaWN0PVRydWU=",
+          "offset": 5117
+        },
+        {
+          "after": "ZnJvbSB0ZXN0cy5oaWFfY29tcG9uZW50X2luc3RhbGxfZml4dHVyZSBpbXBvcnQgY29tcG9uZW50X3doZWVsLCB2ZXJpZnlfY29tcG9uZW50X2luc3RhbGwKICAgICAgICBjb21wb25lbnQgPSBjb21wb25lbnRfd2hlZWwoc291cmNlKQogICAgICAgIA==",
+          "before": "",
+          "offset": 17380
+        },
+        {
+          "after": "",
+          "before": "YXI=",
+          "offset": 17697
+        },
+        {
+          "after": "b21wb24=",
+          "before": "aGl2",
+          "offset": 17700
+        },
+        {
+          "after": "bnQ=",
+          "before": "c1swXQ==",
+          "offset": 17704
+        },
+        {
+          "after": "KSkKICAgICAgICByZWNvcmQocm9vdCAvICdjdXJyZW50LWNvbXBvbmVudC1pbnN0YWxsLWN1c3RvZHkuanNvbicsCiAgICAgICAgICAgICAgIHZlcmlmeV9jb21wb25lbnRfaW5zdGFsbChjb21wb25lbnQsIGluc3RhbGxlZCwgaW5zdGFsbGVkX2Zyb209YnVpbHRbMF0=",
+          "before": "",
+          "offset": 18241
+        },
+        {
+          "after": "ICAgICAgICBpbnN0YWxsZWRfc291cmNlID0gaW5zdGFsbGVkIC8gJ2hlcHRhL19kYXRhL2V4YW1wbGVzL2hpYV9ib290c3RyYXAvY2xpX2luc3BlY3QuaGVwdGEnCiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChpbnN0YWxsZWRfc291cmNlLnJlYWRfYnl0ZXMoKSwgU09VUkNFLnJlYWRfYnl0ZXMoKSArIGInXG4nKQogICAgICAgIGluc3RhbGxlZF9zb3VyY2Uud3JpdGVfYnl0ZXMoU09VUkNFLnJlYWRfYnl0ZXMoKSkKICAgICAgICByZWNvcmQocm9vdCAvICdjdXJyZW50LWNvbXBvbmVudC10ZXJtaW5hbC1jdXN0b2R5Lmpzb24nLAogICAgICAgICAgICAgICB2ZXJpZnlfY29tcG9uZW50X2luc3RhbGwoY29tcG9uZW50LCBpbnN0YWxsZWQsIGluc3RhbGxlZF9mcm9tPWJ1aWx0WzBdKSkK",
+          "before": "",
+          "offset": 20203
+        }
+      ],
+      "test_methods": 14
+    }
+  ],
+  "original_archive": "tests/fixtures/hia_query_cli_original_v1.tar.gz",
+  "original_archive_sha256": "e3f3fb7479cf57218a4f8128dc88b2e941a5f5b40618e0bd764b47189ba9b865",
+  "original_commit": "831110b8659a48bf9636997212ca67d5360530f9",
+  "original_sdist_generation_and_all_original_assertions_retained": true,
+  "previous_preparation": {
+    "bytes": 33756,
+    "path": "tests/fixtures/hia_query_cli_component_install_preparation_v1.json",
+    "sha256": "03133866b6ed37ecd1647280719f603b7fd1b5ce03f349c1263882f9e4b238a8"
+  },
+  "public_native_distribution_qualified": false,
+  "schema": "hepta.hia.query-cli-component-install-preparation.v2",
+  "scope": "EXPLICIT_COMPONENT_INSTALL_PREPARATION_NOT_PUBLIC_NATIVE_DISTRIBUTION"
+}
