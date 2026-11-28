@@ -133,9 +133,21 @@ def build(output, compiler, assembler, cold_report=None, *, development=False):
     runtime_raw = {name: (ROOT / name).read_bytes() for name in runtime_names}
     cold_raw = None if development else Path(cold_report).read_bytes()
     sources = None if development else admit_cold_build(compiler_raw, cold_raw)
-    if sources is not None and any(sources.get(name) != sha256(raw).hexdigest()
-                                   for name, raw in {**source_raw, **runtime_raw}.items()):
-        raise ValueError('capture component inputs differ from matching cold source')
+    cold_inputs, custody, development_inputs = None, None, {}
+    if sources is not None:
+        from tools.hia_native_cold_admission import SCHEMA as NATIVE_SCHEMA, read_json
+        if read_json(cold_raw).get('schema') == NATIVE_SCHEMA:
+            from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS, read_cold_build_inputs
+            cold_inputs = read_cold_build_inputs(cold_report)
+            if (cold_inputs.report_bytes != cold_raw or cold_inputs.compiler_bytes != compiler_raw
+                    or cold_inputs.sources != sources):
+                raise ValueError('capture compiler or source differs from admitted native cold inputs')
+            development_inputs = {name: (ROOT / name).read_bytes() for name in NATIVE_CUSTODY_INPUTS}
+            custody = cold_inputs.capture_custody(
+                {**source_raw, **runtime_raw, **development_inputs}, root=ROOT)
+        elif any(sources.get(name) != sha256(raw).hexdigest()
+                 for name, raw in {**source_raw, **runtime_raw}.items()):
+            raise ValueError('capture component inputs differ from matching cold source')
     output.mkdir(mode=0o700)
     image, compile_receipt = compile_stage(
         output, 'executable-capture', compiler, source_raw[POLICY_SOURCE])
@@ -155,6 +167,11 @@ def build(output, compiler, assembler, cold_report=None, *, development=False):
             or (not development and (Path(cold_report).read_bytes() != cold_raw
                                       or current_sources() != sources))):
         raise ValueError('capture component construction input drift')
+    if custody is not None:
+        from tools.hia_component_input_custody import verify_component_custody
+        verify_component_custody(custody, compiler_raw, cold_raw, sources,
+                                 {**source_raw, **runtime_raw, **development_inputs}, root=ROOT)
+        cold_inputs.unchanged()
     (output / 'policy.bin').write_bytes(policy)
     (output / 'effects.bin').write_bytes(effects)
     component_inputs = {name: sha256(raw).hexdigest() for name, raw in source_raw.items()}
@@ -172,6 +189,10 @@ def build(output, compiler, assembler, cold_report=None, *, development=False):
         'default_cutover': False, 'ordinary_entry_python_free': False,
         'all_input_equivalence_proved': False, 'whole_native_delivery_qualified': False,
     }
+    if custody is not None:
+        report['component_input_custody'] = custody
+        report['development_inputs'] = {
+            name: sha256(raw).hexdigest() for name, raw in development_inputs.items()}
     report_raw = (json.dumps(report, indent=2, sort_keys=True) + '\n').encode()
     (output / 'build.json').write_bytes(report_raw)
     manifest = {

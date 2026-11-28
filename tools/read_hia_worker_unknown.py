@@ -478,6 +478,12 @@ def read_installed(output, expected_receipt, profile):
                 or report['hosted_worker_policy_poisoned'] is not True
                 or report['original_workload_sha256'] != '0f95cc59fe2a66bcc2fbcfa8dc253266e763bbc8ca7c873d5bdf956fd04bdda6'):
             raise ValueError('explicit v2 original workload scope differs')
+        from tools.hia_worker_installed_workload_source import capture_workload_source, verify_workload_source
+        workload_source = capture_workload_source(ROOT, take=capture.take)
+        relation = report.get('original_workload_source_relation')
+        if (relation != workload_source['proof'] and not (relation is None
+                and workload_source['proof']['mode'] == 'EXACT_ORIGINAL_WITHOUT_MIGRATION')):
+            raise ValueError('installed v2 physical/historical workload custody differs')
     labels += ['source-drift']
     if len(report['commands']) != len(labels):
         raise ValueError('installed command inventory differs')
@@ -603,6 +609,8 @@ def read_installed(output, expected_receipt, profile):
                 raise ValueError('explicit native companion manifest changed')
     journal = _read_installed_journal(capture, output, report, profile)
     wheel = _wheel(capture, report)
+    if profile == 'v2':
+        verify_workload_source(workload_source)
     capture.stable()
     return {'schema':'hepta.hia.worker-unknown-installed-readback.v1','status':'PASS',
             'profile':profile,'commands':labels,'producer_report':{'path':str(output/'installed.json'),**pin(raw)},
