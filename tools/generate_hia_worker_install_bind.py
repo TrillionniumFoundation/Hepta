@@ -401,7 +401,9 @@ def sha_functions():
     mutable = text[text.index('\ndef digest('):].replace('digest(s:readbuf, o:mutbuf', 'digest_mut(o:mutbuf', 1).replace('byte(s, start + i)', 'byte(o, start + i)')
     return text + mutable
 
-def policy_source():
+def policy_source(protocol='03'):
+    from tools.hia_worker_protocols import protocol as selected_protocol
+    selected=selected_protocol(protocol)
     constants = []
     replacements = {'MAGIC': int.from_bytes(b'HIAWIB01', 'little'), 'CONFIG_MAGIC': int.from_bytes(b'HIAWEC01', 'little')}
     def literal(raw, name=None):
@@ -436,7 +438,7 @@ def policy_source():
         'LIT_PIN_SEPARATOR': b'","',
     }.items(): literal(raw, name)
     profile = {'schema':'hepta.hia.native-helpers.v24','target':'linux-x86_64-lp64','abi':'hia-byte-six-argument-v1',
-               'base_bundle':'core-worker.json','base_bundle_sha256':'@1@','release_path':'store/@0@'}
+               'base_bundle':'schedulers.json' if selected.number=='01' else 'core-worker.json','base_bundle_sha256':'@1@','release_path':'store/@0@'}
     for index, (field, _, _) in enumerate(PROFILE_IMAGES, 2): profile[field] = f'@{index}@'
     for index, (name, path) in enumerate(REFERENCES, 13):
         profile[name + '_path'] = path.replace('@PACKAGE@', '@0@')
@@ -536,8 +538,8 @@ def policy_source():
         source += f'\ndef constants_part_{i}(w:mutbuf) -> u64:\n' + ''.join('    '+line+'\n' for line in chunk) + '    return 0\n'
     return source
 
-def render():
-    nodes = ast.parse(policy_source()).body
+def render(protocol='03'):
+    nodes = ast.parse(policy_source(protocol)).body
     names = {n.name: f'f{i}' for i, n in enumerate(nodes)}
     signatures = {n.name: ([a.annotation.id for a in n.args.args], n.returns.id) for n in nodes}
     total = total_scalar_functions(nodes)
@@ -548,16 +550,18 @@ def render():
         functions.append({'name': names[node.name], 'params': [builder.param(a) for a in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    doc = compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':'source_worker_install_bind','functions':functions})
+    doc = compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':'source_worker_install_bind_v1' if protocol=='01' else 'source_worker_install_bind','functions':functions})
     text = render_assembly(doc)
     return text, {'functions':len(doc['functions']),'maximum_block_parameters':max(len(b['params']) for f in doc['functions'] for b in f['blocks']), 'source_bytes':len(text.encode()),'sha256':sha256(text.encode()).hexdigest()}
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    from tools.hia_worker_protocols import PROTOCOLS
+    parser.add_argument('--protocol',choices=PROTOCOLS,default='03')
     args = parser.parse_args()
-    text, record = render()
-    path = ROOT / 'examples/hia_bootstrap/source_worker_install_bind.hepta'
+    text, record = render(args.protocol)
+    path = ROOT / ('examples/hia_bootstrap/source_worker_install_bind'+('_v1' if args.protocol=='01' else '')+'.hepta')
     if args.check:
         if path.read_text() != text: raise SystemExit('Worker install binding source differs from its author')
     else: path.write_text(text)
