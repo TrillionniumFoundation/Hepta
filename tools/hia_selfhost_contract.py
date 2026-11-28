@@ -1013,6 +1013,10 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tools/hia_current_source_generation.py',
+    'tools/qualify_hia_current_source_generation.py',
+    'tests/test_hia_current_source_generation.py',
+    'tests/fixtures/hia_current_source_generation_v1.json',
     'examples/hia_bootstrap/release_stage_worker_compat.hiastd',
     'tools/generate_hia_worker_compat_release.py',
     'tools/qualify_hia_worker_compat_release.py',

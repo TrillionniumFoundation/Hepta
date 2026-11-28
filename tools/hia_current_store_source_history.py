@@ -581,3 +581,90 @@ def reviewed_source(root, name, raw, *, take=Path.read_bytes):
             return caller.reviewed_source(selected_root, selected_name, data, take=selected_take)
         return frozen.reviewed_source(selected_root, selected_name, data, take=selected_take)
     return _read_one(root, name, raw, take, read)
+
+
+# Current native successors have a separate physical capture layer. The older
+# complete readers above keep their original predicates, fixed authorities,
+# inverses and error behavior for every retained historical source domain.
+_retained_restore = restore
+_retained_reviewed_source = reviewed_source
+_retained_verify_unchanged = verify_unchanged
+_retained_restore_reader_evaluation_test = restore_reader_evaluation_test
+
+
+def _current_generation(captured, root, take):
+    from tools import hia_current_source_generation as generation
+    selected = ROOT if root is None else Path(root)
+    return generation.maybe_prepare(selected, captured, take=take)
+
+
+def restore(captured, *, root=None, take=Path.read_bytes):
+    projected, generation = _current_generation(captured, root, take)
+    if generation is None:
+        return _retained_restore(captured, root=root, take=take)
+    from tools import hia_current_source_generation as successor
+    try:
+        restored, prior = _retained_restore(
+            projected, root=generation.root, take=generation.prior_take)
+        if prior is None:
+            raise ValueError('current native Store generation lost its complete prior admission')
+        review = deepcopy(prior['review'])
+        review.update(schema='hepta.hia.current-native-store-source-review.v1',
+            complete_current={name: pin(generation.capture(generation.root / name))
+                              for name in frozen.CURRENT},
+            retained_source_history_review=deepcopy(prior['review']),
+            current_source_generation=deepcopy(generation.review()),
+            physical_capture_rewritten=False,
+            prior_projection_is_physical_source=False,
+            terminal_reread_identical=False)
+        history = {'review': review, 'generation_history': generation,
+                   'retained_history': prior, 'captures': generation.captures}
+        verify_unchanged(history)
+        return restored, history
+    finally:
+        successor.verify_unchanged(generation)
+
+
+def verify_unchanged(history):
+    if history is None or 'generation_history' not in history:
+        return _retained_verify_unchanged(history)
+    from tools import hia_current_source_generation as successor
+    generation = history['generation_history']
+    _retained_verify_unchanged(history['retained_history'])
+    successor.verify_unchanged(generation)
+    review = history['review']
+    actual = {n: pin(generation.captures[n]) for n in frozen.CURRENT}
+    if (review.get('schema') != 'hepta.hia.current-native-store-source-review.v1'
+            or review.get('complete_current') != actual
+            or review.get('retained_source_history_review') != history['retained_history']['review']
+            or review.get('current_source_generation') != generation.review()
+            or history.get('captures') is not generation.captures
+            or review.get('physical_capture_rewritten') is not False
+            or review.get('prior_projection_is_physical_source') is not False):
+        raise ValueError('current native Store review lost physical source identity')
+    review['terminal_reread_identical'] = True
+
+
+def reviewed_source(root, name, raw, *, take=Path.read_bytes):
+    projected, generation = _current_generation({name: raw}, root, take)
+    if generation is None:
+        return _retained_reviewed_source(root, name, raw, take=take)
+    from tools import hia_current_source_generation as successor
+    try:
+        return _retained_reviewed_source(
+            generation.root, name, projected[name], take=generation.prior_take)
+    finally:
+        successor.verify_unchanged(generation)
+
+
+def restore_reader_evaluation_test(raw, *, root, take=Path.read_bytes):
+    projected, generation = _current_generation({frozen.EVALUATION_TEST: raw}, root, take)
+    if generation is None:
+        return _retained_restore_reader_evaluation_test(raw, root=root, take=take)
+    from tools import hia_current_source_generation as successor
+    try:
+        return _retained_restore_reader_evaluation_test(
+            projected[frozen.EVALUATION_TEST], root=generation.root,
+            take=generation.prior_take)
+    finally:
+        successor.verify_unchanged(generation)
