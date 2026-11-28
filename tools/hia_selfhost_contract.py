@@ -1013,6 +1013,10 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tests/fixtures/hia_behavior_input_history_v7.json',
+    'tests/hia_service_describe_current_replay.py',
+    'tests/test_hia_service_describe_current_replay.py',
+    'tests/fixtures/hia_service_describe_0ae_originals_v1.json.gz',
     'docs/HIA_CORE_CONTINUATION_ABI_V2.json',
     'docs/HIA_CORE_LOWERING_ABI_V2.json',
     'examples/hia_bootstrap/continuation_inprocess_packer_v2.hepta',
