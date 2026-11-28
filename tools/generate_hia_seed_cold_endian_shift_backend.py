@@ -89,8 +89,15 @@ def shift_program():
     return ast.unparse(ast.fix_missing_locations(tree))+'\n'
 
 
-def cache_program(parent):
-    if sha256(parent.encode()).hexdigest() != '529cc4bc12eb3f783b15fd60eaf0ad4b65f6f410d8409368568512b5dbd228e7':
+def cache_program(parent, *, profile='endian-shift'):
+    profiles = {
+        'endian-shift': ('529cc4bc12eb3f783b15fd60eaf0ad4b65f6f410d8409368568512b5dbd228e7', 1, 2),
+        'bulk-word': ('b017f8bdc1ce6c45737e80bd51ce26fc14fbe26afdcadc8e75866ed96e09f81a', 0, 1),
+    }
+    if profile not in profiles:
+        raise ValueError('unknown fixed scalar cache profile')
+    expected, expected_loads, expected_saves = profiles[profile]
+    if sha256(parent.encode()).hexdigest() != expected:
         raise ValueError('fixed constant-shift parent source differs')
     tree = ast.parse(parent)
     before = copy.deepcopy(tree)
@@ -140,7 +147,7 @@ def cache_program(parent):
             return node
     loads = Loads()
     loads.visit(scalar)
-    if not (loads.loads == 1 and loads.saves == 2):
+    if not (loads.loads == expected_loads and loads.saves == expected_saves):
         raise ValueError('fixed scalar cache transform differs')
     helpers = 'def scalar_cache_reset(w:mutbuf) -> u64:\n    put(w,216,0)\n    put(w,232,0)\n    return 0\n\ndef scalar_cached_load(o:mutbuf,w:mutbuf,reg:u64,slot:u64) -> u64:\n    if reg == 0:\n        if get(w,216) != 0 and get(w,208) == slot:\n            return 0\n        value_load(o,w,reg,slot)\n        put(w,208,slot)\n        put(w,216,1)\n        return 0\n    if reg == 1:\n        if get(w,232) != 0 and get(w,224) == slot:\n            return 0\n        value_load(o,w,reg,slot)\n        put(w,224,slot)\n        put(w,232,1)\n        return 0\n    return value_load(o,w,reg,slot)\n\ndef scalar_cache_result(w:mutbuf,slot:u64) -> u64:\n    put(w,208,slot)\n    put(w,216,1)\n    if get(w,232) != 0 and get(w,224) == slot:\n        put(w,232,0)\n    return 0\n'
     added = ast.parse(helpers).body
