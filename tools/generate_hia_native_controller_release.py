@@ -354,7 +354,56 @@ def build_recipe(specs):
     return r, sorted(paths)
 
 
+def _admit_controller_catalog(raw, root):
+    """Admit the original aggregate domains or the exact current native DAGs."""
+    from tools.hia_native_release_dependencies import read_source_table
+    checked = read_source_table(raw)
+    if raw != ("\n".join(raw.decode("ascii").splitlines()) + "\n").encode("ascii"):
+        raise ValueError("native controller catalog is not canonical whole lines")
+    if checked["stages"] < 10:
+        raise ValueError("native controller catalog predates the original ten stages")
+    if checked["stages"] > 14:
+        # The selected repository declares the actual extension identities and
+        # order. No numeric upper-bound relaxation admits an unnamed stage.
+        from tools.generate_hia_release_extension_catalog import generated_table
+        expected, current = generated_table(root, source_table=raw)
+        if raw != expected or checked["stages"] != current["stages"]:
+            raise ValueError("native controller catalog differs from the registered current DAGs")
+    return checked
+
+
+def _replace_controller_group(raw, controller_rows):
+    """Replace only stage 11 at its existing position; preserve every other row."""
+    from tools.hia_native_release_dependencies import read_source_table
+    checked = read_source_table(raw)
+    if not controller_rows or any(row.split("\t")[1] != "11" for row in controller_rows):
+        raise ValueError("controller replacement must contain only stage 11")
+    rows = raw.decode("ascii").splitlines()
+    positions = [i for i, row in enumerate(rows[1:], 1) if row.split("\t")[1] == "11"]
+    if positions:
+        if positions != list(range(positions[0], positions[-1] + 1)):
+            raise ValueError("controller stage is not one complete contiguous group")
+        records = rows[1:positions[0]] + list(controller_rows) + rows[positions[-1] + 1:]
+    elif checked["stages"] == 10:
+        records = rows[1:] + list(controller_rows)
+    else:
+        raise ValueError("native controller catalog is missing stage 11")
+    prior_other = [row for row in rows[1:] if row.split("\t")[1] != "11"]
+    actual_other = [row for row in records if row.split("\t")[1] != "11"]
+    if actual_other != prior_other:
+        raise ValueError("a non-controller catalog group changed")
+    output_count = sum(row.startswith("output\t") for row in records)
+    result = ("\n".join(
+        [f"stage\t{max(11, checked['stages'])}\t{output_count}", *records]
+    ) + "\n").encode("ascii")
+    read_source_table(result)
+    return result
+
+
 def main():
+    table = ROOT / BOOT / 'release_stage_sources.tsv'
+    before_table = table.read_bytes()
+    _admit_controller_catalog(before_table, ROOT)
     specs = specifications()
     sources = {
         FILTER_POLICY: filter_policy(),
@@ -363,25 +412,15 @@ def main():
         DELIVERY: delivery_source(specs),
     }
     counts = {}
+    products = {}
     for name, source in sources.items():
         doc = document(source, Path(name).stem)
         counts[name] = dict(functions=len(doc['functions']), blocks=sum(len(f['blocks']) for f in doc['functions']),
                             operations=sum(len(b['ops']) for f in doc['functions'] for b in f['blocks']))
-        (ROOT / BOOT / name).write_text(render_assembly(doc))
+        products[ROOT / BOOT / name] = render_assembly(doc).encode('utf-8')
     recipe, paths = build_recipe(specs)
-    (ROOT / BOOT / RECIPE).write_bytes(recipe.binary())
-    table = ROOT / BOOT / 'release_stage_sources.tsv'
-    lines = table.read_text().splitlines()
-    assert lines, 'empty native stage inventory'
-    header = lines[0].split('\t')
-    assert len(header) == 3 and header[0] == 'stage' and 10 <= int(header[1]) <= 16, header
-    # The first line is the aggregate count, not stage 11's data. Preserve
-    # it and the first stage's source-builder requirement on every replay.
-    later = [line for line in lines[1:] if int(line.split('\t')[1]) > 11]
-    lines = [lines[0]] + [line for line in lines[1:] if int(line.split('\t')[1]) < 11]
-    old_outputs = sum(line.startswith('output\t') for line in lines + later)
-    lines[0] = '\t'.join((header[0], str(max(11, int(header[1]))), str(old_outputs + len(recipe.published))))
-    lines += ['stage\t11\tnative-controllers', 'need\t11\t0\thia-source-build',
+    products[ROOT / BOOT / RECIPE] = recipe.binary()
+    lines = ['stage\t11\tnative-controllers', 'need\t11\t0\thia-source-build',
               'need\t11\t0\tselfhost.image.bin']
     lines += ['compile\t11\tcontrollers\t' + Path(path).name + '\t' + path.removeprefix(BOOT) for path in paths]
     lines += ['kit\t11\t' + FILTER_POLICY + '\t' + name for name in (WIDE_FILTER, 'native_filter_packer.hepta')]
@@ -389,8 +428,12 @@ def main():
     lines += ['output\t11\t' + name for name in recipe.published]
     for row in specs:
         lines += [f'framing\t11\t{row["mode"]}\t{row["magic"].decode()}\tindependent-prefix-and-all-source-images']
-    lines += later
-    table.write_text('\n'.join(lines) + '\n')
+    after_table = _replace_controller_group(before_table, lines)
+    if table.read_bytes() != before_table:
+        raise ValueError('native controller catalog changed during authoring')
+    for target, raw in products.items():
+        target.write_bytes(raw)
+    table.write_bytes(after_table)
     # The legacy cold proof also authenticates this new production graph. Its
     # optional reference-only driver remains separate from the native runtime.
     from tools.hia_selfhost_contract import SOURCE_FILES
