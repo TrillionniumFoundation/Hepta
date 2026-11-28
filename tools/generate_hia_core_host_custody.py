@@ -33,8 +33,18 @@ def document():
     result = original('stage')
     result['module'] = 'source_core_host_custody'
     append_functions(result, source_program())
+    # Preserve the original native CLI argv/input/EOF state machine.
+    entry = function(result, 'f0')
+    changes = 0
+    for block in entry['blocks']:
+        for op in block['ops']:
+            if op['op'] == 'call' and op['attrs'].get('function') in ('f1', 'f16', 'f26'):
+                op['attrs']['function'] = 'custody'
+                changes += 1
+    if changes != 3:
+        raise ValueError('original native CLI dispatch changed')
     functions = {fn['name']: fn for fn in result['functions']}
-    reachable, pending = set(), ['custody']
+    reachable, pending = set(), ['f0']
     while pending:
         name = pending.pop()
         if name in reachable:
@@ -44,13 +54,21 @@ def document():
         reachable.add(name)
         pending.extend(op['attrs']['function'] for block in functions[name]['blocks']
                        for op in block['ops'] if op['op'] == 'call')
-    result['functions'] = [functions['custody']] + [
-        fn for fn in result['functions'] if fn['name'] in reachable and fn['name'] != 'custody']
+    result['functions'] = [functions['f0']] + [
+        fn for fn in result['functions'] if fn['name'] in reachable and fn['name'] != 'f0']
     retained = original('stage')
     old = {fn['name']: fn for fn in retained['functions']}
     for fn in result['functions']:
-        if fn['name'] in old and fn != old[fn['name']]:
-            raise ValueError('retained independent SHA/byte operation changed: ' + fn['name'])
+        if fn['name'] not in old:
+            continue
+        expected = deepcopy(old[fn['name']])
+        if fn['name'] == 'f0':
+            for block in expected['blocks']:
+                for op in block['ops']:
+                    if op['op'] == 'call' and op['attrs'].get('function') in ('f1', 'f16', 'f26'):
+                        op['attrs']['function'] = 'custody'
+        if fn != expected:
+            raise ValueError('retained independent native operation changed: ' + fn['name'])
     return unchanged_profile(result)
 
 
