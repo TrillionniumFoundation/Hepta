@@ -301,7 +301,9 @@ def request(o:mutbuf, w:mutbuf) -> u64:
 '''
 
 
-def policy_source():
+def policy_source(protocol="03"):
+    from tools.hia_worker_protocols import protocol as selected_protocol
+    selected = selected_protocol(protocol)
     original = ast.parse(shared.POLICY_SOURCE)
     functions = {node.name: node for node in original.body}
 
@@ -356,7 +358,7 @@ def policy_source():
          '    elif index == 11:\n'
          '        descriptor = get(w, 2097152 + 352)')])
     added = WORKER_FUNCTIONS.replace('MAGIC_WORKER_REQUEST', str(int.from_bytes(b'HIAWIN01', 'little')))
-    added = added.replace('MAGIC_WORKER_OPTIONS', str(int.from_bytes(b'HIAWOP01', 'little')))
+    added = added.replace('MAGIC_WORKER_OPTIONS', str(int.from_bytes(selected.options_magic, 'little')))
     added = added.replace('MAGIC_WORKER_CONFIG', str(int.from_bytes(b'HIAWCF01', 'little')))
     extra = ast.parse(added).body
     for node in extra:
@@ -370,7 +372,7 @@ def policy_source():
     original.body.extend(node for node in extra if node.name not in functions)
     constants = 'def entry_constants(w:mutbuf) -> u64:\n    release_entry_constants(w)\n'
     for offset, raw in (
-        (45120, b'hia-worker-install-owner\0'), (46528, b'--package\0'),
+        (45120, selected.owner_executable.encode('ascii') + b'\0'), (46528, b'--package\0'),
         (46592, b'--package-sha256\0'), (46656, b'--artifact-root\0'),
         (46720, b'--readonly-artifact-root\0'), (46784, b'--runtime-config\0'),
         (48000, HELP + b'\0'),
@@ -387,18 +389,30 @@ def policy_source():
     return ast.unparse(ast.fix_missing_locations(original))
 
 
-def render():
+def render(protocol='03'):
+    from tools.hia_worker_protocols import protocol as selected_protocol
+    selected = selected_protocol(protocol)
     with tempfile.TemporaryDirectory(prefix='hia-worker-entry-author-') as directory:
-        return shared._render(Path(directory), policy_source=policy_source(),
-                              module_prefix='worker_install_entry',
-                              adapter_source=ROOT / 'tools/hia_worker_install_entry_syscalls.S')
+        outputs, metadata = shared._render(
+            Path(directory), policy_source=policy_source(protocol),
+            module_prefix='worker_install_entry',
+            adapter_source=ROOT / 'tools/hia_worker_install_entry_syscalls.S')
+        expected = {'worker_install_entry', 'worker_install_entry_packer',
+                    'worker_install_entry_bind'}
+        if set(outputs) != expected:
+            raise ValueError('shared Worker entry author changed its canonical source domain')
+        physical = {selected.install_stem + name[len('worker_install'):]: text
+                    for name, text in outputs.items()}
+        return physical, metadata
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    from tools.hia_worker_protocols import PROTOCOLS
+    parser.add_argument('--protocol', choices=PROTOCOLS, default='03')
     args = parser.parse_args()
-    outputs, metadata = render()
+    outputs, metadata = render(args.protocol)
     for module, source in outputs.items():
         path = ROOT / 'examples/hia_bootstrap' / (module + '.hepta')
         if args.check:

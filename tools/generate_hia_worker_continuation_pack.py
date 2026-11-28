@@ -62,9 +62,19 @@ def put(w:mutbuf, at:u64, value:u64) -> u64:
     return 0
 '''
 
-def policy_source():
-    raw=(ROOT/PACKER).read_bytes();pin=sha256(raw).digest()
-    original=ast.parse(packer_source(in_process=True)).body
+def policy_source(profile='v1'):
+    if type(profile) is not str or profile not in ('v1','v2'):
+        raise ValueError('Worker continuation pack profile differs')
+    selected_path=PACKER
+    original_source=packer_source(in_process=True)
+    magic=b'HIAWCP01'
+    if profile=='v2':
+        from tools.generate_hia_continuation_v2 import packer_source as v2_packer_source
+        selected_path='examples/hia_bootstrap/continuation_inprocess_packer_v2.hepta'
+        original_source=v2_packer_source()
+        magic=b'HIAWCP02'
+    raw=(ROOT/selected_path).read_bytes();pin=sha256(raw).digest()
+    original=ast.parse(original_source).body
     names={n.name:'original_'+n.name for n in original}
     assert original[0].name=='pack'
     class Offset(ast.NodeTransformer):
@@ -82,22 +92,22 @@ def policy_source():
                     n.args[1]=ast.BinOp(left=self.offset(n.args[0]),op=ast.Add(),right=n.args[1])
                 if name in names:n.func.id=names[name]
             return n
-    source=ENTRY.replace('MAGIC',str(int.from_bytes(b'HIAWCP01','little'))).replace('SOURCE_BYTES',str(len(raw)))
+    source=ENTRY.replace('MAGIC',str(int.from_bytes(magic,'little'))).replace('SOURCE_BYTES',str(len(raw)))
     source+='\n'+'\n\n'.join(ast.unparse(ast.fix_missing_locations(Offset().visit(n))) for n in original)+'\n'
     source+='\ndef constants(w:mutbuf) -> u64:\n'
     for i in range(0,32,8):source+=f'    put(w, {16384+i}, {int.from_bytes(pin[i:i+8],"little")})\n'
     source+='    return 0\n'+sha_functions()
     return source
 
-def render():
-    nodes=ast.parse(policy_source()).body;names={n.name:f'f{i}' for i,n in enumerate(nodes)};assert len(names)==len(nodes)
+def render(profile='v1'):
+    nodes=ast.parse(policy_source(profile)).body;names={n.name:f'f{i}' for i,n in enumerate(nodes)};assert len(names)==len(nodes)
     signatures={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes};total=total_scalar_functions(nodes);functions=[]
     for n in nodes:
         b=LinkerBuilder(n,names,signatures,total);b.statements(n.body);functions.append({'name':names[n.name],'params':[b.param(a) for a in b.params],'returns':[b.returns],'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
-    doc=compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':'source_worker_continuation_pack','functions':functions});text=render_assembly(doc)
+    doc=compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':'source_worker_continuation_pack_v2' if profile=='v2' else 'source_worker_continuation_pack','functions':functions});text=render_assembly(doc)
     return text,{'functions':len(functions),'source_bytes':len(text.encode()),'sha256':sha256(text.encode()).hexdigest(),'maximum_block_parameters':max(len(b['params']) for f in doc['functions'] for b in f['blocks'])}
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');a=p.parse_args();text,record=render();path=ROOT/'examples/hia_bootstrap/source_worker_continuation_pack.hepta'
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');p.add_argument('--core-profile',choices=('v1','v2'),default='v1');a=p.parse_args();text,record=render(a.core_profile);path=ROOT/('examples/hia_bootstrap/source_worker_continuation_pack'+('_v2' if a.core_profile=='v2' else '')+'.hepta')
     if a.check:
         if path.read_text()!=text:raise SystemExit('worker continuation pack policy differs')
     else:path.write_text(text)

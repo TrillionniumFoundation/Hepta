@@ -3,13 +3,17 @@ from pathlib import Path
 import argparse,ast,json,struct
 from hashlib import sha256
 from tools.generate_hia_release_core_recipe import CoreRecipe
-from tools.generate_hia_worker_manifest import current_model as model
+from tools.hia_worker_protocol_model import worker_model
+from tools.hia_worker_protocols import protocol as selected_protocol, recipe_path, PROTOCOLS
 from tools.generate_hia_worker_install_owner import STAGES
 from tools.generate_hia_worker_install_bind import PROFILE_IMAGES,REFERENCES
 from tools.generate_hia_worker_capsule_check import KINDS
 ROOT=Path(__file__).resolve().parents[1]
 BOOT=Path('examples/hia_bootstrap')
 class WorkerRecipe(CoreRecipe):
+    def __init__(self, protocol='03'):
+        super().__init__()
+        self.protocol=selected_protocol(protocol)
     def node(self,operation,args=(),payload=b''):
         if operation in (20,21,22):
             self.nodes.append((operation,0,tuple(args),bytes(payload)));return 0
@@ -48,11 +52,11 @@ class WorkerRecipe(CoreRecipe):
     def lp(self,*parts):return self.concat(*(item for part in parts for item in (self.length(part),part)))
     def wire(self,magic,words,parts):return self.concat(self.literal(magic+struct.pack('<'+'Q'*len(words),*words)),self.lp(*parts))
     def manifest(self,mode,role,*parts):
-        if not hasattr(self,'framer'):self.framer=self.leaf('source_worker_manifest_current.hepta')
-        if not hasattr(self,'tables'):self.tables=self.source(str(BOOT/'worker_manifest_current_tables.hiastd'))
-        return self.run(self.framer,self.wire(b'HIAWMF02',(mode,role,len(parts)+1),(*parts,self.tables)))
+        if not hasattr(self,'framer'):self.framer=self.leaf(Path(self.protocol.manifest_source).name)
+        if not hasattr(self,'tables'):self.tables=self.source(self.protocol.manifest_table)
+        return self.run(self.framer,self.wire(self.protocol.request_magic,(mode,role,len(parts)+1),(*parts,self.tables)))
     def bind(self,mode,role,*parts):
-        if not hasattr(self,'binder'):self.binder=self.leaf('source_worker_install_bind.hepta')
+        if not hasattr(self,'binder'):self.binder=self.leaf('source_worker_install_bind_v1.hepta' if self.protocol.number=='01' else 'source_worker_install_bind.hepta')
         return self.run(self.binder,self.wire(b'HIAWIB01',(mode,role,len(parts)),parts))
     def identity(self,mode,*parts):
         if not hasattr(self,'identity_leaf'):self.identity_leaf=self.leaf('source_worker_install_identity.hepta')
@@ -91,13 +95,16 @@ def report(r,m):
         r.publish('report/'+name+'/'+protocol+'.image.bin',image);r.publish('report/'+name+'/manifest.json',manifest)
     bundle=r.manifest(4,0,*manifests);r.publish('report/manifest.json',bundle)
     r.publish('report.json',r.manifest(5,0,r.import_product('helpers.json'),bundle))
-    from tools.hia_artifact_page_worker_recipe import publish_page
-    publish_page(r)
-    from tools.hia_core_companion_worker_recipe import publish_core
-    publish_core(r)
+    if r.protocol.number!='01':
+        from tools.hia_artifact_page_worker_recipe import publish_page
+        publish_page(r)
+        from tools.hia_core_companion_worker_recipe import publish_core
+        publish_core(r)
 
 def scheduler(r,family):
-    paths=[u['source'] for u in family['units']];r.compile_paths(paths+['examples/hia_bootstrap/continuation_policy.hepta']);manifests=[];images=[]
+    paths=[u['source'] for u in family['units']]
+    policy=family.get('continuation_policy','examples/hia_bootstrap/continuation_policy.hepta')
+    r.compile_paths(paths+[policy]);manifests=[];images=[]
     for unit in family['units']:
         source,image=r.source_views[unit['source']],r.compiled[unit['source']];images.append(image)
         manifest=r.manifest(6,unit['role'],source,image,r.compiler());manifests.append(manifest)
@@ -105,10 +112,11 @@ def scheduler(r,family):
         r.publish(base+unit['image_path'],image);r.publish(base+'manifest.json',manifest)
     abi=r.source(family['abi_source']);bundle=r.manifest(7,family['role'],abi,r.compiler(),*manifests)
     r.publish(family['name']+'/policy/manifest.json',bundle)
-    frame=r.manifest(10,family['role'],abi,r.compiled['examples/hia_bootstrap/continuation_policy.hepta'],*images)
-    packer_source=r.source('examples/hia_bootstrap/continuation_inprocess_packer.hepta')
-    wire=r.concat(r.literal(b'HIAWCP01'),r.length(packer_source),packer_source,frame)
-    aggregate=r.run(r.leaf('source_worker_continuation_pack.hepta'),wire)
+    frame=r.manifest(10,family['role'],abi,r.compiled[policy],*images)
+    packer_source=r.source(family.get('continuation_packer','examples/hia_bootstrap/continuation_inprocess_packer.hepta'))
+    magic=b'HIAWCP02' if family.get('continuation_schema')=='hepta.hia.native-continuation-inprocess.v2' else b'HIAWCP01'
+    wire=r.concat(r.literal(magic),r.length(packer_source),packer_source,frame)
+    aggregate=r.run(r.leaf(family.get('continuation_frontend','source_worker_continuation_pack.hepta')),wire)
     r.publish(family['name']+'/continuation.image.bin',aggregate)
     manifest=r.manifest(8,family['role'],bundle,r.compiler(),aggregate,r.inventory())
     r.publish(family['name']+'/inprocess-manifest.json',manifest)
@@ -120,11 +128,13 @@ def profile(r,m):
     for name,path in REFERENCES:
         product=Path(path).name;raw=r.import_product(product);refs.append(raw)
         if name!='journal_cost':r.publish(path,raw,0o500)
-    from tools.hia_artifact_page_worker_recipe import wrap_page
-    page=wrap_page(r,scheduling)
-    from tools.hia_core_companion_worker_recipe import wrap_core
-    core=wrap_core(r,page)
-    value=r.bind(1,0,r.package(),core,*(r.import_product(name) for _,name,_ in PROFILE_IMAGES),*refs)
+    wrapped=scheduling
+    if r.protocol.number!='01':
+        from tools.hia_artifact_page_worker_recipe import wrap_page
+        page=wrap_page(r,scheduling)
+        from tools.hia_core_companion_worker_recipe import wrap_core
+        wrapped=wrap_core(r,page)
+    value=r.bind(1,0,r.package(),wrapped,*(r.import_product(name) for _,name,_ in PROFILE_IMAGES),*refs)
     r.publish('worker.json',value)
 
 def backend_sources():
@@ -150,15 +160,16 @@ def identity(r,m):
     parts.append(r.literal(b'native-machine-encoding\0\0'))
     plan=r.concat(r.hexdigest(r.source('examples/hia_bootstrap/machine_plan.hepta')),r.literal(b':'),r.hexdigest(r.import_product('machine-plan/machine-plan.image.bin')))
     parts.extend((r.literal(b'native-machine-plan\0'),plan,r.literal(b'\0')))
-    continuation_sources=m['continuation_resources']+m['continuation_runtime']
-    continuation_pins=[r.hexdigest(r.source(p)) for p in continuation_sources]
     for family in m['families'][1:]:
+        continuation_sources=(family.get('continuation_resources',m['continuation_resources'])
+                              +family.get('continuation_runtime',m['continuation_runtime']))
+        continuation_pins=[r.hexdigest(r.source(p)) for p in continuation_sources]
         kind=family['name'];abi=r.source(family['abi_source'])
         parts.extend((r.literal((kind+'-abi').encode()+b'\0'),abi,r.literal(b'\0')))
-        values=[r.literal(('native-'+kind+'-v1').encode()),r.hexdigest(abi),r.hexdigest(r.import_product(kind+'/policy/manifest.json'))]
+        values=[r.literal(family.get('implementation_label','native-'+kind+'-v1').encode()),r.hexdigest(abi),r.hexdigest(r.import_product(kind+'/policy/manifest.json'))]
         for unit in family['units']:
             values.extend((r.literal(unit['source'].encode()),r.hexdigest(r.source(unit['source'])),r.hexdigest(r.import_product(kind+'/policy/'+unit['name']+'/'+unit['image_path']))))
-        continuation=r.zjoin([r.literal(b'hepta.hia.native-continuation-inprocess.v1'),r.hexdigest(r.import_product(kind+'/inprocess-manifest.json')),r.hexdigest(r.import_product(kind+'/continuation.image.bin')),*continuation_pins])
+        continuation=r.zjoin([r.literal(family.get('continuation_schema','hepta.hia.native-continuation-inprocess.v1').encode()),r.hexdigest(r.import_product(kind+'/inprocess-manifest.json')),r.hexdigest(r.import_product(kind+'/continuation.image.bin')),*continuation_pins])
         values.append(r.hex(continuation))
         parts.extend((r.literal(('native-'+kind).encode()+b'\0'),r.zjoin(values),r.literal(b'\0')))
     backend=r.digest(r.concat(*parts));catalog=r.digest(r.source('docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json'));profile=r.digest(r.import_product('worker.json'))
@@ -200,10 +211,10 @@ def entry(r,m):
     r.node(10,(2,3,elf,code,packer,adapter,r.q(0,0,0),instructions))
     r.publish('hia-agent-worker',elf,0o500)
 
-def recipes(native_source_authority=None):
-    m=model(ROOT,native_source_authority);result={}
+def recipes(native_source_authority=None, *, protocol='03'):
+    m=worker_model(ROOT,native_source_authority,protocol=protocol);result={}
     for kind in STAGES:
-        r=WorkerRecipe()
+        r=WorkerRecipe(protocol)
         if kind=='helpers':helpers(r,m)
         elif kind=='report':report(r,m)
         elif kind=='profile':profile(r,m)
@@ -217,9 +228,9 @@ def recipes(native_source_authority=None):
     return result
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');p.add_argument('--native-source-authority',type=Path);a=p.parse_args();records=[]
-    for kind,r in recipes(a.native_source_authority).items():
-        raw=r.binary();target=ROOT/BOOT/('worker_install_'+kind+'.hiastd')
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');p.add_argument('--native-source-authority',type=Path);p.add_argument('--protocol',choices=PROTOCOLS,default='03');a=p.parse_args();records=[]
+    for kind,r in recipes(a.native_source_authority,protocol=a.protocol).items():
+        raw=r.binary();target=ROOT/recipe_path(a.protocol,kind)
         if a.check:
             if target.read_bytes()!=raw:raise SystemExit(kind+' differs')
         else:target.write_bytes(raw)

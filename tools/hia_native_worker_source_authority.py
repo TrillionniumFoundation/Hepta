@@ -12,6 +12,11 @@ SCHEMA = 'hepta.hia.native-source-authority.v1'
 BACKEND_DOMAIN = b'hepta.hia.native-backend-source-authority.v1\0'
 SOURCE_SUFFIXES = frozenset({'.hepta', '.S', '.s', '.inc', '.hiastd'})
 DATA_SUFFIXES = frozenset({'.hiacases', '.hiadat', '.hiabundle', '.json', '.tsv', '.md', '.txt'})
+CONTINUATION_RUNTIME_V2 = (
+    'examples/hia_bootstrap/continuation_policy_v2.hepta',
+    'examples/hia_bootstrap/continuation_inprocess_packer_v2.hepta',
+    'examples/hia_bootstrap/source_worker_continuation_pack_v2.hepta',
+)
 CONTINUATION_RUNTIME = (
     'examples/hia_bootstrap/continuation_policy.hepta',
     'examples/hia_bootstrap/continuation_inprocess_packer.hepta',
@@ -53,14 +58,19 @@ def checked_paths(value):
     return paths
 
 
-def load_native_source_authority(path):
-    raw = Path(path).read_bytes()
+def parse_native_source_authority(raw):
+    if type(raw) is not bytes:
+        raise ValueError('native source authority must be captured bytes')
     if len(raw) > 1048576:
         raise ValueError('native source authority document exceeds 1 MiB')
     value = json.loads(raw, object_pairs_hook=_object)
     if type(value) is not dict or set(value) != {'schema', 'paths'} or value['schema'] != SCHEMA:
         raise ValueError('invalid native source authority schema')
     return checked_paths(value['paths'])
+
+
+def load_native_source_authority(path):
+    return parse_native_source_authority(Path(path).read_bytes())
 
 
 def path_table(paths):
@@ -100,11 +110,21 @@ def native_model(original, authority_path):
     required.update(h['source'] for h in original['helpers'])
     required.update(f['abi_source'] for f in original['families'])
     required.update(u['source'] for f in original['families'] for u in f['units'])
+    for family in original['families']:
+        required.update(family.get('continuation_resources', ()))
+        if family.get('continuation_schema') == 'hepta.hia.native-continuation-inprocess.v2':
+            required.update(CONTINUATION_RUNTIME_V2)
     missing = sorted(required - set(paths))
     if missing:
         raise ValueError('native Worker authority omits required implementation inputs: ' + repr(missing))
     result = dict(original)
     result['continuation_runtime'] = list(CONTINUATION_RUNTIME)
+    result['families'] = [dict(family) for family in original['families']]
+    for family in result['families']:
+        if 'continuation_runtime' in family:
+            if family.get('continuation_schema') != 'hepta.hia.native-continuation-inprocess.v2' or family['name'] != 'core-lowering':
+                raise ValueError('unknown per-family native continuation authority')
+            family['continuation_runtime'] = list(CONTINUATION_RUNTIME + CONTINUATION_RUNTIME_V2)
     result['runtime_files'] = [p for p in paths if PurePosixPath(p).suffix in SOURCE_SUFFIXES]
     result['native_source_authority'] = {'schema': SCHEMA, 'paths': list(paths),
         'backend_domain_hex': BACKEND_DOMAIN.hex(),

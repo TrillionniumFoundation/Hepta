@@ -16,7 +16,7 @@ import sys
 
 
 def qualify(source: Path, seed: Path, kit: Path, output: Path, *,
-            specifications=None,
+            specifications=None, protocol=None,
             schema='hepta.hia.worker-install-source-qualification.v2',
             scope='NATIVE_WORKER_INSTALLATION_MEMBER_COMPONENTS'):
     source, seed, kit = (path.resolve(strict=True) for path in (source, seed, kit))
@@ -33,6 +33,17 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path, *,
         return raw
 
     bootstrap = source / 'examples/hia_bootstrap'
+    if protocol is None:
+        physical_sources = {}
+    else:
+        from tools.hia_worker_protocols import member_source_map
+        physical_sources = member_source_map(protocol)
+        if specifications is not None:
+            raise ValueError('explicit Worker protocol uses the complete original member specifications')
+
+    def source_path(name):
+        return bootstrap / physical_sources.get(name, name)
+
     read(seed)
     read(kit)
     calls = []
@@ -58,8 +69,8 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path, *,
         companions = (companion,) if isinstance(companion, str) else tuple(companion)
         companion_alias = companions[0] + '.hepta'
         companion_aliases = [name + '.hepta' for name in companions]
-        parts = {primary_alias: read(bootstrap / (primary + '.hepta'))}
-        parts.update((name, read(bootstrap / name)) for name in companion_aliases)
+        parts = {primary_alias: read(source_path(primary + '.hepta'))}
+        parts.update((name, read(source_path(name))) for name in companion_aliases)
         if include_hash:
             parts['sha256_stream.hepta'] = read(bootstrap / 'sha256_stream.hepta')
         independent = {}
@@ -73,7 +84,7 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path, *,
         builder_sources = {
             'source_build_policy.hepta': read(bootstrap / 'source_filter_member.hepta'),
             'selfhost.hepta': read(bootstrap / 'selfhost.hepta'),
-            'source_build_packer.hepta': read(bootstrap / (primary + '_packer.hepta')),
+            'source_build_packer.hepta': read(source_path(primary + '_packer.hepta')),
         }
         result = call(product + '/member-kit', kit, 'build',
                       _named_source_request(builder_sources, tag=b'HIAKIT01'))
@@ -149,6 +160,9 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path, *,
     report = {'schema': schema, 'scope': scope, 'status': 'passed',
               'members': members, 'refusal_cases': sum(row['refusal_cases'] for row in members.values()),
               'source_and_tool_sha256': captured, 'calls': calls}
+    if protocol is not None:
+        report['protocol'] = protocol
+        report['physical_source_map'] = physical_sources
     (output / 'qualification.json').write_text(json.dumps(report, indent=2) + '\n')
     return report
 

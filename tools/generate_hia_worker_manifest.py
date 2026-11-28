@@ -248,11 +248,11 @@ def recipes(m: dict) -> list[Recipe]:
         r.validators.append((7, 2, 0, 0, b''))
         compiler, image, policy = r.digest(1), r.digest(2), r.digest(0)
         r.compiler_slot = 0
-        r.json(dict(schema='hepta.hia.native-continuation-inprocess.v1', kind=f['name'],
+        r.json(dict(schema=f.get('continuation_schema', 'hepta.hia.native-continuation-inprocess.v1'), kind=f['name'],
             compiler_sha256=compiler, image_path='continuation.image.bin', image_sha256=image,
             policy_bundle='policy/manifest.json', policy_bundle_sha256=policy,
-            resource_sha256={p: r.source_pin(3, p) for p in m['continuation_resources']},
-            runtime_sha256={p: r.source_pin(3, p) for p in m['continuation_runtime']}))
+            resource_sha256={p: r.source_pin(3, p) for p in f.get('continuation_resources', m['continuation_resources'])},
+            runtime_sha256={p: r.source_pin(3, p) for p in f.get('continuation_runtime', m['continuation_runtime'])}))
         result.append(r)
 
     r = Recipe(9, 0, ['report_json', *[f['name'] + '_manifest' for f in m['families']], 'source_inventory_HIASPI01'],
@@ -281,7 +281,7 @@ def recipes(m: dict) -> list[Recipe]:
             r.bounds(i, 1, 1 << 20)
         r.exact_digest(0, f['abi_sha256'])
         modes = sorted(abi['modes'].values(), key=lambda row: row['number'])
-        r.operations.extend([(0, b'HIACTPK1'), (3, 1),
+        r.operations.extend([(0, f.get('continuation_pack_magic', 'HIACTPK1').encode('ascii')), (3, 1),
             (0, struct.pack('<6Q', len(f['units']) - 1, abi['workspace_bytes'], abi['output_bytes'],
                             abi['pool_bytes'], abi['literal_count'], len(modes))), (3, 2)])
         for i in range(3, len(r.pieces)):
@@ -440,17 +440,28 @@ def current_model(root: Path, native_source_authority=None) -> dict:
     return result
 
 
-def render(root: Path, native_source_authority=None, *, helper_extensions=False):
-    m = current_model(root, native_source_authority) if helper_extensions else model(root, native_source_authority)
+def render(root: Path, native_source_authority=None, *, helper_extensions=False, protocol=None):
+    selected = None
+    if protocol is not None:
+        if helper_extensions:
+            raise ValueError('explicit Worker protocol conflicts with legacy helper_extensions')
+        from tools.hia_worker_protocols import protocol as selected_protocol
+        from tools.hia_worker_protocol_model import worker_model
+        selected = selected_protocol(protocol)
+        m = worker_model(root, native_source_authority, protocol=protocol)
+    else:
+        m = current_model(root, native_source_authority) if helper_extensions else model(root, native_source_authority)
     entries = recipes(m)
+    if selected is not None and len(entries) != selected.record_count:
+        raise ValueError('complete Worker recipe count differs from its declared protocol')
     if native_source_authority is not None:
         for recipe in entries:
             if (len(recipe.slots) > 512 or not 1 <= len(recipe.operations) <= 4096
                     or len(recipe.validators) > 512):
                 raise ValueError('native source authority exceeds the unchanged manifest recipe budget')
     payload = b''.join(r.encode() for r in entries)
-    table_magic = b'HIAWMT02' if helper_extensions else b'HIAWMT01'
-    request_magic = b'HIAWMF02' if helper_extensions else b'HIAWMF01'
+    table_magic = selected.table_magic if selected is not None else b'HIAWMT02' if helper_extensions else b'HIAWMT01'
+    request_magic = selected.request_magic if selected is not None else b'HIAWMF02' if helper_extensions else b'HIAWMF01'
     table = struct.pack('<8s3Q', table_magic, 1, len(entries), 32 + len(payload)) + payload
     if len(table) > 1048576:
         raise ValueError('Worker manifest table exceeds the original 1 MiB budget')
@@ -475,11 +486,11 @@ def render(root: Path, native_source_authority=None, *, helper_extensions=False)
         functions.append(dict(name=names[node.name], params=[b.param(a) for a in b.params],
             returns=[b.returns], effects=['read', 'write', 'trap'], entry='b0', blocks=b.blocks))
     document = compact_authoring_cfg(dict(schema='hepta.hia.program.v9',
-        module='source_worker_manifest_current' if helper_extensions else 'source_worker_manifest', functions=functions))
+        module=Path(selected.manifest_source).stem if selected is not None else 'source_worker_manifest_current' if helper_extensions else 'source_worker_manifest', functions=functions))
     assembly = render_assembly(document)
-    spec = dict(schema='hepta.hia.worker-manifest-records.v2' if helper_extensions else 'hepta.hia.worker-manifest-records.v1', request=request_magic.decode('ascii'),
-        table_path=TABLE_PATH, table_sha256=pin.hex(), table_bytes=len(table),
-        source_path=SOURCE_PATH, source_sha256=sha256(assembly.encode()).hexdigest(),
+    spec = dict(schema=('hepta.hia.worker-manifest-records.v' + str(int(selected.number))) if selected is not None else 'hepta.hia.worker-manifest-records.v2' if helper_extensions else 'hepta.hia.worker-manifest-records.v1', request=request_magic.decode('ascii'),
+        table_path=selected.manifest_table if selected is not None else TABLE_PATH, table_sha256=pin.hex(), table_bytes=len(table),
+        source_path=selected.manifest_source if selected is not None else SOURCE_PATH, source_sha256=sha256(assembly.encode()).hexdigest(),
         table_piece='Append the exact tables bytes as the last length-prefixed piece in every request.',
         sources=m, records=[dict(mode=r.mode, role=r.role, pieces=[*r.pieces, 'tables'],
             output=r.output_path, slot_count=len(r.slots), validator_count=len(r.validators)) for r in entries])
