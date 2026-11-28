@@ -143,9 +143,11 @@ def run(manifest,store_manifest,report_manifest,request_manifest,output):
     from tests.test_hia_agent_native_tools import AgentToolCase
     from tools.hia_agent_native_qualification import add_program
     import sqlite3
+    from tools.hia_worker_installed_workload_source import capture_workload_source, verify_workload_source
+    workload_source = capture_workload_source(ROOT)
     original_helper=ROOT/'tests/hia_service_verification_installed.py'
-    original_helper_raw=original_helper.read_bytes()
-    if sha256(original_helper_raw).hexdigest()!='0f95cc59fe2a66bcc2fbcfa8dc253266e763bbc8ca7c873d5bdf956fd04bdda6':
+    original_helper_raw=workload_source['physical']
+    if sha256(workload_source['original']).hexdigest()!='0f95cc59fe2a66bcc2fbcfa8dc253266e763bbc8ca7c873d5bdf956fd04bdda6':
         raise ValueError('original installed workload changed')
     extra_inputs={str(Path(p).resolve(strict=True)):Path(p).read_bytes() for p in (report_manifest,request_manifest)}
     output=Path(output);output.mkdir(mode=0o700)
@@ -293,6 +295,7 @@ def run(manifest,store_manifest,report_manifest,request_manifest,output):
     for name,digest in files.items():
         if sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)
     if original_helper.read_bytes()!=original_helper_raw:raise ValueError('original installed helper changed')
+    verify_workload_source(workload_source)
     for name,raw in extra_inputs.items():
         if Path(name).read_bytes()!=raw:raise ValueError('additional current bundle input changed')
     report={'schema':'hepta.hia.worker-unknown-installed-v2.v1','wheel':str(wheel),
@@ -303,7 +306,8 @@ def run(manifest,store_manifest,report_manifest,request_manifest,output):
         'database_capture':journal.finish(),
         'runtime_authoring_imports_forbidden':True,'every_request_has_all_three_expected_identity_flags':True,
         'whole_native_stack_qualified':False,
-        'original_workload_sha256':sha256(original_helper_raw).hexdigest(),
+        'original_workload_sha256':sha256(workload_source['original']).hexdigest(),
+        'original_workload_source_relation':workload_source['proof'],
         'explicit_worker_profile':'v2','hosted_worker_policy_poisoned':True,
         'additional_manifests':{name:sha256(raw).hexdigest() for name,raw in extra_inputs.items()},
         'request_inputs':request_inputs}

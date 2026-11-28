@@ -8,8 +8,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+      - name: Retain explicit installed compatibility evidence path
+        run: |
+          printf '%s\n' "HEPTA_HIA_TEST_COMPATIBILITY_EVIDENCE_DIRECTORY=$RUNNER_TEMP/hia-python-compatibility-source" >> "$GITHUB_ENV"
       - name: Install the frozen caller inventory dependency
-        run: python -m pip install jsonschema==4.26.0 setuptools==78.1.1
+        run: python -m pip install jsonschema==4.26.0 setuptools==78.1.1 wheel==0.46.3
       - name: Regenerate actual HIA sources
         run: |
           set -eu
@@ -22,6 +25,25 @@ jobs:
       - run: python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
       - run: git diff --exit-code
         id: source_prerequisites
+      - name: Retained installed API complete source and wheel custody controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_native_distribution_compat \
+            tests.test_hia_worker_installed_workload_source \
+            2>&1 | tee "$RUNNER_TEMP/hia-python-compatibility-source.log"
+      - name: Preserve retained installed API source custody evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-python-compatibility-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-python-compatibility-source/
+            ${{ runner.temp }}/hia-python-compatibility-source.log
       - name: v9 fixed-width memory independent source controls
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         run: |
@@ -933,6 +955,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+      - name: Retain explicit installed compatibility evidence path
+        run: |
+          printf '%s\n' "HEPTA_HIA_TEST_COMPATIBILITY_EVIDENCE_DIRECTORY=$RUNNER_TEMP/hia-python-compatibility-native" >> "$GITHUB_ENV"
       - name: Install qualified Clang 20 native execution prerequisites
         run: |
           set -euo pipefail
@@ -983,7 +1008,8 @@ jobs:
           python -B -m tools.build_hia_json_preflight --candidate execution-ledger \
             --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --output "$RUNNER_TEMP/execution-ledger"
-          python -B -m tests.test_hia_execution_ledger_native "$RUNNER_TEMP/execution-ledger/manifest.json"
+          env -u HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST -u HEPTA_HIA_CNF_MANIFEST \
+            python -B -m tests.test_hia_execution_ledger_native "$RUNNER_TEMP/execution-ledger/manifest.json"
       - name: Build source-bound native SQLite components
         run: |
           set -euo pipefail
@@ -3736,6 +3762,7 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-worker-unknown-native
             ${{ runner.temp }}/hia-worker-unknown-native.log
+            ${{ runner.temp }}/hia-python-compatibility-native/
 
       - name: Complete native installation manifest identity expectation controls
         if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
