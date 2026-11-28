@@ -32,11 +32,29 @@ _LOADS, _STORES = _runtime.WORD_LOADS, _runtime.WORD_STORES
 _LOAD_VALUES, _STORE_VALUES = dict(_LOADS), dict(_STORES)
 
 
+def _constant_signature(value):
+    kind = type(value)
+    if kind is CodeType:
+        return (CodeType, _code_signature(value))
+    if kind is slice:
+        return (slice, _constant_signature(value.start),
+                _constant_signature(value.stop), _constant_signature(value.step))
+    if kind is tuple:
+        return (tuple, tuple(_constant_signature(item) for item in value))
+    if kind is frozenset:
+        return (frozenset, frozenset(_constant_signature(item) for item in value))
+    if kind is dict:
+        return (dict, frozenset((_constant_signature(key), _constant_signature(item))
+                               for key, item in value.items()))
+    if kind in (type(None), bool, int, float, complex, str, bytes, type(Ellipsis)):
+        return (kind, value)
+    return ("unsupported literal type", kind, id(value))
+
+
 def _code_signature(code):
     return (
         code.co_code,
-        tuple(_code_signature(value) if type(value) is CodeType else value
-              for value in code.co_consts),
+        tuple(_constant_signature(value) for value in code.co_consts),
         code.co_names, code.co_varnames, code.co_freevars, code.co_cellvars,
         code.co_argcount, code.co_posonlyargcount, code.co_kwonlyargcount,
         code.co_nlocals, code.co_stacksize, code.co_flags, code.co_exceptiontable,
@@ -66,7 +84,14 @@ def _source_methods():
             return None
         expected = next(value for value in class_code.co_consts
                         if type(value) is CodeType and value.co_name == name)
-        if _code_signature(actual.__code__) != _code_signature(expected):
+        defaults = tuple(ast.literal_eval(value) for value in methods[name].args.defaults) or None
+        keywords = {arg.arg: ast.literal_eval(value)
+                    for arg, value in zip(methods[name].args.kwonlyargs,
+                                          methods[name].args.kw_defaults)
+                    if value is not None} or None
+        if (_code_signature(actual.__code__) != _code_signature(expected)
+                or _constant_signature(actual.__defaults__) != _constant_signature(defaults)
+                or _constant_signature(actual.__kwdefaults__) != _constant_signature(keywords)):
             return None
     return methods
 
@@ -84,7 +109,8 @@ def _ordinary_bindings():
         return False
     namespace = vars(_MACHINE)
     return all(namespace.get(name) is method and method.__code__ is code
-               and (method.__defaults__, method.__kwdefaults__) == defaults
+               and method.__defaults__ is defaults[0]
+               and method.__kwdefaults__ is defaults[1]
                for name, method, code, defaults in zip(
                    _METHOD_NAMES, _METHODS, _CODES, _DEFAULTS))
 
@@ -220,6 +246,16 @@ def _invocation():
         "if not self._dispatch_plan._active(self, fn):\n"
         "    return self._dispatch_plan._original_invoke(self, fn, arguments, depth)\n"
     ).body + function.body
+    # The instance binding is needed for nested calls only during this entry.
+    # Release our exact binding on every root terminal, including exceptions,
+    # so an otherwise unreachable machine is not retained until cyclic GC.
+    original_body = function.body
+    cleanup = ast.parse(
+        "if depth == 0:\n"
+        "    _entry_dispatch._release(self)\n"
+    ).body
+    function.body = ast.parse("_entry_dispatch = self._dispatch_plan").body + [
+        ast.Try(body=original_body, handlers=[], orelse=[], finalbody=cleanup)]
     module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
     local = {}
     exec(compile(module, "<explicit-prepared-vm-invocation>", "exec"),
@@ -296,6 +332,12 @@ class RuntimeDispatch:
         return (type(machine) is _MACHINE and _ordinary_bindings()
                 and function is self.function_objects.get(function["name"])
                 and "operation" not in vars(machine))
+
+    def _release(self, machine):
+        current = vars(machine).get("invoke")
+        if (type(current) is MethodType and current.__self__ is machine
+                and current.__func__ is self._invoke):
+            del machine.invoke
 
     @staticmethod
     def _original_invoke(machine, function, arguments, depth):

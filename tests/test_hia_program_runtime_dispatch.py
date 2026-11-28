@@ -206,6 +206,51 @@ class RuntimeDispatchAdmissionTests(unittest.TestCase):
                     path = stage / history.OBSERVER
                     path.write_bytes(path.read_bytes() + b"\n")
 
+    def test_completed_entry_releases_machine_without_cyclic_collection(self):
+        import weakref
+        machine = self.plan.new_machine(self.program, *LIMITS)
+        self.assertIn("invoke", vars(machine))
+        reference = weakref.ref(machine)
+        self.assertEqual(machine.invoke(machine.functions["calculate"], [2, 3]), [5])
+        self.assertNotIn("invoke", vars(machine))
+        del machine
+        self.assertIsNone(reference())
+
+    def test_exception_releases_only_its_own_invocation_binding(self):
+        machine = self.plan.new_machine(self.program, 1, LIMITS[1], None, LIMITS[3])
+        with self.assertRaises(runtime.HIAProgramBudgetExceeded):
+            machine.invoke(machine.functions["calculate"], [2, 3])
+        self.assertNotIn("invoke", vars(machine))
+        machine = self.plan.new_machine(self.program, *LIMITS)
+        tick = runtime._Machine.tick
+        def replacement(*args):
+            return [91]
+        def change(current):
+            tick(current)
+            current.invoke = replacement
+        with patch.object(runtime._Machine, "tick", change):
+            self.assertEqual(machine.invoke(machine.functions["calculate"], [2, 3]), [5])
+        self.assertIs(machine.invoke, replacement)
+
+    def test_default_values_and_constant_types_match_executed_source(self):
+        method = runtime._Machine.invoke
+        operation = runtime._Machine.operation
+        defaults, code = method.__defaults__, operation.__code__
+        try:
+            method.__defaults__ = (False,)
+            self.assertFalse(dispatch._ordinary_bindings())
+            self.assertIsNone(dispatch._source_methods())
+            method.__defaults__ = defaults
+            constants = list(code.co_consts)
+            index = next(i for i, value in enumerate(constants) if type(value) is bool)
+            constants[index] = int(constants[index])
+            operation.__code__ = code.replace(co_consts=tuple(constants))
+            self.assertIsNone(dispatch._source_methods())
+        finally:
+            method.__defaults__, operation.__code__ = defaults, code
+        self.assertTrue(dispatch._ordinary_bindings())
+        self.assertIsNotNone(dispatch._source_methods())
+
     def test_whole_source_late_change_refuses_new_dispatch_and_is_restored(self):
         path = Path(runtime.__file__)
         before = path.read_bytes()
