@@ -109,19 +109,19 @@ class ControllerCatalogPreservationTests(unittest.TestCase):
         bad = ("\n".join(rows) + "\n").encode("ascii")
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            paths = self._copy_current_inputs(root)
             table = root / TABLE
-            table.parent.mkdir(parents=True)
             table.write_bytes(bad)
-            source = root / "tools/generate_hia_release_owner.py"
-            source.parent.mkdir()
-            source.write_bytes((ROOT / source.relative_to(root)).read_bytes())
             with mock.patch.object(author, "ROOT", root), mock.patch.object(
                     author, "specifications", side_effect=AssertionError("author must not run")):
                 with self.assertRaisesRegex(ValueError, "unrecognized stage"):
                     author.main()
             self.assertEqual(table.read_bytes(), bad)
             self.assertEqual({str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()},
-                             {TABLE, "tools/generate_hia_release_owner.py"})
+                             set(paths))
+            for name in paths:
+                if name != TABLE:
+                    self.assertEqual((root / name).read_bytes(), (ROOT / name).read_bytes())
 
     def test_declared_count_cannot_omit_registered_current_extension(self):
         maximum = int(self.rows[0].split("\t")[1])
@@ -174,6 +174,62 @@ class ControllerCatalogPreservationTests(unittest.TestCase):
                     author.main()
             self.assertEqual({str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()},
                              {TABLE})
+
+
+    def _copy_current_inputs(self, root):
+        from tools.hia_native_release_dependencies import PROGRAMS, registered_dags
+        paths = [TABLE, "tools/generate_hia_release_owner.py"]
+        paths += [PROGRAMS + "release_stage_" + name + ".hiastd" for name in registered_dags(ROOT)]
+        for name in paths:
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / name).read_bytes())
+        return paths
+
+    def test_current_catalog_parsers_use_exact_captured_bytes(self):
+        import tools.generate_hia_release_extension_catalog as catalog
+        real = catalog.generated_table
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._copy_current_inputs(root)
+            path = root / "examples/hia_bootstrap/release_stage_helper_extensions.hiastd"
+            initial = path.read_bytes()
+            def changed(view, **kwargs):
+                self.assertNotEqual(Path(view), root)
+                self.assertEqual((Path(view) / path.relative_to(root)).read_bytes(), initial)
+                path.write_bytes(initial + b"\x00")
+                return real(view, **kwargs)
+            with mock.patch.object(catalog, "generated_table", side_effect=changed):
+                with self.assertRaisesRegex(ValueError, "inputs changed during capture"):
+                    author._admit_controller_catalog(self.raw, root)
+
+    def test_late_native_graph_change_is_rejected_before_product_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = self._copy_current_inputs(root)
+            path = root / "examples/hia_bootstrap/release_stage_helper_extensions.hiastd"
+            initial = path.read_bytes()
+            def changed():
+                path.write_bytes(initial + b"\x00")
+                return []
+            names = [row.split("\t")[2] for row in self.group if row.startswith("output\t")]
+            recipe = SimpleNamespace(binary=lambda: b"source-only-test-recipe", published=names)
+            with mock.patch.object(author, "ROOT", root), \
+                    mock.patch.object(author, "specifications", side_effect=changed), \
+                    mock.patch.object(author, "filter_policy", return_value="source-only"), \
+                    mock.patch.object(author.filters, "source_program", return_value="source-only"), \
+                    mock.patch.object(author, "delivery_source", return_value="source-only"), \
+                    mock.patch.object(author, "document", return_value={"functions": []}), \
+                    mock.patch.object(author, "render_assembly", return_value="source-only"), \
+                    mock.patch.object(author, "build_recipe", return_value=(recipe, [])):
+                with self.assertRaisesRegex(ValueError, "inputs changed during authoring"):
+                    author.main()
+            self.assertEqual({str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()},
+                             set(paths))
+            for name in paths:
+                if root / name != path:
+                    self.assertEqual((root / name).read_bytes(), (ROOT / name).read_bytes())
+
 
 
 if __name__ == "__main__":

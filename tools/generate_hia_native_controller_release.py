@@ -355,21 +355,42 @@ def build_recipe(specs):
 
 
 def _admit_controller_catalog(raw, root):
-    """Admit the original aggregate domains or the exact current native DAGs."""
+    """Admit the original domains or an exact, privately captured native catalog."""
     from tools.hia_native_release_dependencies import read_source_table
     checked = read_source_table(raw)
     if raw != ("\n".join(raw.decode("ascii").splitlines()) + "\n").encode("ascii"):
         raise ValueError("native controller catalog is not canonical whole lines")
     if checked["stages"] < 10:
         raise ValueError("native controller catalog predates the original ten stages")
+    captured = {}
     if checked["stages"] > 14:
-        # The selected repository declares the actual extension identities and
-        # order. No numeric upper-bound relaxation admits an unnamed stage.
+        import tempfile
+        from tools.hia_native_release_dependencies import PROGRAMS, registered_dags, source_path
         from tools.generate_hia_release_extension_catalog import generated_table
-        expected, current = generated_table(root, source_table=raw)
+        root = Path(root)
+        # Both parsers consume these exact bytes in a private data-only view.
+        # The registration module is parsed as an AST; it is never imported or
+        # executed from the view. This avoids checking a second, uncaptured read.
+        with tempfile.TemporaryDirectory(prefix="hia-controller-catalog-") as directory:
+            view = Path(directory)
+            def capture(name):
+                value = (root / name).read_bytes()
+                captured[name] = value
+                target = view / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(value)
+                target.chmod(0o400)
+            capture("tools/generate_hia_release_owner.py")
+            for name in registered_dags(view):
+                capture(source_path(PROGRAMS + "release_stage_" + name + ".hiastd"))
+            expected, current = generated_table(view, source_table=raw)
+            if any((view / name).read_bytes() != value for name, value in captured.items()):
+                raise ValueError("private native controller catalog input changed")
+        if any((root / name).read_bytes() != value for name, value in captured.items()):
+            raise ValueError("native controller catalog inputs changed during capture")
         if raw != expected or checked["stages"] != current["stages"]:
             raise ValueError("native controller catalog differs from the registered current DAGs")
-    return checked
+    return {**checked, "captured_inputs": captured}
 
 
 def _replace_controller_group(raw, controller_rows):
@@ -403,7 +424,7 @@ def _replace_controller_group(raw, controller_rows):
 def main():
     table = ROOT / BOOT / 'release_stage_sources.tsv'
     before_table = table.read_bytes()
-    _admit_controller_catalog(before_table, ROOT)
+    admitted_catalog = _admit_controller_catalog(before_table, ROOT)
     specs = specifications()
     sources = {
         FILTER_POLICY: filter_policy(),
@@ -431,6 +452,9 @@ def main():
     after_table = _replace_controller_group(before_table, lines)
     if table.read_bytes() != before_table:
         raise ValueError('native controller catalog changed during authoring')
+    if any((ROOT / name).read_bytes() != raw
+           for name, raw in admitted_catalog['captured_inputs'].items()):
+        raise ValueError('native controller catalog inputs changed during authoring')
     for target, raw in products.items():
         target.write_bytes(raw)
     table.write_bytes(after_table)
