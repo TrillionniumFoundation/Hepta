@@ -1,4 +1,4 @@
-stage	18	108
+stage	19	111
 need	1	0	hia-source-build
 compile	1	proof	cnf.hepta	cnf.hepta
 compile	1	proof	core_admission.hepta	core_admission.hepta
@@ -821,3 +821,13 @@ resource	18	tools/hia_ndu_evaluator_syscalls.S
 output	18	_hia_ndu_evaluator.elf
 output	18	_hia_ndu_evaluator_build.json
 framing	18	0	HIASTD01	source-bound-native-release-dag
+stage	19	native-release-dag-carrier_policies
+need	19	0	selfhost.image.bin
+need	19	0	hia-source-build
+resource	19	examples/hia_bootstrap/carrier_cell_policy.hepta
+resource	19	examples/hia_bootstrap/carrier_image_policy.hepta
+resource	19	examples/hia_bootstrap/release_stage_carrier_policies.hiastd
+output	19	carrier-image-policy.flat
+output	19	carrier-cell-policy.flat
+output	19	carrier-policies.hiadat
+framing	19	0	HIASTD01	source-bound-native-release-dag
