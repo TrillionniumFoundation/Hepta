@@ -132,7 +132,7 @@ def main():
         (args.output / 'partial.json').write_text(json.dumps(records, indent=2) + '\n')
 
     def run_case(name, *, config=None, data=None, refusal=False, changed_env=None,
-                 config_pin=None, manifest_pin=None, expected_rc=0):
+                 config_pin=None, manifest_pin=None, response_ids=None, expected_rc=0):
         cfg = config or config_for(name)
         argv = arguments(cfg, config_pin, manifest_pin)
         raw = data if data is not None else wire(INIT) + wire(READY) + wire(PING)
@@ -145,7 +145,10 @@ def main():
         else:
             assert result.returncode == expected_rc and not result.stderr, (name, result.returncode, result.stderr)
             parsed = [json.loads(line) for line in result.stdout.splitlines()]
-            assert parsed and parsed[-1]['id'] == 'ping', (name, parsed[-1:] if parsed else [])
+            if response_ids is None:
+                assert parsed and parsed[-1]['id'] == 'ping', (name, parsed[-1:] if parsed else [])
+            else:
+                assert [message.get('id') for message in parsed] == response_ids, (name, parsed)
         record(name, rc=result.returncode, seconds=time.monotonic() - started,
                stdin_sha256=digest(raw), stdout_sha256=digest(result.stdout),
                stdout_bytes=len(result.stdout))
@@ -263,16 +266,33 @@ def main():
         run_case('nonexecutable-role-refused', refusal=True)
     finally:
         path.chmod(mode)
-    # The public input boundary is exercised through actual byte-stream framing.
+    # rmcp 3.9.0 counts the newline in its 16 MiB frame limit. Establish the
+    # session first: a pre-initialization ping followed by EOF exits 1 in the
+    # frozen original as well as HIA. Oversized lines are discarded and the
+    # connection continues; they are not administrator-custody refusals.
+    prefix = wire(INIT) + wire(READY)
+    ping = wire(PING)
+    for size in (8 << 20, (8 << 20) + 2, 16 << 20):
+        run_case(f'exact-{size}-byte-line',
+                 data=prefix + b' ' * (size - len(ping)) + ping,
+                 response_ids=['init', 'ping'])
+    oversized = wire({**PING, 'id': 'oversized'})
+    run_case('over-sixteen-mib-line-discard-and-recover',
+             data=prefix + b' ' * ((16 << 20) + 1 - len(oversized)) + oversized + ping,
+             response_ids=['init', 'ping'])
+    run_case('undelimited-eof-discarded', data=prefix + ping[:-1], response_ids=['init'])
+    run_case('crlf-stream-framing', data=(prefix + ping).replace(b'\n', b'\r\n'),
+             response_ids=['init', 'ping'])
+
+    # Retain the original owner's uninitialized modern-control gates too.
     modern = {'jsonrpc': '2.0', 'id': 'ping', 'method': 'ping', 'params': {'_meta': {
         'io.modelcontextprotocol/protocolVersion': '2026-07-28',
         'io.modelcontextprotocol/clientCapabilities': {}}}}
-    ping = wire(modern).rstrip(b'\n')
-    # The original rmcp SDK accepts control frames through 16 MiB, and a
-    # ping-only connection remains uninitialized (EOF exits 1). The strict
-    # 8 MiB HIA wire gate is qualified separately against the actual runtime.
-    run_case('exact-eight-mib-line', data=b' ' * ((8 << 20) - len(ping)) + ping + b'\n', expected_rc=1)
-    run_case('over-eight-mib-line', data=b' ' * ((8 << 20) + 1) + ping + b'\n', expected_rc=1)
+    modern_ping = wire(modern).rstrip(b'\n')
+    run_case('uninitialized-exact-eight-mib-line',
+             data=b' ' * ((8 << 20) - len(modern_ping)) + modern_ping + b'\n', expected_rc=1)
+    run_case('uninitialized-over-eight-mib-line',
+             data=b' ' * ((8 << 20) + 1) + modern_ping + b'\n', expected_rc=1)
 
     cfg = config_for('live')
     live_args = arguments(cfg)
@@ -324,10 +344,9 @@ def main():
             response = connection.read(timeout=15)
             assert response['id'] not in observed
             observed.add(response['id'])
-            assert response['error'] == {
-                'code': -32602,
-                'message': 'HIA input does not match its advertised contract: arguments.section: required field is absent',
-            }, response
+            assert response == {'jsonrpc': '2.0', 'id': response['id'], 'error': {
+                'code': -32602, 'message': 'HIA input does not match its advertised contract: '
+                'arguments.section: required field is absent'}}, response
         assert observed == expected
         connection.send(PING)
         assert connection.read()['id'] == 'ping'

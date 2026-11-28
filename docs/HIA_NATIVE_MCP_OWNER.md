@@ -1,59 +1,95 @@
 # Standalone native HIA MCP process owner
 
-The service executable runs the public HIA MCP protocol, configuration admission,
-file capture, lifetime controller locks, request scheduling, cancellation and job
-transport in checked-in HIA. The assembly adapter translates bounded offset plans
-to Linux syscalls. Python in tools is development authoring and qualification,
-not an installed service continuation.
+The service owns public HIA MCP negotiation, SDK typed-envelope admission,
+configuration capture, controller custody, scheduling, cancellation, durable
+request audit and job transport in checked-in HIA. Its x86-64 adapter translates
+bounded memory plans to Linux syscalls. Installed execution has no Python or Rust
+continuation.
 
 ## Process and custody
 
-The command takes four administrator-owned inputs: configuration path and SHA256,
-controller manifest path and SHA256. It captures the configuration, nineteen
-controller roles, OpenSSH and the embedded bridge into independently checked,
-sealed descriptors. Both historical controller flocks remain held for the
-service lifetime. A separate writable memfd with fixed size and seals carries
-the bridge's predecessor replay cache across requests.
+`hia-mcp-service` takes four administrator-owned inputs: configuration path and
+SHA256, controller manifest path and SHA256. It captures authenticated original
+configuration bytes and nineteen controller roles into independently checked,
+sealed descriptors. The original lifetime controller locks remain held. A fixed
+sealed-size writable memfd carries predecessor replay state across requests.
+The complete native job bridge and request-audit daemon are embedded with their
+SHA256 identities; temporary build paths do not select their implementation.
 
-The connection accepts the original 8 MiB public line boundary. Up to 32 request
-workers run concurrently, while ping, discovery and cancellation stay responsive.
-Each worker stages one complete response in a private memfd; the parent admits and
-emits it only after the worker exits. Cancellation terminates the matching
-canonical JSON request ID and preserves any previously published durable job.
+The SDK framing limit is 16 MiB **including the newline**. CRLF counts both bytes.
+An oversized line is discarded through its newline and later valid frames still
+run. An unterminated frame at EOF is discarded. Empty and pre-initialization
+connections retain the frozen runtime's unsuccessful EOF status; established
+sessions can end successfully. HIA business admission separately preserves the
+8 MiB raw request, 262,144-node, depth-128 and 524,288-byte canonical argument
+budgets. A wider SDK envelope does not widen those business limits.
 
-## Typed administrator configuration
+Up to 32 request workers run concurrently. Ping, discovery and cancellation stay
+responsive. Each worker stages its complete response in a private memfd; the
+parent admits it after the worker exits. Native cooperative cancellation matches
+the normalized SDK request ID and returns `-32800`; previously published durable
+jobs remain published. This is the native custody contract, not a claim that the
+predecessor Rust handler's advisory cancellation effects were identical.
 
-The derived configuration view retains the original authenticated bytes. Native
-projection preserves typed serde behavior: unknown RuntimeConfig, HostConfig and
-PrivilegedAction fields are skipped lexically with an iterative IgnoredAny
-scanner; known fields are still decoded and checked. HiaWorkerProfile and native
-job pins deny unknown fields. Struct duplicates fail; host and action maps retain
-the final decoded string key, after parsing every overwritten typed value.
-Unit enum maps are normalized to their serialized string form.
+## Configuration and protocol
 
-The earlier component-only acceptance of an unknown HIA profile field was
-incorrect. The current component refuses it, as the original HiaWorkerProfile
-uses deny_unknown_fields. Historical qualification artifacts remain unchanged.
+Typed configuration preserves serde struct/sequence and optional-field behavior.
+Unknown RuntimeConfig, HostConfig and PrivilegedAction fields use iterative
+IgnoredAny scanning. HiaWorkerProfile and native-job pin records reject unknown
+fields. Known typed fields remain checked even when a later map value replaces
+an earlier one. Native job transports are genuinely optional; a present record
+must carry its complete original roles and pins.
 
-## Evidence at this checkpoint
+The service advertises `hepta-hia` and its HIA tools/resources. The frozen general
+Rust server advertises `rmcp` plus filesystem-related capabilities. Differential
+qualification checks both complete, separate profiles and compares negotiated
+protocol, envelopes, IDs, responses and errors exactly. It does not silently
+normalize away arbitrary initialization differences or claim migration of the
+unrelated general filesystem tool catalog.
 
-The service owner v4 executable (SHA256
-7ded49fd6c2636aa4b81c35fb42c0ace3d974a21404942521fbc7a363ce9ead8)
-passed 69 actual-process custody and concurrency cases. These cover nineteen role
-pin mutations and size caps, lock ownership, exact public line size, responsive
-ping while the actual bridge waits on the controller lock, Unicode request-ID
-cancellation, and descriptor recovery after 64 concurrent rejections.
+## Source-complete construction
 
-The typed-projection v5 executable (SHA256
-14b921b5734c496feb98982bf699896dd199e3302510eea55e209b5a9814a437)
-passed 62 actual-process configuration admission pairs against frozen runtime
-d022649c64b48fb2a43263faf90103a9a8957b94. The pairs include 56,000 nested ignored
-containers, ignored non-UTF8 strings, invalid known keys, duplicate typed fields,
-last-value-wins host maps, required fields and both unit-enum representations.
-The matching pure session component passed 80 cases and profile component 86.
+The current stage 11 graph, release_stage_controller.hiastd, builds the complete
+job bridge, request audit, system Jobctl, stdio MCP service, HTTP MCP service and
+source-contract filter. tools/generate_hia_native_controller_release.py is its
+development author; the installed graph executes through the native release
+owner. It captures each required source, compiles it independently in two
+complete named bundles, and compares the complete captured source and flat image.
+The fixed filter wrapper and each complete executable are checked against the
+mechanical template and every compiled component, including relocations,
+embedded executable sizes and SHA256 fields.
 
-These are component and process-owner results, not a whole-stack release claim.
-The full request-audit ticket lifetime, installed isolated jobctl lifecycle,
-ordinary-release registration and whole-stack final gates remain required.
-The real eleven-tool SSH/Worker campaign and source-pinned job bridge have
-separate evidence; the process-owner gate does not substitute for them.
+The retained compiler source/image/workspace and structural bounds remain in
+force. The 8 MiB and 64 MiB filter transport domains have separate closed
+templates. The earlier MCP-only packer host and three-product additional recipe
+are superseded by this controller stage; they are not an installed fallback.
+
+The current job bridge also contains the native transactions component. The
+service preserves its original eleven HIA tools and separately dispatches
+request_history, request_archive and usage_stats. These additions do not replace
+the frozen original SDK envelope and stream controls.
+
+## Reproducible gates
+
+`tools/qualify_hia_mcp_service_protocol.py` retains the independent 1,050-envelope
+corpus, the original adversarial stdio corpus, explicit boundary cases and
+post-initialization legacy/modern controls. It requires pinned executable and
+manifest inputs, retains raw input/stdout/stderr, checks both frozen server
+profiles and rejects changed inputs. `--framing-only` selects the bounded framing
+subset for a targeted installed-artifact check. Explicitly pipelined stdio cases
+are correlated by full response identity and multiplicity; initialization must
+remain first. All original arrival-order records are retained. Other cases
+retain ordered comparison. The frozen Rust runtime produced two arrival orders
+in forty identical-input control runs. The independent readback rechecks every
+raw input and response rather than changing prior execution evidence.
+
+`tools/qualify_hia_mcp_service_owner.py` covers actual process custody, nineteen
+role pin/size mutations, locks, responsive pending ping, Unicode cancellation,
+64 concurrent exact schema errors and descriptor recovery. The full preserved protocol gate has 1,146 cases. Its fixed Rust reference is
+beb253af13ab729bd8c25c96f2d4b80a2c931c905ad33559ef8997f4cabf43c7 from source
+d022649c64b48fb2a43263faf90103a9a8957b94. Prior execution records remain historical
+evidence. A newly compiled matching-cold service must be checked under its own
+pin; source, comparison-unit and historical component passes do not qualify it.
+The actual eleven-tool campaign, new history/archive/usage routes, same-job
+replay, durable audit, isolated Jobctl, matching final release and installed
+replay are independent required gates.

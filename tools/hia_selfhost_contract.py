@@ -1013,6 +1013,13 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tools/qualify_hia_mcp_service_owner.py',
+    'tests/fixtures/hia_mcp_sdk_wire_cases.json',
+    'tests/fixtures/hia_mcp_sdk_wire_profiles.json',
+    'tests/hia_mcp_stream_cases.py',
+    'tests/test_hia_mcp_protocol_comparison.py',
+    'tools/qualify_hia_mcp_service_protocol.py',
+    'tools/read_hia_mcp_service_protocol.py',
     'docs/HIA_WORKER_MANIFEST_COMPAT_V1_RECORDS.json',
     'docs/HIA_WORKER_MANIFEST_DEFAULT_RECORDS.json',
     'examples/hia_bootstrap/source_worker_continuation_pack_v2.hepta',
