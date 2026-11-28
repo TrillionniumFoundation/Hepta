@@ -1013,6 +1013,9 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'hepta/hia_carrier_default.py',
+    'tests/test_hia_carrier_default_install.py',
+    'tools/install_hia_carrier_compat.py',
     'tests/fixtures/hia_bootstrap_carrier_service_predecessor_v1.json',
     'tests/fixtures/hia_bootstrap_case_terminal_original_source_v1.json',
     'tests/fixtures/hia_bootstrap_current_service_composition_v1.json',
