@@ -25,6 +25,9 @@ BUILDER = 'tools/build_hia_service_bootstrap.py'
 VERIFICATION_TEST = 'tests/test_hia_service_verification_native.py'
 STORE_READER = 'tools/hia_current_store_source_history.py'
 CHANGED_INPUTS = (SERVICE, REGISTRY, BUILDER, VERIFICATION_TEST)
+SOURCE8_BUILDER = {'bytes': 31169, 'sha256': 'f2ebc4b904ad8b34ff4dac8cb9268edfcb7cf71279ce217d536fbd894648dbc6'}
+SOURCE8_BUILDER_READER = 'tools/hia_source8_builder_history.py'
+SOURCE8_BUILDER_READER_SHA256 = 'b9bdc78df34ef8c1c48d3d5a2f112d05b659bb23bbbce4fa87f9afdf3a054650'
 CURRENT = {
     SERVICE: {'bytes': 274230, 'sha256': '7351b80e8f8d46c6cf1988a56b5eb0d2acb5c31727e3d5e63bf5b6355d1e4525'},
     REGISTRY: {'bytes': 35618, 'sha256': '747c63098d9989971e40d737d7c1ffd96caa60b6095d8dc0d1015dcbe08cfb37'},
@@ -89,6 +92,7 @@ class PhysicalHistory:
         self.bootstrap_saved = None
         self.bootstrap = None
         self.project_reader = False
+        self.source8_builder_history = None
 
     def capture(self, path):
         path, name = _name(self.root, path)
@@ -130,6 +134,8 @@ class PhysicalHistory:
                 for n, (raw, mode) in sorted(self._initial.items())},
             'explicit_prior_sources': {n: pin(raw) for n, raw in sorted(self._prior.items())},
             'reader_projected_for_original_source_controls': self.project_reader,
+            'source8_builder_history': (self.source8_builder_history.review()
+                if self.source8_builder_history is not None else None),
             'physical_capture_rewritten': False,
             'prior_projection_is_physical_source': False,
             'current_product_execution_qualified': False,
@@ -166,6 +172,16 @@ def prepare(root, supplied=None, *, take=Path.read_bytes, project_reader=False):
         raise ValueError('source generation immutable inverse engine differs')
     for name in CHANGED_INPUTS:
         raw = h.capture(h.root / name)
+        if name == BUILDER and pin(raw) == SOURCE8_BUILDER:
+            reader_raw = h.capture(h.root / SOURCE8_BUILDER_READER)
+            if sha256(reader_raw).hexdigest() != SOURCE8_BUILDER_READER_SHA256:
+                raise ValueError('source generation Source8 builder reader differs')
+            from tools import hia_source8_builder_history as source8
+            if Path(source8.__file__).read_bytes() != reader_raw:
+                raise ValueError('source generation imported another Source8 builder reader')
+            projected, h.source8_builder_history = source8.prepare(
+                h.root, {BUILDER: raw}, take=h.capture)
+            raw = projected[BUILDER]
         if pin(raw) != CURRENT[name]:
             raise ValueError('source generation is mixed or unreviewed: ' + name)
     raw = h.capture(h.root / BOOTSTRAP)
@@ -178,7 +194,9 @@ def prepare(root, supplied=None, *, take=Path.read_bytes, project_reader=False):
     h.bootstrap, h.bootstrap_saved = bootstrap, saved
     service_prior = bootstrap.current_service_predecessor(saved)
     for name, expected in PRIOR.items():
-        raw = h.capture(h.root / name)
+        raw = (h.source8_builder_history.prior_take(h.root / name)
+               if name == BUILDER and h.source8_builder_history is not None
+               else h.capture(h.root / name))
         restored = engine.history_inverse(raw, relation['files'][name], expected)
         if name != STORE_READER or project_reader:
             h.prior_sources[name] = restored
@@ -205,6 +223,11 @@ def verify_unchanged(history):
         raise ValueError('source generation actual and prior custody changed')
     for name in tuple(history._initial):
         history.capture(history.root / name)
+    if history.source8_builder_history is not None:
+        from tools import hia_source8_builder_history as source8
+        source8.verify_unchanged(history.source8_builder_history)
+    elif pin(history.captures[BUILDER]) == SOURCE8_BUILDER:
+        raise ValueError('source generation lost its explicit Source8 builder history')
     if history.bootstrap_saved is not None:
         history.bootstrap.unchanged(history.root, history.bootstrap_saved,
                                     take=history.capture)
@@ -216,7 +239,8 @@ def maybe_prepare(root, supplied, *, take=Path.read_bytes):
     """Older complete domains continue to use only their original authorities."""
     if type(supplied) is not dict or not supplied:
         return dict(supplied), None
-    direct = any(name in CURRENT and pin(raw) == CURRENT[name]
+    direct = any((name in CURRENT and pin(raw) == CURRENT[name])
+                 or (name == BUILDER and pin(raw) == SOURCE8_BUILDER)
                  for name, raw in supplied.items())
     if SERVICE in supplied and pin(supplied[SERVICE]) not in (
             CURRENT[SERVICE], PRIOR[SERVICE],
