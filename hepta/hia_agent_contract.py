@@ -30,6 +30,19 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/core_host_custody.hiadat',
+    'examples/hia_bootstrap/source_core_host_custody.hepta',
+    'examples/hia_bootstrap/core_companion_worker_manifest_tables.hiastd',
+    'examples/hia_bootstrap/release_stage_core_companions.hiastd',
+    'examples/hia_bootstrap/source_core_companion_manifest.hepta',
+    'examples/hia_bootstrap/source_core_companion_stage.hepta',
+    'examples/hia_bootstrap/source_core_companion_worker_manifest.hepta',
+    'examples/hia_bootstrap/core_compare.hepta',
+    'hepta/hia_core_compare_abi.json',
+    'examples/hia_bootstrap/core_integer.hepta',
+    'hepta/hia_core_integer_abi.json',
+    'examples/hia_bootstrap/core_unpack.hepta',
+    'hepta/hia_core_unpack_abi.json',
     'examples/hia_bootstrap/agent_native_metadata.hepta',
     'examples/hia_bootstrap/agent_json_wire.hepta',
     'examples/hia_bootstrap/source_agent_helper_manifest.hepta',

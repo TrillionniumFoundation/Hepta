@@ -169,6 +169,21 @@ def read_source_table(raw):
         raise ValueError('invalid native release source table') from exc
 
 
+def host_custody_metadata(root, required):
+    """Report identity-only data separately from executable native sources."""
+    from tools.hia_core_host_custody import ARCHIVE_PATH, DECODER_SOURCE, metadata
+    if ARCHIVE_PATH not in required:
+        return []
+    if DECODER_SOURCE not in required:
+        raise ValueError('Core host identity data has no captured native decoder')
+    raw = (Path(root) / ARCHIVE_PATH).read_bytes()
+    return [{'schema': 'hepta.hia.complete-host-identity-data.v1',
+             'path': ARCHIVE_PATH, 'bytes': len(raw), 'sha256': sha256(raw).hexdigest(),
+             'decoder': DECODER_SOURCE, 'records': metadata(raw),
+             'use': 'complete byte identity inputs for the original eight-field Core manifests',
+             'compiled_or_executed': False}]
+
+
 def release_dependencies(root, *, names=None):
     root = Path(root)
     names = registered_dags(root) if names is None else names
@@ -193,6 +208,7 @@ def release_dependencies(root, *, names=None):
             'registered_dags': list(names), 'declared_stages': table['stages'],
             'publication_count': len(publications), 'publications': publications,
             'source_table_sha256': table['sha256'], 'recipes': recipes,
+            'custody_data': host_custody_metadata(root, required),
             'required_sources': list(checked_paths(sorted(required)))}
 
 

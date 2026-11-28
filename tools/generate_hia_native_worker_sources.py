@@ -11,7 +11,12 @@ AUTHORITY = 'docs/HIA_NATIVE_SOURCE_AUTHORITY.json'
 AUTHORITY_MODULES = ('tools.generate_hia_current_worker_manifest',
                      'tools.generate_hia_worker_install_identity',
                      'tools.generate_hia_worker_install_recipes')
-MODULES = ('tools.generate_hia_source_agent_helper_manifest',
+MODULES = ('tools.generate_hia_core_host_custody',
+           'tools.generate_hia_core_companion_manifest',
+           'tools.generate_hia_core_companion_stage',
+           'tools.generate_hia_core_companion_recipe',
+           'tools.generate_hia_core_companion_worker_manifest',
+           'tools.generate_hia_source_agent_helper_manifest',
            'tools.generate_hia_agent_helper_recipe',
            'tools.generate_hia_release_extension_catalog',
            'tools.generate_hia_worker_install_bind', *AUTHORITY_MODULES)

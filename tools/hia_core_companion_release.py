@@ -47,21 +47,27 @@ def check_request(role, parts):
 def stage_core_companions(work, seed, compile_sources, call, compiler, publish):
     """Use the captured HIA compiler, owner and independent checker before publishing."""
     from tools.build_hia_native_store_release import release_sources
+    from tools.hia_core_host_custody import ARCHIVE_PATH, DECODER_SOURCE, REQUEST_MAGIC
 
     builds = release_sources(seed, compile_sources, call)
     author, author_images, author_sources = builds.kit_objects(OWNER, "source_build_packer.hepta")
     checker, checker_images, _ = builds.kit_objects(CHECKER, "source_build_packer.hepta")
-    if author_images["selfhost.hepta"] != compiler or checker_images["selfhost.hepta"] != compiler:
+    decoder, decoder_images, _ = builds.kit_objects(Path(DECODER_SOURCE).name, "source_build_packer.hepta")
+    if any(images["selfhost.hepta"] != compiler for images in (author_images, checker_images, decoder_images)):
         raise ValueError("Core companion kit compiler differs from the admitted compiler")
     names = {"core_" + family + ".hepta": inputs(family)[0] for _, family in COMPANIONS}
     _, images, sources = builds(names)
-    additional = {Path(path).name: path for _, family in COMPANIONS for path in inputs(family)[1:]}
+    additional = {Path(inputs(family)[1]).name: inputs(family)[1] for _, family in COMPANIONS}
+    additional[Path(ARCHIVE_PATH).name] = ARCHIVE_PATH
     raw_inputs = builds.capture_sources(additional)
+    custody = raw_inputs[Path(ARCHIVE_PATH).name]
     work = Path(work)
     for role, family in COMPANIONS:
         name = "core_" + family + ".hepta"
         source, image = sources[name], images[name]
-        abi, bridge, selection = (raw_inputs[Path(path).name] for path in inputs(family)[1:])
+        abi = raw_inputs[Path(inputs(family)[1]).name]
+        bridge, selection = (call(decoder, "build",
+            struct.pack("<8s2Q", REQUEST_MAGIC, role, kind) + custody) for kind in (1, 2))
         parts = (source, image, author_sources["selfhost.hepta"], compiler, abi, bridge, selection)
         manifest = call(author, "build", manifest_request(role, parts))
         checked = call(checker, "build", check_request(

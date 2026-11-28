@@ -7,6 +7,7 @@ import struct
 
 from tools.generate_hia_release_stage_recipes import Recipe
 from tools.hia_core_companion_release import COMPANIONS, OWNER, CHECKER, inputs
+from tools.hia_core_host_custody import ARCHIVE_PATH, DECODER_SOURCE, REQUEST_MAGIC
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_PATH = "examples/hia_bootstrap/release_stage_core_companions.hiastd"
@@ -40,13 +41,18 @@ def recipe():
     r = CoreCompanionRecipe()
     author, author_sources, _ = r.kit(OWNER, "source_build_packer.hepta")
     checker, _, _ = r.kit(CHECKER, "source_build_packer.hepta")
+    decoder, _, _ = r.kit(DECODER_SOURCE, "source_build_packer.hepta")
+    custody = r.source(ARCHIVE_PATH)
     names = {"core_" + family + ".hepta": inputs(family)[0] for _, family in COMPANIONS}
     sources, images = r.compile(names)
     compiler = r.import_product("selfhost.image.bin")
     for role, family in COMPANIONS:
         name = "core_" + family + ".hepta"
         source, image = sources[name], images[name]
-        abi, bridge, selection = (r.source(path) for path in inputs(family)[1:])
+        abi = r.source(inputs(family)[1])
+        bridge, selection = (r.run(decoder, r.node(16, (
+            r.literal(struct.pack("<8s2Q", REQUEST_MAGIC, role, kind)), custody)))
+            for kind in (1, 2))
         manifest = r.run(author, r.manifest_request(role, (
             source, image, author_sources["selfhost.hepta"], compiler, abi, bridge, selection)))
         r.check(checker, role, (manifest, source, image, compiler, abi, bridge, selection))
