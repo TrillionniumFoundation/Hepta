@@ -1102,6 +1102,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     stage_core_companions(work, seed, builds, call, compiler_bytes, publish)
     from tools.hia_ndu_evaluator_release import stage_ndu_evaluator
     stage_ndu_evaluator(work, seed, builds, call, compiler_bytes, publish)
+    from tools.hia_ndu_rank_release import stage_ndu_rank
+    stage_ndu_rank(work, seed, builds, call, compiler_bytes, captured('hia-nominal-constructor'), publish)
     _stage_agent_store(work, seed, builds, call, compiler_bytes, admitted, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), builds, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, builds, call, admitted, publish)

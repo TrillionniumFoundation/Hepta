@@ -1,0 +1,944 @@
+{
+  "schema": "hepta.hia.ndu-optimization.v1",
+  "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+  "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+  "function": "calculate",
+  "generation": 1,
+  "objective": {
+    "expected_calls": 100,
+    "measurement_profile": "measure",
+    "resource_cap_ns": 0,
+    "target": "host"
+  },
+  "objective_sha256": "bd5433c7d688975d4ec8c19941f8298520aa5649b6fd8906ddb5cccdb17db62e",
+  "observations_sha256": "143d142d3d8433d87437a298e9373466cf4f4c68326677edc9762fb3b0c322f0",
+  "selected_id": "abstain",
+  "admitted": false,
+  "reason": "search_budget_exhausted_before_native",
+  "selected_program": {
+    "functions": [
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a",
+                  "z"
+                ],
+                "attrs": {},
+                "op": "int.add.wrap",
+                "out": [
+                  {
+                    "name": "r",
+                    "type": "u32"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "r",
+                  "z"
+                ],
+                "attrs": {},
+                "op": "int.sub.wrap",
+                "out": [
+                  {
+                    "name": "cancel",
+                    "type": "u32"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "u32"
+              },
+              {
+                "name": "z",
+                "type": "u32"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "cancel"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "calculate",
+        "params": [
+          {
+            "name": "a",
+            "type": "u32"
+          },
+          {
+            "name": "z",
+            "type": "u32"
+          }
+        ],
+        "returns": [
+          "u32"
+        ]
+      }
+    ],
+    "module": "standalone_test",
+    "schema": "hepta.hia.program.v1"
+  },
+  "net_margin_ns": 0,
+  "costs": {
+    "supplied_search_ns": 0,
+    "actual_adapter_ns": 1869012784,
+    "total_search_ns": 1869012784,
+    "search_at_native_rank_ns": 1823596250,
+    "publication_preparation_included": false
+  },
+  "candidate_reports": [
+    {
+      "id": "C0",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1805641413,
+      "proof_remaining_budget_ns": -1805641413,
+      "proof_remaining_margin_ns": 98194258487,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C1",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1806206903,
+      "proof_remaining_budget_ns": -1806206903,
+      "proof_remaining_margin_ns": 98193692997,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C2",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1806766934,
+      "proof_remaining_budget_ns": -1806766934,
+      "proof_remaining_margin_ns": 98193132966,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C3",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1807319465,
+      "proof_remaining_budget_ns": -1807319465,
+      "proof_remaining_margin_ns": 98192580435,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C4",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1807876025,
+      "proof_remaining_budget_ns": -1807876025,
+      "proof_remaining_margin_ns": 98192023875,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C5",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1808426236,
+      "proof_remaining_budget_ns": -1808426236,
+      "proof_remaining_margin_ns": 98191473664,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C6",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1808986897,
+      "proof_remaining_budget_ns": -1808986897,
+      "proof_remaining_margin_ns": 98190913003,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C7",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1809568827,
+      "proof_remaining_budget_ns": -1809568827,
+      "proof_remaining_margin_ns": 98190331073,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C8",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1810151926,
+      "proof_remaining_budget_ns": -1810151926,
+      "proof_remaining_margin_ns": 98189747974,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C9",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1810731366,
+      "proof_remaining_budget_ns": -1810731366,
+      "proof_remaining_margin_ns": 98189168534,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C10",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1811294077,
+      "proof_remaining_budget_ns": -1811294077,
+      "proof_remaining_margin_ns": 98188605823,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C11",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1811847558,
+      "proof_remaining_budget_ns": -1811847558,
+      "proof_remaining_margin_ns": 98188052342,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C12",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1812403488,
+      "proof_remaining_budget_ns": -1812403488,
+      "proof_remaining_margin_ns": 98187496412,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C13",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1812959529,
+      "proof_remaining_budget_ns": -1812959529,
+      "proof_remaining_margin_ns": 98186940371,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C14",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1813509860,
+      "proof_remaining_budget_ns": -1813509860,
+      "proof_remaining_margin_ns": 98186390040,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C15",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1814062271,
+      "proof_remaining_budget_ns": -1814062271,
+      "proof_remaining_margin_ns": 98185837629,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C16",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1814619571,
+      "proof_remaining_budget_ns": -1814619571,
+      "proof_remaining_margin_ns": 98185280329,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C17",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1815174232,
+      "proof_remaining_budget_ns": -1815174232,
+      "proof_remaining_margin_ns": 98184725668,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C18",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1815733663,
+      "proof_remaining_budget_ns": -1815733663,
+      "proof_remaining_margin_ns": 98184166237,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C19",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1816288603,
+      "proof_remaining_budget_ns": -1816288603,
+      "proof_remaining_margin_ns": 98183611297,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C20",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1816842074,
+      "proof_remaining_budget_ns": -1816842074,
+      "proof_remaining_margin_ns": 98183057826,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C21",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1817397705,
+      "proof_remaining_budget_ns": -1817397705,
+      "proof_remaining_margin_ns": 98182502195,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C22",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1817986184,
+      "proof_remaining_budget_ns": -1817986184,
+      "proof_remaining_margin_ns": 98181913716,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C23",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1818538795,
+      "proof_remaining_budget_ns": -1818538795,
+      "proof_remaining_margin_ns": 98181361105,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C24",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1819094916,
+      "proof_remaining_budget_ns": -1819094916,
+      "proof_remaining_margin_ns": 98180804984,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C25",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1819775922,
+      "proof_remaining_budget_ns": -1819775922,
+      "proof_remaining_margin_ns": 98180123978,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C26",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1820522426,
+      "proof_remaining_budget_ns": -1820522426,
+      "proof_remaining_margin_ns": 98179377474,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C27",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1821286650,
+      "proof_remaining_budget_ns": -1821286650,
+      "proof_remaining_margin_ns": 98178613250,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C28",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1821878169,
+      "proof_remaining_budget_ns": -1821878169,
+      "proof_remaining_margin_ns": 98178021731,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C29",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1822461189,
+      "proof_remaining_budget_ns": -1822461189,
+      "proof_remaining_margin_ns": 98177438711,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C30",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1823020270,
+      "proof_remaining_budget_ns": -1823020270,
+      "proof_remaining_margin_ns": 98176879630,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "C31",
+      "action": "bounded",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 1823575951,
+      "proof_remaining_budget_ns": -1823575951,
+      "proof_remaining_margin_ns": 98176323949,
+      "reason": "search_budget_exhausted_before_proof"
+    }
+  ],
+  "selected_fresh_proof": null,
+  "selected_proof_admission": null,
+  "native_rank_admission": {
+    "invoked": false,
+    "remaining_budget_ns": -1868982775,
+    "timeout_s": null,
+    "reason": "search_budget_exhausted_before_native"
+  },
+  "native_request": {
+    "schema": "hepta.hia.ndu-request.v1",
+    "objective_sha256": "bd5433c7d688975d4ec8c19941f8298520aa5649b6fd8906ddb5cccdb17db62e",
+    "generation": 1,
+    "resource_cap_q32": 0,
+    "candidates": [
+      {
+        "id": "abstain",
+        "cost_q32": 429496300103270,
+        "uncertainty_q32": 429496730,
+        "resource_q32": 0,
+        "hard_violation": false,
+        "support_sha256": "846b7981c834ee246e9b4c1236c3eb8df06201e80189aa7700ac8176210b4e81"
+      },
+      {
+        "id": "C0",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "0be04f36b739bbe53ce19f9880e89d0892f39d3baf8ed7b244bba056dfb2bac9"
+      },
+      {
+        "id": "C1",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "3b295f1de83897a9a60cab1207796da019faa9d5a375f3bd98bcca96e50f5386"
+      },
+      {
+        "id": "C2",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "27f80916a6effcbe2ab0b784847b5fc19124333e13e5badccb71d206fc3595ef"
+      },
+      {
+        "id": "C3",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "926d6f540edc13bc5c3b670a41bf338721a27c98fe32cbc98e1cce0d503e4e9e"
+      },
+      {
+        "id": "C4",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "371c922476727f30cee43724a8cf52a60f627d2163137d2cce14715812eb07a7"
+      },
+      {
+        "id": "C5",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "abf99fea574c5fce3ad804a83d1a9ee332d952b233db5b6c99188b11e1b55a11"
+      },
+      {
+        "id": "C6",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "15bf83b4e067c247961708702093f5dadb15d0ebd3bc978d757f0da663108053"
+      },
+      {
+        "id": "C7",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "31a9f2b201fecf6b4bc8474b5a26866727bfbb84466f22fd1b42cab7a30df45c"
+      },
+      {
+        "id": "C8",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "53d2d7fe7a4f49e378f57af0354750b42322acbc60f5956ab9a57f7c4aa6e549"
+      },
+      {
+        "id": "C9",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "3306a948cd2f453b1dec007719afdc78537d99f276e6a3a3326bbbf7e8461b51"
+      },
+      {
+        "id": "C10",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "438cea860d654123ea3dd5b1b4809d8ddcd249a6add74fb9dcaed55a2df9e619"
+      },
+      {
+        "id": "C11",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "77791973266f137a8ca8c5ef11d87316fa0c2166a0f991f19f44e9de665bc6ad"
+      },
+      {
+        "id": "C12",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "c736871593db183713ff7a2cfdf4a160e99a2aefd863ac1458d4cf15a83bb3a9"
+      },
+      {
+        "id": "C13",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "2e750e1ba239f87b859a03b5ec1805c5e99294405bd3506b5b067c1d97c18b12"
+      },
+      {
+        "id": "C14",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "62b4b05c0ec7f99dbeab2f50657a21e5d54a0f24f0dee8cd1f43855afdde55dd"
+      },
+      {
+        "id": "C15",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "601efc83b8c83aaba0684faf37727b5d88c8a89f52642ba19f2235a411b84613"
+      },
+      {
+        "id": "C16",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "2163257f120c5512beb02f8c62b81410ea671896054474d44ace99464bafc14f"
+      },
+      {
+        "id": "C17",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "e0b410b58418bd3702884a349b1bd136785c7b7fb64616e69aadeb66403d77ee"
+      },
+      {
+        "id": "C18",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "05e0a1d08a400f5e345d39078b08b84b63771b8fbf468bd10ece35101adbdca5"
+      },
+      {
+        "id": "C19",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "9d47e38089a3a68a424bcfaff3ca76449a8fbf8952fa4476948fb3f5041fe676"
+      },
+      {
+        "id": "C20",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "172f0a7fa6a8b6320f0c63eff006cd2d9aaab412c05a3879daa985323cc3245b"
+      },
+      {
+        "id": "C21",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "76db8270c3097d34f49200f4b2cbec08680dcc67b18a4643004f0e89e1f00ae3"
+      },
+      {
+        "id": "C22",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "c000812678d6de1d8d4ef00aa41221b43413216f667761135bf71154236cbd10"
+      },
+      {
+        "id": "C23",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "f7d38d46878896575adb02ae86bea83c15fe1c723ba91a1a19bde3ea30248977"
+      },
+      {
+        "id": "C24",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "9734faca850bbb1431017c06dc500e520c5ca24c2db1c6b508a1f5980dedd258"
+      },
+      {
+        "id": "C25",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "273323ce5beffe56197a6aa357b1127a639554e437635523b8f43cf2065f5a01"
+      },
+      {
+        "id": "C26",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "aea407c0a812e8b3da531cf4eb88b076040001bdf3b49c0662d2a4a7feb739ae"
+      },
+      {
+        "id": "C27",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "d21e9eab65a493a1a8f04a66b6f5a5da74b1205eed5f7aeea3367a510d158982"
+      },
+      {
+        "id": "C28",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "0b60db04ef1af935d1131068a131282c3610bd7169a3905db0a0837f75523ce5"
+      },
+      {
+        "id": "C29",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "94df8b60f93d57e5497d8f51fab2c5616a4795a0049878cf0779b78475fe2660"
+      },
+      {
+        "id": "C30",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "0fd98a00e837757d5ec21d594e825d9a3fbb8cfaf866917a61cbdd9a02c61c37"
+      },
+      {
+        "id": "C31",
+        "cost_q32": 7832286684355,
+        "uncertainty_q32": 0,
+        "resource_q32": 7832286254858,
+        "hard_violation": true,
+        "support_sha256": "cc574daed47dad91b08a2b58d7c9f2c468407502880e74d7a6a5e7e3ba1f2c4c"
+      }
+    ]
+  },
+  "request_sha256": "30a36c97e751335ec069b996d094c847dcb19aa6dc227a14e3f04dc709025385",
+  "native_response": null,
+  "bridge": null,
+  "selection_resolution": null,
+  "claims": {
+    "ndu_is_advisory": true,
+    "unproved_candidate_admitted": false,
+    "all_other_functions_unchanged": true,
+    "resource_bounds_proved": false,
+    "measurements_independently_attested": false,
+    "native_backend_refinement_proved": false,
+    "global_optimality_established": false,
+    "incremental_advantage_established": false
+  },
+  "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+}

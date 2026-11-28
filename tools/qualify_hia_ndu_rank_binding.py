@@ -21,7 +21,9 @@ entry=load(Path(args.flat),'d8b8b223bbace19a922d15eb6b150c1e27a0f6453161e8e2de7e
 decoder=load(Path(args.decoder),'2e6537acb01c8c2e93c7f7bbcac4f9d0a9fe2e10836d6f56d479c9506f434144')
 # Original response checks are unchanged except the explicitly migrated HIA
 # schema/entry identity and required reference_entry_point provenance field.
-source=inspect.getsource(original._validate_native_rank_response);tree=ast.parse(source)
+from tools.hia_ndu_policy_reference import policy_namespace
+original_policy=policy_namespace(P)
+source=original_policy.functions["_validate_native_rank_response"];tree=ast.parse(source)
 class Identity(ast.NodeTransformer):
  def visit_Constant(self,n):
   if n.value=='hepta.hia.ndu-response.v1':n.value='hepta.hia.ndu-native-response.v1'
@@ -30,7 +32,7 @@ class Identity(ast.NodeTransformer):
 tree=Identity().visit(tree)
 assignment=next(n for n in tree.body[0].body if isinstance(n,ast.Assign)and any(isinstance(t,ast.Name)and t.id=='expected'for t in n.targets))
 assignment.value.keys.append(ast.Constant('reference_entry_point'));assignment.value.values.append(ast.Constant('codex_hepta_ndu::evaluate_candidates_with_policy'))
-reference=ast.unparse(ast.fix_missing_locations(tree));(D/'reference-source.py').write_text(reference+'\n');scope=dict(original.__dict__);exec(compile(tree,'reference-source.py','exec'),scope);oracle=scope['_validate_native_rank_response']
+reference=ast.unparse(ast.fix_missing_locations(tree));(D/'reference-source.py').write_text(reference+'\n');scope=dict(original_policy.namespace);exec(compile(tree,'reference-source.py','exec'),scope);oracle=scope['_validate_native_rank_response']
 def enc(x):return json.dumps(x,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
 rows=[];groups={};nativecalls=[];report={'passed':False,'whole_native_rank_closed':False,'flat_sha256':'d8b8b223bbace19a922d15eb6b150c1e27a0f6453161e8e2de7ee90a33702cbd','reference_sha256':sha256((reference+'\n').encode()).hexdigest(),'identity_migration_only':['schema','entry_point','reference_entry_point'],'scope':'Actual HIA binding role, fresh native public proof and actual sealed HIA NDU evaluator outputs. Mutation fixtures test rejection and are not evaluator outputs. This is not native-owner identity/process or complete-rank qualification.','rows':rows,'groups':groups,'actual_native_evaluator_calls':nativecalls}
 def save():(D/'report.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -103,4 +105,5 @@ changed=copy.deepcopy(proof);changed['ignored']={'deep':[1,2,3]};proof_case('pro
 data=response_case('final-private-source',request,response)
 for off,value in ((0,0),(8,2),(16,0),(24,0),(32,0),(40,0),(48,0),(56,1),(96,1),(192,1),(248,1)):
  damaged=bytearray(data);struct.pack_into('<Q',damaged,off,value);ib=C.create_string_buffer(bytes(damaged));ob=C.create_string_buffer(4096);C.memset(ob,0xdb,len(ob));wb=C.create_string_buffer(4<<20);rc=entry(ib,len(damaged),ob,len(ob),wb,len(wb));assert rc==0xfffffffd and ob.raw==b'\xdb'*len(ob),(off,rc);record('private-frame-'+str(off),'private_guards')
+original_policy.unchanged();report.update(original_policy_sha256=original_policy.source_sha256,original_policy_commit=original_policy.original_commit)
 report.update(passed=True,count=len(rows),fresh_native_proof_invocations=1,source_files_checked=len(receipt['source_files']));save();print('NDU_BINDING_ALL_PASS',len(rows),groups,len(nativecalls),flush=True)

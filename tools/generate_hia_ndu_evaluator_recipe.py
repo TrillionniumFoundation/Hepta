@@ -50,11 +50,20 @@ def recipe():
     return r
 
 
+def current_recipe():
+    from tools.hia_ndu_rank_release import append_rank_recipe
+    r = recipe()
+    append_rank_recipe(r, root=ROOT)
+    if r.published[:2] != [PRODUCT, CONTRACT_PRODUCT] or len(r.published) != 8:
+        raise ValueError("complete native NDU publication inventory differs")
+    return r
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    raw = recipe().binary()
+    raw = current_recipe().binary()
     path = ROOT / SOURCE_PATH
     if args.check:
         if path.read_bytes() != raw:
