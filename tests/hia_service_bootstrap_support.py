@@ -166,7 +166,7 @@ def group_members(group):
             continue
     return sorted(rows, key=lambda row: row["pid"])
 
-def stop_owned(process):
+def _stop_owned_group(process):
     deadline = time.monotonic() + 3
     before = group_members(process.pid)
     signals = []
@@ -183,6 +183,212 @@ def stop_owned(process):
             return {"before":before, "after":after, "signals":signals, "reaped":True}
         time.sleep(0.01)
     raise RuntimeError("owned bootstrap process group remained after three-second cleanup")
+
+
+_ACTIVE_CHILD_TREE = None
+_CHILD_TREE_ENV = "HIA_BOOTSTRAP_CHILD_TREE"
+
+def _process_identity(pid):
+    path = Path("/proc") / str(pid)
+    text = (path / "stat").read_text()
+    fields = text[text.rindex(")") + 2:].split()
+    return {"pid":pid, "ppid":int(fields[1]), "pgid":int(fields[2]),
+            "sid":int(fields[3]), "start_ticks":int(fields[19]),
+            "state":fields[0], "uid":path.stat().st_uid}
+
+
+class _OwnedChildTree:
+    """Per-invocation nonce plus pidfds; never signal an unbound process."""
+    def __init__(self, token):
+        self.token = token
+        self.children = {}
+        self.reaped = {}
+        self.signals = []
+        self.unattributed = []
+        self.baseline_children = {}
+        for path in Path("/proc").iterdir():
+            if path.name.isdigit():
+                try:
+                    row = _process_identity(int(path.name))
+                    if row["ppid"] == os.getpid():
+                        self.baseline_children[row["pid"]] = row["start_ticks"]
+                except (FileNotFoundError, ProcessLookupError, PermissionError):
+                    continue
+
+    def capture(self, root_pid):
+        rows = {}
+        tagged = set()
+        expected = (_CHILD_TREE_ENV + "=" + self.token).encode()
+        for path in Path("/proc").iterdir():
+            if not path.name.isdigit():
+                continue
+            pid = int(path.name)
+            if pid == os.getpid():
+                continue
+            try:
+                row = _process_identity(pid)
+                if row["uid"] != os.getuid():
+                    continue
+                rows[pid] = row
+                if expected in (path / "environ").read_bytes().split(bytes([0])):
+                    tagged.add(pid)
+            except (FileNotFoundError, ProcessLookupError, PermissionError):
+                continue
+        owned = tagged | {pid for pid, (old, fd) in self.children.items()
+                          if pid in rows and rows[pid]["start_ticks"] == old["start_ticks"]}
+        while True:
+            more = {pid for pid, row in rows.items() if row["ppid"] in owned}
+            if more <= owned:
+                break
+            owned.update(more)
+        unknown = [row for pid, row in rows.items()
+                   if row["ppid"] == os.getpid() and pid != root_pid and pid not in owned
+                   and self.baseline_children.get(pid) != row["start_ticks"]]
+        if unknown:
+            self.unattributed = unknown
+            raise RuntimeError("an adopted child has no verified owned-tree identity")
+        added = []
+        for pid in sorted(owned):
+            row = rows[pid]
+            if pid in self.children:
+                if self.children[pid][0]["start_ticks"] != row["start_ticks"]:
+                    raise RuntimeError("owned child PID identity changed")
+                continue
+            descriptor = None
+            saved = False
+            try:
+                descriptor = os.pidfd_open(pid)
+                current = _process_identity(pid)
+                if (current["start_ticks"] != row["start_ticks"]
+                        or current["uid"] != row["uid"]):
+                    raise RuntimeError("owned child changed during pidfd capture")
+                self.children[pid] = (row, descriptor)
+                saved = True
+                added.append(pid)
+            except (FileNotFoundError, ProcessLookupError):
+                pass
+            finally:
+                if descriptor is not None and not saved:
+                    os.close(descriptor)
+        return added
+
+    def stop(self, process):
+        deadline = time.monotonic() + 3
+        before = group_members(process.pid)
+        self.capture(process.pid)
+        first = [dict(row) for row, descriptor in self.children.values()]
+        if process.poll() is None and process.pid not in self.children:
+            raise RuntimeError("live suite has no verified nonce and pidfd identity")
+        signaled = set()
+        while True:
+            self.capture(process.pid)
+            for pid, (row, descriptor) in self.children.items():
+                if pid in signaled:
+                    continue
+                try:
+                    signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+                    self.signals.append("SIGKILL_PIDFD:" + str(pid))
+                except ProcessLookupError:
+                    pass
+                signaled.add(pid)
+            if process.poll() is None:
+                process.wait(timeout=max(0.001, deadline-time.monotonic()))
+            for pid, (row, descriptor) in self.children.items():
+                if pid == process.pid:
+                    self.reaped[pid] = {"by":"Popen.wait", "returncode":process.returncode}
+                    continue
+                if pid in self.reaped:
+                    continue
+                try:
+                    got, status = os.waitpid(pid, os.WNOHANG)
+                    if got == pid:
+                        self.reaped[pid] = {"by":"owned-subreaper", "wait_status":status}
+                        continue
+                except ChildProcessError:
+                    pass
+                try:
+                    current = _process_identity(pid)
+                    if current["start_ticks"] != row["start_ticks"]:
+                        raise RuntimeError("owned child PID was reused before terminal verification")
+                except (FileNotFoundError, ProcessLookupError):
+                    self.reaped[pid] = {"by":"original-parent", "proc_absent":True}
+            added = self.capture(process.pid)
+            after = group_members(process.pid)
+            if not added and not after and set(self.children) <= set(self.reaped):
+                return {"before":before, "after":after, "signals":list(self.signals),
+                        "reaped":True, "descendants_before":first,
+                        "descendants_captured":[dict(row) for row, fd in self.children.values()],
+                        "descendants_reaped":{str(pid):item for pid,item in self.reaped.items()},
+                        "ownership":"per-invocation-environment-nonce-and-pidfd"}
+            if time.monotonic() >= deadline:
+                raise RuntimeError("owned bootstrap descendant tree remained after three-second cleanup")
+            time.sleep(0.01)
+
+    def close(self):
+        for row, descriptor in self.children.values():
+            os.close(descriptor)
+
+
+def stop_owned(process):
+    if _ACTIVE_CHILD_TREE is None:
+        return _stop_owned_group(process)
+    return _ACTIVE_CHILD_TREE.stop(process)
+
+
+def run_owned_tree(parent, label, command, *, seconds, report_relative="report.json", env=None):
+    """Contain the complete suite including descendants that call setsid().
+
+    The unchanged run_child still enforces its original wait and three-second
+    cleanup budget. Only the suite controller opts into this Linux containment;
+    observer processes do not load this host interface.
+    """
+    import ctypes
+    import secrets
+    import threading
+    global _ACTIVE_CHILD_TREE
+    if (_ACTIVE_CHILD_TREE is not None
+            or threading.current_thread() is not threading.main_thread()
+            or not hasattr(os, "pidfd_open") or not hasattr(signal, "pidfd_send_signal")):
+        raise RuntimeError("exclusive Linux owned-tree controller is required")
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.prctl.argtypes = [ctypes.c_int, ctypes.c_void_p,
+                          ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+    libc.prctl.restype = ctypes.c_int
+    previous = ctypes.c_int()
+    if libc.prctl(37, ctypes.byref(previous), 0, 0, 0) != 0 or previous.value not in (0,1):
+        raise OSError(ctypes.get_errno(), "cannot capture child-subreaper state")
+    if libc.prctl(36, ctypes.c_void_p(1), 0, 0, 0) != 0:
+        raise OSError(ctypes.get_errno(), "cannot enable owned descendant reaping")
+    tree = None
+    try:
+        tree = _OwnedChildTree(secrets.token_hex(24))
+        child_env = dict(os.environ if env is None else env)
+        child_env[_CHILD_TREE_ENV] = tree.token
+        _ACTIVE_CHILD_TREE = tree
+        write_json(Path(parent)/(label+".tree-start.json"), {
+            "schema":SCHEMA+"-owned-tree.v1", "previous_subreaper":previous.value,
+            "nonce_sha256":sha256(tree.token.encode()).hexdigest(),
+            "command":list(command), "timeout_seconds":seconds, "cleanup_seconds":3})
+        return run_child(parent,label,command,seconds=seconds,
+                         report_relative=report_relative,env=child_env)
+    finally:
+        _ACTIVE_CHILD_TREE = None
+        try:
+            if libc.prctl(36, ctypes.c_void_p(previous.value), 0, 0, 0) != 0:
+                raise OSError(ctypes.get_errno(), "cannot restore child-subreaper state")
+            actual = ctypes.c_int()
+            if libc.prctl(37, ctypes.byref(actual), 0, 0, 0) != 0 or actual.value != previous.value:
+                raise RuntimeError("child-subreaper restoration differs")
+            if tree is not None:
+                write_json(Path(parent)/(label+".tree-terminal.json"), {
+                    "schema":SCHEMA+"-owned-tree.v1", "restored_subreaper":actual.value,
+                    "descendants_captured":[dict(row) for row,fd in tree.children.values()],
+                    "descendants_reaped":{str(pid):item for pid,item in tree.reaped.items()},
+                    "unattributed_children":list(tree.unattributed),
+                    "all_captured_reaped":not tree.unattributed and set(tree.children)<=set(tree.reaped)})
+        finally:
+            if tree is not None:
+                tree.close()
 
 
 def run_child(parent, label, command, *, seconds, report_relative="report.json", env=None):

@@ -79,6 +79,31 @@ class CaseTerminal:
                 "gc_after": self._gc_state()}
 
 
+class CaseBytes(tuple):
+    """Keep admitted JSON cases as immutable bytes outside the cyclic heap.
+
+    Every case is decoded once when selected. The exact complete input file
+    remains captured and reread by run(); no case, order or terminal collection
+    is removed. Plain JSON input objects have no provider lifecycle.
+    """
+    __slots__ = ()
+
+    def __new__(cls, cases):
+        if type(cases) is not list or any(type(case) is not dict for case in cases):
+            raise ValueError("case storage requires the admitted JSON object list")
+        return tuple.__new__(cls, (oracle.canonical(case) for case in cases))
+
+    def __iter__(self):
+        for raw in tuple.__iter__(self):
+            yield support.parse(raw)
+
+    def __getitem__(self, index):
+        raw = tuple.__getitem__(self, index)
+        if isinstance(index, slice):
+            return [support.parse(item) for item in raw]
+        return support.parse(raw)
+
+
 class VMEntry:
     def __init__(self, program):
         self.program, self.calls = program, 0
@@ -497,6 +522,8 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
             or oracle.canonical(cases[:232]) != oracle.canonical(frozen_cases)
             or len({case["id"] for case in cases}) != len(cases)):
         raise ValueError("the exact complete 232 input prefix is required")
+    cases = CaseBytes(cases)
+    del input_value
     support.write_json(output/"inputs-capture.json", {"path":str(inputs_path),**input_pin,
                       "base_domain_sha256":sha256(frozen_raw).hexdigest(),
                       "count":len(cases),"ordered_ids":[case["id"] for case in cases]})

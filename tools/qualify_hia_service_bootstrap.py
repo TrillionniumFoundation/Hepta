@@ -16,7 +16,7 @@ def main():
     environment=dict(os.environ)
     variable="HEPTA_HIA_SERVICE_BOOTSTRAP_"+("SOURCE_EVIDENCE" if args.suite=="source" else "EVIDENCE")
     environment[variable]=str(args.output/"component")
-    result,report,raw=support.run_child(args.output,"suite",command,seconds=1800,env=environment)
+    result,report,raw=support.run_owned_tree(args.output,"suite",command,seconds=1800,env=environment)
     if report["status"]!="PASS_COMPLETE_SUITE":raise AssertionError("complete bootstrap suite failed")
     after=support.source_snapshot()
     if not support.same(before,after):raise AssertionError("suite source changed")
