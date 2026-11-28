@@ -1,0 +1,3121 @@
+{
+  "schema": "hepta.hia.ndu-actual-default-returns.v1",
+  "calls": [
+    {
+      "method": "test_actual_search_budget_overrun_keeps_incumbent (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_actual_search_budget_overrun_keeps_incumbent)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 0,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "b6e201390732d37c49350309d1b8af69b29ddaa411b4698065b13bce3ce83b61",
+        "observations_sha256": "40c31eff9d151f66aed4bc1a8e4eca820d67fe8462d4fe04d8750b8e9039ee91",
+        "selected_id": "abstain",
+        "admitted": false,
+        "reason": "search_budget_exhausted_before_native",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [
+                    {
+                      "args": [
+                        "a",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.add.wrap",
+                      "out": [
+                        {
+                          "name": "r",
+                          "type": "u32"
+                        }
+                      ]
+                    },
+                    {
+                      "args": [
+                        "r",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.sub.wrap",
+                      "out": [
+                        {
+                          "name": "cancel",
+                          "type": "u32"
+                        }
+                      ]
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "cancel"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 0,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 488252980,
+          "total_search_ns": 488252980,
+          "search_at_native_rank_ns": 481609951,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "runtime_ns": 1000,
+              "uncertainty_ns": 0,
+              "search_ns": 0
+            },
+            "equivalence_proved": false,
+            "proof": null,
+            "preproof_cost_lower_bound_ns": 481568852,
+            "proof_remaining_budget_ns": -481568852,
+            "proof_remaining_margin_ns": 98518431148,
+            "reason": "search_budget_exhausted_before_proof"
+          }
+        ],
+        "selected_fresh_proof": null,
+        "selected_proof_admission": null,
+        "native_rank_admission": {
+          "invoked": false,
+          "remaining_budget_ns": -488206461,
+          "timeout_s": null,
+          "reason": "search_budget_exhausted_before_native"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "b6e201390732d37c49350309d1b8af69b29ddaa411b4698065b13bce3ce83b61",
+          "generation": 1,
+          "resource_cap_q32": 0,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "ae7ec58c27a9ae6dc418f335e4cb1f85e5c74a478da01317dbf0f2ccd7a94c80"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 6363466284973,
+              "uncertainty_q32": 0,
+              "resource_q32": 2068498988973,
+              "hard_violation": true,
+              "support_sha256": "b0ddbef55a4b9a00c0096c8b0469b0be8fc23cb070ba25d46d4ab561463e44cb"
+            }
+          ]
+        },
+        "request_sha256": "5ab4372d09f6f270d21b33fc5bb59403aa3613ba700fcb4a8c8e513053c3dc6a",
+        "native_response": null,
+        "bridge": null,
+        "selection_resolution": null,
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_cost_dominated_candidate_is_not_proved_or_marked_safe (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_cost_dominated_candidate_is_not_proved_or_marked_safe)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 5000000000,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+        "observations_sha256": "dc90433faf0a7fedac8e1d342897d4ab2755e9fc622696a2f7e709da60e4beea",
+        "selected_id": "abstain",
+        "admitted": false,
+        "reason": "native_evaluator_abstained",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [
+                    {
+                      "args": [
+                        "a",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.add.wrap",
+                      "out": [
+                        {
+                          "name": "r",
+                          "type": "u32"
+                        }
+                      ]
+                    },
+                    {
+                      "args": [
+                        "r",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.sub.wrap",
+                      "out": [
+                        {
+                          "name": "cancel",
+                          "type": "u32"
+                        }
+                      ]
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "cancel"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 0,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 890705511,
+          "total_search_ns": 890705511,
+          "search_at_native_rank_ns": 550880423,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "runtime_ns": 100000,
+              "uncertainty_ns": 1,
+              "search_ns": 0
+            },
+            "equivalence_proved": false,
+            "proof": null,
+            "preproof_cost_lower_bound_ns": 550831555,
+            "proof_remaining_budget_ns": 4449168445,
+            "proof_remaining_margin_ns": -551831555,
+            "reason": "cost_dominated_before_proof"
+          }
+        ],
+        "selected_fresh_proof": null,
+        "selected_proof_admission": null,
+        "native_rank_admission": {
+          "invoked": true,
+          "remaining_budget_ns": 4445323609,
+          "timeout_s": 4.445323609,
+          "reason": "actual_native_response_received"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "generation": 1,
+          "resource_cap_q32": 21474836480000,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "ae7ec58c27a9ae6dc418f335e4cb1f85e5c74a478da01317dbf0f2ccd7a94c80"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 431867037968088,
+              "uncertainty_q32": 4294967296,
+              "resource_q32": 2366013400792,
+              "hard_violation": true,
+              "support_sha256": "ec6492797cebb75cfe2b146413997106f9436bfafb82acf40dfedf33bec24fca"
+            }
+          ]
+        },
+        "request_sha256": "dfc99c4f2eea346ccc4722055866e58ff44466b4b25571fdeed0946695e826c2",
+        "native_response": {
+          "advisory_recommendation": "abstain",
+          "authority": "ADVISORY_ONLY",
+          "disposition": "InfeasibleExplicitAbstain",
+          "entry_point": "hepta.hia.ndu_evaluator.v1",
+          "evaluation_digest_v2": "9a1023e0ce6ae7a1de5312d4bf9d6253e43dc56e037a25687a908b010726fa2d",
+          "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+          "generation": 1,
+          "global_optimality_established": false,
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "pareto_frontier": [
+            "abstain"
+          ],
+          "proves_program_safety": false,
+          "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+          "rejected": [
+            {
+              "id": "cancel",
+              "reasons": "[HardConstraintViolation]"
+            }
+          ],
+          "request_sha256": "dfc99c4f2eea346ccc4722055866e58ff44466b4b25571fdeed0946695e826c2",
+          "schema": "hepta.hia.ndu-native-response.v1",
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "utility_profile_digest": "5566e75d63a80a7a9fe8513b58896f4417f5ede8c1367f326f18e2b08efc94d0"
+        },
+        "bridge": {
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+          "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+          "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+          "source_attestation": "trusted_local_native_build_receipt"
+        },
+        "selection_resolution": {
+          "schema": "hepta.hia.ndu-scalar-selection.v1",
+          "profile": "hia-total-cost-ms-v1",
+          "request_sha256": "dfc99c4f2eea346ccc4722055866e58ff44466b4b25571fdeed0946695e826c2",
+          "native_response_sha256": "9a8bf4c0e0b5373adb1608809edda4eecbae1f09f768e252c2ca7027bcada320",
+          "native_disposition": "InfeasibleExplicitAbstain",
+          "native_recommendation": "abstain",
+          "validated_pareto_frontier": [
+            "abstain"
+          ],
+          "selected_id": "abstain",
+          "selection_source": "native_explicit_abstain",
+          "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+          "caller_tie_policy_applied": false,
+          "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+          "assumptions": [
+            "caller already admitted the unchanged native bridge source and executable",
+            "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+          ],
+          "native_identity_validated_here": false,
+          "authority": "ADVISORY_ONLY",
+          "proves_program_safety": false,
+          "forecast_is_observed_benefit": false,
+          "incremental_ndu_advantage_established": false
+        },
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_empty_finite_action_set_returns_existing_baseline (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_empty_finite_action_set_returns_existing_baseline)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 5000000000,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+        "observations_sha256": "61832e684ec04419bd943ee47878da27efe759d405543e4c4927ba9ba2813a0b",
+        "selected_id": "abstain",
+        "admitted": false,
+        "reason": "native_evaluator_abstained",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [
+                    {
+                      "args": [
+                        "a",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.add.wrap",
+                      "out": [
+                        {
+                          "name": "r",
+                          "type": "u32"
+                        }
+                      ]
+                    },
+                    {
+                      "args": [
+                        "r",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.sub.wrap",
+                      "out": [
+                        {
+                          "name": "cancel",
+                          "type": "u32"
+                        }
+                      ]
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "cancel"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 0,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 1061678819,
+          "total_search_ns": 1061678819,
+          "search_at_native_rank_ns": 701222537,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [],
+        "selected_fresh_proof": null,
+        "selected_proof_admission": null,
+        "native_rank_admission": {
+          "invoked": true,
+          "remaining_budget_ns": 4297135600,
+          "timeout_s": 4.2971356,
+          "reason": "actual_native_response_received"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "generation": 1,
+          "resource_cap_q32": 21474836480000,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "ae7ec58c27a9ae6dc418f335e4cb1f85e5c74a478da01317dbf0f2ccd7a94c80"
+            }
+          ]
+        },
+        "request_sha256": "9659c28fec6b761f5e5a6d1860758f3192fef9774d95af040573935a5d56f633",
+        "native_response": {
+          "advisory_recommendation": "abstain",
+          "authority": "ADVISORY_ONLY",
+          "disposition": "InfeasibleExplicitAbstain",
+          "entry_point": "hepta.hia.ndu_evaluator.v1",
+          "evaluation_digest_v2": "a0f13095eddeb32059e98393f6050e0559d05ea1b4c9ead58c4e7916e011c43d",
+          "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+          "generation": 1,
+          "global_optimality_established": false,
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "pareto_frontier": [
+            "abstain"
+          ],
+          "proves_program_safety": false,
+          "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+          "rejected": [],
+          "request_sha256": "9659c28fec6b761f5e5a6d1860758f3192fef9774d95af040573935a5d56f633",
+          "schema": "hepta.hia.ndu-native-response.v1",
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "utility_profile_digest": "5566e75d63a80a7a9fe8513b58896f4417f5ede8c1367f326f18e2b08efc94d0"
+        },
+        "bridge": {
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+          "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+          "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+          "source_attestation": "trusted_local_native_build_receipt"
+        },
+        "selection_resolution": {
+          "schema": "hepta.hia.ndu-scalar-selection.v1",
+          "profile": "hia-total-cost-ms-v1",
+          "request_sha256": "9659c28fec6b761f5e5a6d1860758f3192fef9774d95af040573935a5d56f633",
+          "native_response_sha256": "d0faa6db006588ea40ba0f28d2e8034ac2a497e5ab60ae1b3040ae29640817a4",
+          "native_disposition": "InfeasibleExplicitAbstain",
+          "native_recommendation": "abstain",
+          "validated_pareto_frontier": [
+            "abstain"
+          ],
+          "selected_id": "abstain",
+          "selection_source": "native_explicit_abstain",
+          "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+          "caller_tie_policy_applied": false,
+          "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+          "assumptions": [
+            "caller already admitted the unchanged native bridge source and executable",
+            "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+          ],
+          "native_identity_validated_here": false,
+          "authority": "ADVISORY_ONLY",
+          "proves_program_safety": false,
+          "forecast_is_observed_benefit": false,
+          "incremental_ndu_advantage_established": false
+        },
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_exhausted_budget_skips_proof_but_still_binds_candidate_and_bridge (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_exhausted_budget_skips_proof_but_still_binds_candidate_and_bridge)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 0,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "b6e201390732d37c49350309d1b8af69b29ddaa411b4698065b13bce3ce83b61",
+        "observations_sha256": "40c31eff9d151f66aed4bc1a8e4eca820d67fe8462d4fe04d8750b8e9039ee91",
+        "selected_id": "abstain",
+        "admitted": false,
+        "reason": "search_budget_exhausted_before_native",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [
+                    {
+                      "args": [
+                        "a",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.add.wrap",
+                      "out": [
+                        {
+                          "name": "r",
+                          "type": "u32"
+                        }
+                      ]
+                    },
+                    {
+                      "args": [
+                        "r",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.sub.wrap",
+                      "out": [
+                        {
+                          "name": "cancel",
+                          "type": "u32"
+                        }
+                      ]
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "cancel"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 0,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 641247412,
+          "total_search_ns": 641247412,
+          "search_at_native_rank_ns": 638325644,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "runtime_ns": 1000,
+              "uncertainty_ns": 0,
+              "search_ns": 0
+            },
+            "equivalence_proved": false,
+            "proof": null,
+            "preproof_cost_lower_bound_ns": 638290085,
+            "proof_remaining_budget_ns": -638290085,
+            "proof_remaining_margin_ns": 98361709915,
+            "reason": "search_budget_exhausted_before_proof"
+          }
+        ],
+        "selected_fresh_proof": null,
+        "selected_proof_admission": null,
+        "native_rank_admission": {
+          "invoked": false,
+          "remaining_budget_ns": -641215393,
+          "timeout_s": null,
+          "reason": "search_budget_exhausted_before_native"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "b6e201390732d37c49350309d1b8af69b29ddaa411b4698065b13bce3ce83b61",
+          "generation": 1,
+          "resource_cap_q32": 0,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "ae7ec58c27a9ae6dc418f335e4cb1f85e5c74a478da01317dbf0f2ccd7a94c80"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 7036555061178,
+              "uncertainty_q32": 0,
+              "resource_q32": 2741587765178,
+              "hard_violation": true,
+              "support_sha256": "a42b6e4b50e9d369bc9407a8c705f961ccd922441511a13892db17d1a2f2a858"
+            }
+          ]
+        },
+        "request_sha256": "e617b554b54726c29e68b708a40444a23301c34ce51ba450de0e95e13562516c",
+        "native_response": null,
+        "bridge": null,
+        "selection_resolution": null,
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_exhausted_budget_skips_proof_but_still_binds_candidate_and_bridge (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_exhausted_budget_skips_proof_but_still_binds_candidate_and_bridge)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: candidate measurement belongs to a different program: cancel"
+    },
+    {
+      "method": "test_identical_unsupported_loop_never_becomes_an_identity_proof (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identical_unsupported_loop_never_becomes_an_identity_proof)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+        "before_input_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+        "function": "forever",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 5000000000,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "7c10608547ed6ba261215bec5bc2daeb93a9642ec52fd73a9adaedc498fc0b4e",
+        "observations_sha256": "480e775dc402d0e6d28509d5b7ed0e6ff9c1713fbeecaf50f9a5c30331eb3c94",
+        "selected_id": "abstain",
+        "admitted": false,
+        "reason": "native_evaluator_abstained",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [],
+                  "params": [],
+                  "term": {
+                    "args": [],
+                    "op": "jump",
+                    "target": "loop"
+                  }
+                },
+                {
+                  "id": "loop",
+                  "ops": [],
+                  "params": [],
+                  "term": {
+                    "args": [],
+                    "op": "jump",
+                    "target": "loop"
+                  }
+                }
+              ],
+              "effects": [],
+              "entry": "entry",
+              "name": "forever",
+              "params": [],
+              "returns": []
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 0,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 1666603174,
+          "total_search_ns": 1666603174,
+          "search_at_native_rank_ns": 1409718702,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+              "runtime_ns": 0,
+              "uncertainty_ns": 0,
+              "search_ns": 0
+            },
+            "equivalence_proved": false,
+            "proof": {
+              "schema": "hepta.hia.translation-validation.v1",
+              "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+              "status": "unknown",
+              "function": "forever",
+              "scope": "selected_public_scalar_function",
+              "before_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+              "after_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+              "before_input_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+              "after_input_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+              "validator_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b",
+              "structural_verification": {
+                "before": true,
+                "after": true
+              },
+              "reason": "cyclic_cfg_outside_profile",
+              "counterexample": null,
+              "solver": {
+                "name": "hia-native-cnf-translation",
+                "version": "1",
+                "result": "not_run",
+                "timeout_ms": 2000,
+                "identity": {
+                  "native_closure_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+                },
+                "discharge": {
+                  "method": "not_run",
+                  "formula_sha256": null,
+                  "variables": 0,
+                  "clauses": 0,
+                  "assignments_checked": 0,
+                  "nodes": 0
+                }
+              },
+              "claims": {
+                "all_input_behavior_equivalence_proved": false,
+                "first_trap_code_preserved": false,
+                "canonical_core_reverified": true,
+                "resource_bounds_proved": false,
+                "encoder_refinement_machine_proved": false,
+                "whole_language_soundness_proved": false,
+                "backend_refinement_proved": false,
+                "global_optimality_proved": false,
+                "serialized_receipt_authorizes_execution": false,
+                "all_programs_of_this_profile_proved": false,
+                "native_backend_refinement_proved": false
+              },
+              "limits": [
+                "Only the selected public scalar function is covered.",
+                "Acyclic v1-v7 scalar Core; calls, resources and floating point are outside this primitive profile.",
+                "All stages use one proof deadline, including admission, encoding, search, replay and identity closure; this is not a hard process timeout.",
+                "Exact native code bytes and all externally loaded objects need separate custody and lifetime validation.",
+                "A consumer must recompute fresh proof results at the point of use."
+              ],
+              "wall_ns": 872985638,
+              "proof_scope_schema": "hepta.hia.scalar-proof-scope.v1",
+              "proved_meaning": "The identified native HIA checker established only the stated property for the exact Core subject within this scalar profile. Implementation soundness, whole-language safety and execution authority are not established.",
+              "subject": {
+                "kind": "canonical_core_comparison",
+                "function": "forever",
+                "selection": "selected_public_scalar_function",
+                "before_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+                "after_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+                "before_input_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+                "after_input_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515"
+              },
+              "property": {
+                "id": "all_input_return_and_first_trap_equivalence",
+                "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+              },
+              "assumptions": [
+                {
+                  "id": "typed_inputs",
+                  "statement": "Every quantified argument has the selected freshly verified Core signature."
+                },
+                {
+                  "id": "core_semantics",
+                  "statement": "The primitive v1-v7 scalar semantics, first-trap ordering and declared profile define observations."
+                },
+                {
+                  "id": "trusted_implementation",
+                  "statement": "The native HIA verifier, graph projection, solver, and independent Core interpreter are trusted implementations, not machine-proved."
+                },
+                {
+                  "id": "loaded_source",
+                  "statement": "The actual embedded native closure is read-only, hashed before and after checking, and executes without hostile process or hardware modification."
+                },
+                {
+                  "id": "point_of_use",
+                  "statement": "Consumers rebind exact inputs and recompute; a serialized receipt grants no execution authority."
+                }
+              ],
+              "unproved_obligations": [
+                {
+                  "id": "checker_soundness",
+                  "statement": "Machine-checked implementation correctness remains open."
+                },
+                {
+                  "id": "whole_language",
+                  "statement": "Programs and constructs outside this selected scalar profile are not covered."
+                },
+                {
+                  "id": "other_exports",
+                  "statement": "Other public exports require independent checks."
+                },
+                {
+                  "id": "core_to_machine",
+                  "statement": "Compilation and actual machine-code refinement require separate validation."
+                },
+                {
+                  "id": "abi_ffi_loading",
+                  "statement": "ABI, FFI, image custody, mapping and lifetime require separate validation."
+                },
+                {
+                  "id": "resources",
+                  "statement": "Physical resource, instruction, wall-time, energy and performance bounds are not proved."
+                },
+                {
+                  "id": "concurrency",
+                  "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside the proof."
+                },
+                {
+                  "id": "normal_return_totality",
+                  "statement": "Equivalence may preserve a trap and does not imply normal return for every input."
+                },
+                {
+                  "id": "requested_property",
+                  "statement": "The requested property is not established; inspect the status, reason and any replayed counterexample."
+                }
+              ],
+              "checker": {
+                "name": "hepta.hia_translation_validation.validate_translation",
+                "kind": "trusted_executable_hia_scalar_checker",
+                "method": "not_run",
+                "source_identity": {
+                  "native-closure.image.bin": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+                },
+                "source_identity_sha256": "52d973dbf21dee39e2eeb6cbbdc3d0ac15e0314897edfcf1a2976bd39c165d10",
+                "runtime": {
+                  "implementation": "HIA-native",
+                  "version": "1"
+                },
+                "machine_checked_implementation": false
+              },
+              "execution_authority": false,
+              "after_request_input_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515",
+              "before_request_input_sha256": "119243f7b3f1b1bca6cbb41e2d355cf019a724d5876fb07b199d751c667f3515"
+            },
+            "preproof_cost_lower_bound_ns": 529093060,
+            "proof_remaining_budget_ns": 4470906940,
+            "proof_remaining_margin_ns": 99470906940,
+            "proof_timeout_ms": 2000,
+            "proof_wall_ns": 880581384,
+            "reason": "behavior_not_proved"
+          }
+        ],
+        "selected_fresh_proof": null,
+        "selected_proof_admission": null,
+        "native_rank_admission": {
+          "invoked": true,
+          "remaining_budget_ns": 3573527970,
+          "timeout_s": 3.57352797,
+          "reason": "actual_native_response_received"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "7c10608547ed6ba261215bec5bc2daeb93a9642ec52fd73a9adaedc498fc0b4e",
+          "generation": 1,
+          "resource_cap_q32": 21474836480000,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "958562d4c268a69e5b3a5d11ae2415c04fb0ecde75bc9983d1da00b4d59110e2"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 6054695721650,
+              "uncertainty_q32": 0,
+              "resource_q32": 6054695721650,
+              "hard_violation": true,
+              "support_sha256": "39f5a172006065a493f79c7fedd6e821b40fdf142c598d65a46a7d2e95976b45"
+            }
+          ]
+        },
+        "request_sha256": "9d40c776a65d9d79b0ddc87962886a605159b5038c31026391d67f559bc1c4fa",
+        "native_response": {
+          "advisory_recommendation": "abstain",
+          "authority": "ADVISORY_ONLY",
+          "disposition": "InfeasibleExplicitAbstain",
+          "entry_point": "hepta.hia.ndu_evaluator.v1",
+          "evaluation_digest_v2": "d95b269fbcbacede2385708708f7cbf0340f13d2f58dc240432e13fc0af1972f",
+          "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+          "generation": 1,
+          "global_optimality_established": false,
+          "objective_sha256": "7c10608547ed6ba261215bec5bc2daeb93a9642ec52fd73a9adaedc498fc0b4e",
+          "pareto_frontier": [
+            "abstain"
+          ],
+          "proves_program_safety": false,
+          "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+          "rejected": [
+            {
+              "id": "cancel",
+              "reasons": "[HardConstraintViolation]"
+            }
+          ],
+          "request_sha256": "9d40c776a65d9d79b0ddc87962886a605159b5038c31026391d67f559bc1c4fa",
+          "schema": "hepta.hia.ndu-native-response.v1",
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "utility_profile_digest": "5566e75d63a80a7a9fe8513b58896f4417f5ede8c1367f326f18e2b08efc94d0"
+        },
+        "bridge": {
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+          "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+          "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+          "source_attestation": "trusted_local_native_build_receipt"
+        },
+        "selection_resolution": {
+          "schema": "hepta.hia.ndu-scalar-selection.v1",
+          "profile": "hia-total-cost-ms-v1",
+          "request_sha256": "9d40c776a65d9d79b0ddc87962886a605159b5038c31026391d67f559bc1c4fa",
+          "native_response_sha256": "efc355fd53a3adb9cd737862d5390551541b88a1cfc2bd53c2bdd85772133fa7",
+          "native_disposition": "InfeasibleExplicitAbstain",
+          "native_recommendation": "abstain",
+          "validated_pareto_frontier": [
+            "abstain"
+          ],
+          "selected_id": "abstain",
+          "selection_source": "native_explicit_abstain",
+          "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+          "caller_tie_policy_applied": false,
+          "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+          "assumptions": [
+            "caller already admitted the unchanged native bridge source and executable",
+            "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+          ],
+          "native_identity_validated_here": false,
+          "authority": "ADVISORY_ONLY",
+          "proves_program_safety": false,
+          "forecast_is_observed_benefit": false,
+          "incremental_ndu_advantage_established": false
+        },
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: candidate measurement belongs to a different program: cancel"
+    },
+    {
+      "method": "test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: runtime_ns must be a bounded exact integer"
+    },
+    {
+      "method": "test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: candidate requires only id, action and program"
+    },
+    {
+      "method": "test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: generation must be a bounded exact integer"
+    },
+    {
+      "method": "test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: generation must be a bounded exact integer"
+    },
+    {
+      "method": "test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: bridge timeout must be finite and at most sixty seconds"
+    },
+    {
+      "method": "test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: timeout_ms must be a bounded exact integer"
+    },
+    {
+      "method": "test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: candidate id is invalid, reserved or duplicated"
+    },
+    {
+      "method": "test_modified_build_receipt_or_binary_does_not_rank (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_modified_build_receipt_or_binary_does_not_rank)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: bridge build receipt has wrong source, scope or build gates"
+    },
+    {
+      "method": "test_modified_build_receipt_or_binary_does_not_rank (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_modified_build_receipt_or_binary_does_not_rank)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: bridge build receipt has wrong source, scope or build gates"
+    },
+    {
+      "method": "test_modified_build_receipt_or_binary_does_not_rank (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_modified_build_receipt_or_binary_does_not_rank)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: bridge build receipt has wrong source, scope or build gates"
+    },
+    {
+      "method": "test_modified_build_receipt_or_binary_does_not_rank (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_modified_build_receipt_or_binary_does_not_rank)",
+      "return_kind": "error",
+      "type": "OptimizationRejected",
+      "message": "E_HIA_NDU: bridge build receipt has wrong source, scope or build gates"
+    },
+    {
+      "method": "test_native_uncertainty_is_explicitly_applied_before_pareto_ranking (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_native_uncertainty_is_explicitly_applied_before_pareto_ranking)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 5000000000,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+        "observations_sha256": "6fc178c8d45820f6037d5f1f650697c98d74111c3bf7d836642d11f38a0bc371",
+        "selected_id": "abstain",
+        "admitted": false,
+        "reason": "native_evaluator_abstained",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [
+                    {
+                      "args": [
+                        "a",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.add.wrap",
+                      "out": [
+                        {
+                          "name": "r",
+                          "type": "u32"
+                        }
+                      ]
+                    },
+                    {
+                      "args": [
+                        "r",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.sub.wrap",
+                      "out": [
+                        {
+                          "name": "cancel",
+                          "type": "u32"
+                        }
+                      ]
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "cancel"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 0,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 778726686,
+          "total_search_ns": 778726686,
+          "search_at_native_rank_ns": 539404934,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "runtime_ns": 70,
+              "uncertainty_ns": 20,
+              "search_ns": 0
+            },
+            "equivalence_proved": false,
+            "proof": null,
+            "preproof_cost_lower_bound_ns": 539362875,
+            "proof_remaining_budget_ns": 4460637125,
+            "proof_remaining_margin_ns": -549362875,
+            "reason": "cost_dominated_before_proof"
+          }
+        ],
+        "selected_fresh_proof": null,
+        "selected_proof_admission": null,
+        "native_rank_admission": {
+          "invoked": true,
+          "remaining_budget_ns": 4456957353,
+          "timeout_s": 4.456957353,
+          "reason": "actual_native_response_received"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "generation": 1,
+          "resource_cap_q32": 21474836480000,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 343597383680,
+              "uncertainty_q32": 85899345920,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "a2af966a44ca8da4f8cd8256d3e86b75ef18ac8afa49712467dc2ad9579317ef"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 2703273607471,
+              "uncertainty_q32": 85899345920,
+              "resource_q32": 2316726550831,
+              "hard_violation": true,
+              "support_sha256": "d96fd3354fa2527ebf8ee02ba32c355d58a5ce7bc4ea07cccdd9fc2a07d50d50"
+            }
+          ]
+        },
+        "request_sha256": "dcc5f671252115f61c330c7d2790acc5cd495e533ba7ca8df4d32d6a645387b3",
+        "native_response": {
+          "advisory_recommendation": "abstain",
+          "authority": "ADVISORY_ONLY",
+          "disposition": "InfeasibleExplicitAbstain",
+          "entry_point": "hepta.hia.ndu_evaluator.v1",
+          "evaluation_digest_v2": "bd02e7e2ec565bb677781848696b640a34131e72c752638dc4b829b22ca7221f",
+          "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+          "generation": 1,
+          "global_optimality_established": false,
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "pareto_frontier": [
+            "abstain"
+          ],
+          "proves_program_safety": false,
+          "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+          "rejected": [
+            {
+              "id": "cancel",
+              "reasons": "[HardConstraintViolation]"
+            }
+          ],
+          "request_sha256": "dcc5f671252115f61c330c7d2790acc5cd495e533ba7ca8df4d32d6a645387b3",
+          "schema": "hepta.hia.ndu-native-response.v1",
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "utility_profile_digest": "5566e75d63a80a7a9fe8513b58896f4417f5ede8c1367f326f18e2b08efc94d0"
+        },
+        "bridge": {
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+          "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+          "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+          "source_attestation": "trusted_local_native_build_receipt"
+        },
+        "selection_resolution": {
+          "schema": "hepta.hia.ndu-scalar-selection.v1",
+          "profile": "hia-total-cost-ms-v1",
+          "request_sha256": "dcc5f671252115f61c330c7d2790acc5cd495e533ba7ca8df4d32d6a645387b3",
+          "native_response_sha256": "073622f6160179eddfa34f9909cabff47e3d3feef64d5937e49c730f143aee10",
+          "native_disposition": "InfeasibleExplicitAbstain",
+          "native_recommendation": "abstain",
+          "validated_pareto_frontier": [
+            "abstain"
+          ],
+          "selected_id": "abstain",
+          "selection_source": "native_explicit_abstain",
+          "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+          "caller_tie_policy_applied": false,
+          "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+          "assumptions": [
+            "caller already admitted the unchanged native bridge source and executable",
+            "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+          ],
+          "native_identity_validated_here": false,
+          "authority": "ADVISORY_ONLY",
+          "proves_program_safety": false,
+          "forecast_is_observed_benefit": false,
+          "incremental_ndu_advantage_established": false
+        },
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_real_ndu_selects_only_a_freshly_proved_candidate (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_real_ndu_selects_only_a_freshly_proved_candidate)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 5000000000,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+        "observations_sha256": "40c31eff9d151f66aed4bc1a8e4eca820d67fe8462d4fe04d8750b8e9039ee91",
+        "selected_id": "cancel",
+        "admitted": true,
+        "reason": "fresh_proof_and_robust_cost_gate_passed",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "a"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 96426602158,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 2573397842,
+          "total_search_ns": 2573397842,
+          "search_at_native_rank_ns": 1349461140,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "runtime_ns": 1000,
+              "uncertainty_ns": 0,
+              "search_ns": 0
+            },
+            "equivalence_proved": true,
+            "proof": {
+              "schema": "hepta.hia.translation-validation.v1",
+              "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+              "status": "proved",
+              "function": "calculate",
+              "scope": "selected_public_scalar_function",
+              "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+              "after_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+              "after_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "validator_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b",
+              "structural_verification": {
+                "before": true,
+                "after": true
+              },
+              "reason": "all_input_behavior_difference_unsatisfiable",
+              "counterexample": null,
+              "solver": {
+                "name": "hia-native-cnf-translation",
+                "version": "1",
+                "result": "unsat",
+                "timeout_ms": 2000,
+                "identity": {
+                  "native_closure_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+                },
+                "discharge": {
+                  "method": "native_hia_cnf",
+                  "formula_sha256": "e1aff3fff2074012fc6cf5472ed71dc4ec39e081561f019a9388456b6c84f4af",
+                  "variables": 65,
+                  "clauses": 2,
+                  "assignments_checked": 0,
+                  "nodes": 7
+                }
+              },
+              "claims": {
+                "all_input_behavior_equivalence_proved": true,
+                "first_trap_code_preserved": true,
+                "canonical_core_reverified": true,
+                "resource_bounds_proved": false,
+                "encoder_refinement_machine_proved": false,
+                "whole_language_soundness_proved": false,
+                "backend_refinement_proved": false,
+                "global_optimality_proved": false,
+                "serialized_receipt_authorizes_execution": false,
+                "all_programs_of_this_profile_proved": false,
+                "native_backend_refinement_proved": false
+              },
+              "limits": [
+                "Only the selected public scalar function is covered.",
+                "Acyclic v1-v7 scalar Core; calls, resources and floating point are outside this primitive profile.",
+                "All stages use one proof deadline, including admission, encoding, search, replay and identity closure; this is not a hard process timeout.",
+                "Exact native code bytes and all externally loaded objects need separate custody and lifetime validation.",
+                "A consumer must recompute fresh proof results at the point of use."
+              ],
+              "wall_ns": 841956718,
+              "proof_scope_schema": "hepta.hia.scalar-proof-scope.v1",
+              "proved_meaning": "The identified native HIA checker established only the stated property for the exact Core subject within this scalar profile. Implementation soundness, whole-language safety and execution authority are not established.",
+              "subject": {
+                "kind": "canonical_core_comparison",
+                "function": "calculate",
+                "selection": "selected_public_scalar_function",
+                "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+                "after_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+                "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+                "after_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0"
+              },
+              "property": {
+                "id": "all_input_return_and_first_trap_equivalence",
+                "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+              },
+              "assumptions": [
+                {
+                  "id": "typed_inputs",
+                  "statement": "Every quantified argument has the selected freshly verified Core signature."
+                },
+                {
+                  "id": "core_semantics",
+                  "statement": "The primitive v1-v7 scalar semantics, first-trap ordering and declared profile define observations."
+                },
+                {
+                  "id": "trusted_implementation",
+                  "statement": "The native HIA verifier, graph projection, solver, and independent Core interpreter are trusted implementations, not machine-proved."
+                },
+                {
+                  "id": "loaded_source",
+                  "statement": "The actual embedded native closure is read-only, hashed before and after checking, and executes without hostile process or hardware modification."
+                },
+                {
+                  "id": "point_of_use",
+                  "statement": "Consumers rebind exact inputs and recompute; a serialized receipt grants no execution authority."
+                }
+              ],
+              "unproved_obligations": [
+                {
+                  "id": "checker_soundness",
+                  "statement": "Machine-checked implementation correctness remains open."
+                },
+                {
+                  "id": "whole_language",
+                  "statement": "Programs and constructs outside this selected scalar profile are not covered."
+                },
+                {
+                  "id": "other_exports",
+                  "statement": "Other public exports require independent checks."
+                },
+                {
+                  "id": "core_to_machine",
+                  "statement": "Compilation and actual machine-code refinement require separate validation."
+                },
+                {
+                  "id": "abi_ffi_loading",
+                  "statement": "ABI, FFI, image custody, mapping and lifetime require separate validation."
+                },
+                {
+                  "id": "resources",
+                  "statement": "Physical resource, instruction, wall-time, energy and performance bounds are not proved."
+                },
+                {
+                  "id": "concurrency",
+                  "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside the proof."
+                },
+                {
+                  "id": "normal_return_totality",
+                  "statement": "Equivalence may preserve a trap and does not imply normal return for every input."
+                }
+              ],
+              "checker": {
+                "name": "hepta.hia_translation_validation.validate_translation",
+                "kind": "trusted_executable_hia_scalar_checker",
+                "method": "native_hia_cnf",
+                "source_identity": {
+                  "native-closure.image.bin": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+                },
+                "source_identity_sha256": "52d973dbf21dee39e2eeb6cbbdc3d0ac15e0314897edfcf1a2976bd39c165d10",
+                "runtime": {
+                  "implementation": "HIA-native",
+                  "version": "1"
+                },
+                "machine_checked_implementation": false
+              },
+              "execution_authority": false,
+              "after_request_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "before_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+            },
+            "preproof_cost_lower_bound_ns": 495878656,
+            "proof_remaining_budget_ns": 4504121344,
+            "proof_remaining_margin_ns": 98504121344,
+            "proof_timeout_ms": 2000,
+            "proof_wall_ns": 853531546,
+            "reason": "proved"
+          }
+        ],
+        "selected_fresh_proof": {
+          "schema": "hepta.hia.translation-validation.v1",
+          "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+          "status": "proved",
+          "function": "calculate",
+          "scope": "selected_public_scalar_function",
+          "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+          "after_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+          "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+          "after_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+          "validator_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b",
+          "structural_verification": {
+            "before": true,
+            "after": true
+          },
+          "reason": "all_input_behavior_difference_unsatisfiable",
+          "counterexample": null,
+          "solver": {
+            "name": "hia-native-cnf-translation",
+            "version": "1",
+            "result": "unsat",
+            "timeout_ms": 2000,
+            "identity": {
+              "native_closure_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+            },
+            "discharge": {
+              "method": "native_hia_cnf",
+              "formula_sha256": "ae214b2664b8b53b44907071955df881a0cfe3d2b8531106b17e75eb98b5d966",
+              "variables": 65,
+              "clauses": 2,
+              "assignments_checked": 0,
+              "nodes": 7
+            }
+          },
+          "claims": {
+            "all_input_behavior_equivalence_proved": true,
+            "first_trap_code_preserved": true,
+            "canonical_core_reverified": true,
+            "resource_bounds_proved": false,
+            "encoder_refinement_machine_proved": false,
+            "whole_language_soundness_proved": false,
+            "backend_refinement_proved": false,
+            "global_optimality_proved": false,
+            "serialized_receipt_authorizes_execution": false,
+            "all_programs_of_this_profile_proved": false,
+            "native_backend_refinement_proved": false
+          },
+          "limits": [
+            "Only the selected public scalar function is covered.",
+            "Acyclic v1-v7 scalar Core; calls, resources and floating point are outside this primitive profile.",
+            "All stages use one proof deadline, including admission, encoding, search, replay and identity closure; this is not a hard process timeout.",
+            "Exact native code bytes and all externally loaded objects need separate custody and lifetime validation.",
+            "A consumer must recompute fresh proof results at the point of use."
+          ],
+          "wall_ns": 899402621,
+          "proof_scope_schema": "hepta.hia.scalar-proof-scope.v1",
+          "proved_meaning": "The identified native HIA checker established only the stated property for the exact Core subject within this scalar profile. Implementation soundness, whole-language safety and execution authority are not established.",
+          "subject": {
+            "kind": "canonical_core_comparison",
+            "function": "calculate",
+            "selection": "selected_public_scalar_function",
+            "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+            "after_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+            "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+            "after_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0"
+          },
+          "property": {
+            "id": "all_input_return_and_first_trap_equivalence",
+            "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+          },
+          "assumptions": [
+            {
+              "id": "typed_inputs",
+              "statement": "Every quantified argument has the selected freshly verified Core signature."
+            },
+            {
+              "id": "core_semantics",
+              "statement": "The primitive v1-v7 scalar semantics, first-trap ordering and declared profile define observations."
+            },
+            {
+              "id": "trusted_implementation",
+              "statement": "The native HIA verifier, graph projection, solver, and independent Core interpreter are trusted implementations, not machine-proved."
+            },
+            {
+              "id": "loaded_source",
+              "statement": "The actual embedded native closure is read-only, hashed before and after checking, and executes without hostile process or hardware modification."
+            },
+            {
+              "id": "point_of_use",
+              "statement": "Consumers rebind exact inputs and recompute; a serialized receipt grants no execution authority."
+            }
+          ],
+          "unproved_obligations": [
+            {
+              "id": "checker_soundness",
+              "statement": "Machine-checked implementation correctness remains open."
+            },
+            {
+              "id": "whole_language",
+              "statement": "Programs and constructs outside this selected scalar profile are not covered."
+            },
+            {
+              "id": "other_exports",
+              "statement": "Other public exports require independent checks."
+            },
+            {
+              "id": "core_to_machine",
+              "statement": "Compilation and actual machine-code refinement require separate validation."
+            },
+            {
+              "id": "abi_ffi_loading",
+              "statement": "ABI, FFI, image custody, mapping and lifetime require separate validation."
+            },
+            {
+              "id": "resources",
+              "statement": "Physical resource, instruction, wall-time, energy and performance bounds are not proved."
+            },
+            {
+              "id": "concurrency",
+              "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside the proof."
+            },
+            {
+              "id": "normal_return_totality",
+              "statement": "Equivalence may preserve a trap and does not imply normal return for every input."
+            }
+          ],
+          "checker": {
+            "name": "hepta.hia_translation_validation.validate_translation",
+            "kind": "trusted_executable_hia_scalar_checker",
+            "method": "native_hia_cnf",
+            "source_identity": {
+              "native-closure.image.bin": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+            },
+            "source_identity_sha256": "52d973dbf21dee39e2eeb6cbbdc3d0ac15e0314897edfcf1a2976bd39c165d10",
+            "runtime": {
+              "implementation": "HIA-native",
+              "version": "1"
+            },
+            "machine_checked_implementation": false
+          },
+          "execution_authority": false,
+          "after_request_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+          "before_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+        },
+        "selected_proof_admission": {
+          "candidate_id": "cancel",
+          "spent_search_ns": 1661625610,
+          "remaining_budget_ns": 3338374390,
+          "remaining_margin_ns": 97338374390,
+          "solver_started": true,
+          "timeout_ms": 2000,
+          "wall_ns": 911722513
+        },
+        "native_rank_admission": {
+          "invoked": true,
+          "remaining_budget_ns": 3628923772,
+          "timeout_s": 3.628923772,
+          "reason": "actual_native_response_received"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "generation": 1,
+          "resource_cap_q32": 21474836480000,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "ae7ec58c27a9ae6dc418f335e4cb1f85e5c74a478da01317dbf0f2ccd7a94c80"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 10090858759523,
+              "uncertainty_q32": 0,
+              "resource_q32": 5795891463523,
+              "hard_violation": false,
+              "support_sha256": "3f55fc1a5beaa8e8d7dbf43d630e441363397c665ed0dea86ef096feb7fc317e"
+            }
+          ]
+        },
+        "request_sha256": "327843ccb65b25ca4d889cd722498ed0a85422c67860bf879b805ee5abc8a06c",
+        "native_response": {
+          "advisory_recommendation": "cancel",
+          "authority": "ADVISORY_ONLY",
+          "disposition": "UniqueParetoRecommendation",
+          "entry_point": "hepta.hia.ndu_evaluator.v1",
+          "evaluation_digest_v2": "7d753feb9b7353a564801e144ff6adfebefd1b0f5e44e29e2d7e9fcf405e271b",
+          "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+          "generation": 1,
+          "global_optimality_established": false,
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "pareto_frontier": [
+            "cancel"
+          ],
+          "proves_program_safety": false,
+          "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+          "rejected": [],
+          "request_sha256": "327843ccb65b25ca4d889cd722498ed0a85422c67860bf879b805ee5abc8a06c",
+          "schema": "hepta.hia.ndu-native-response.v1",
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "utility_profile_digest": "5566e75d63a80a7a9fe8513b58896f4417f5ede8c1367f326f18e2b08efc94d0"
+        },
+        "bridge": {
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+          "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+          "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+          "source_attestation": "trusted_local_native_build_receipt"
+        },
+        "selection_resolution": {
+          "schema": "hepta.hia.ndu-scalar-selection.v1",
+          "profile": "hia-total-cost-ms-v1",
+          "request_sha256": "327843ccb65b25ca4d889cd722498ed0a85422c67860bf879b805ee5abc8a06c",
+          "native_response_sha256": "d5220c0e6d70cb4c44a11ef83643d4de96024f01f3f3413015183df5ca1b94bf",
+          "native_disposition": "UniqueParetoRecommendation",
+          "native_recommendation": "cancel",
+          "validated_pareto_frontier": [
+            "cancel"
+          ],
+          "selected_id": "cancel",
+          "selection_source": "native_unique_pareto",
+          "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+          "caller_tie_policy_applied": false,
+          "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+          "assumptions": [
+            "caller already admitted the unchanged native bridge source and executable",
+            "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+          ],
+          "native_identity_validated_here": false,
+          "authority": "ADVISORY_ONLY",
+          "proves_program_safety": false,
+          "forecast_is_observed_benefit": false,
+          "incremental_ndu_advantage_established": false
+        },
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_search_of_losing_candidates_and_baseline_measurement_is_charged (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_search_of_losing_candidates_and_baseline_measurement_is_charged)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 200000000000,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "e846710ff6aef41dd87db9c153c659624340c9b06599309c5b921ae6f2cbcadb",
+        "observations_sha256": "c0da01e40fd2bb3188a76d049ff7fb313561272b84a12f5ffa0e50a427f9bc33",
+        "selected_id": "abstain",
+        "admitted": false,
+        "reason": "native_evaluator_abstained",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [
+                    {
+                      "args": [
+                        "a",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.add.wrap",
+                      "out": [
+                        {
+                          "name": "r",
+                          "type": "u32"
+                        }
+                      ]
+                    },
+                    {
+                      "args": [
+                        "r",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.sub.wrap",
+                      "out": [
+                        {
+                          "name": "cancel",
+                          "type": "u32"
+                        }
+                      ]
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "cancel"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 0,
+        "costs": {
+          "supplied_search_ns": 120000000000,
+          "actual_adapter_ns": 939188079,
+          "total_search_ns": 120939188079,
+          "search_at_native_rank_ns": 120628898753,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "runtime_ns": 1000,
+              "uncertainty_ns": 0,
+              "search_ns": 60000000000
+            },
+            "equivalence_proved": false,
+            "proof": null,
+            "preproof_cost_lower_bound_ns": 120628853325,
+            "proof_remaining_budget_ns": 79371146675,
+            "proof_remaining_margin_ns": -21628853325,
+            "reason": "cost_dominated_before_proof"
+          }
+        ],
+        "selected_fresh_proof": null,
+        "selected_proof_admission": null,
+        "native_rank_admission": {
+          "invoked": true,
+          "remaining_budget_ns": 79367045738,
+          "timeout_s": 10.0,
+          "reason": "actual_native_response_received"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "e846710ff6aef41dd87db9c153c659624340c9b06599309c5b921ae6f2cbcadb",
+          "generation": 1,
+          "resource_cap_q32": 858993459200000,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "2737add81b9bea8502784f0b4aecf0ae580794199e92b9d7307c39032f5d8ef0"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 522392142392630,
+              "uncertainty_q32": 0,
+              "resource_q32": 518097175096630,
+              "hard_violation": true,
+              "support_sha256": "f6b88727be3092577c05a86604c08b9030f91d63a81f024dc6ec4297d744eb06"
+            }
+          ]
+        },
+        "request_sha256": "0ce659603326ed17dc35ce8298c3e31299e6f0f147580899ad8819cf1c69f1e8",
+        "native_response": {
+          "advisory_recommendation": "abstain",
+          "authority": "ADVISORY_ONLY",
+          "disposition": "InfeasibleExplicitAbstain",
+          "entry_point": "hepta.hia.ndu_evaluator.v1",
+          "evaluation_digest_v2": "db16d492c619c4fb9fd8bedefb46498cda2d0f0049e0f39ee5a06ebbc4605d5c",
+          "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+          "generation": 1,
+          "global_optimality_established": false,
+          "objective_sha256": "e846710ff6aef41dd87db9c153c659624340c9b06599309c5b921ae6f2cbcadb",
+          "pareto_frontier": [
+            "abstain"
+          ],
+          "proves_program_safety": false,
+          "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+          "rejected": [
+            {
+              "id": "cancel",
+              "reasons": "[HardConstraintViolation]"
+            }
+          ],
+          "request_sha256": "0ce659603326ed17dc35ce8298c3e31299e6f0f147580899ad8819cf1c69f1e8",
+          "schema": "hepta.hia.ndu-native-response.v1",
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "utility_profile_digest": "ee7b59c2a67b40cf1ca5ae8cc1f92fbc6fef718badf38fe1d8d9ec875136a2c2"
+        },
+        "bridge": {
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+          "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+          "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+          "source_attestation": "trusted_local_native_build_receipt"
+        },
+        "selection_resolution": {
+          "schema": "hepta.hia.ndu-scalar-selection.v1",
+          "profile": "hia-total-cost-ms-v1",
+          "request_sha256": "0ce659603326ed17dc35ce8298c3e31299e6f0f147580899ad8819cf1c69f1e8",
+          "native_response_sha256": "64d0cf06a1dee989cb5147c8faed214e7448de780dc0158adff52559c6c34375",
+          "native_disposition": "InfeasibleExplicitAbstain",
+          "native_recommendation": "abstain",
+          "validated_pareto_frontier": [
+            "abstain"
+          ],
+          "selected_id": "abstain",
+          "selection_source": "native_explicit_abstain",
+          "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+          "caller_tie_policy_applied": false,
+          "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+          "assumptions": [
+            "caller already admitted the unchanged native bridge source and executable",
+            "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+          ],
+          "native_identity_validated_here": false,
+          "authority": "ADVISORY_ONLY",
+          "proves_program_safety": false,
+          "forecast_is_observed_benefit": false,
+          "incremental_ndu_advantage_established": false
+        },
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_structurally_safe_wrong_cheapest_candidate_is_rejected (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_structurally_safe_wrong_cheapest_candidate_is_rejected)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 5000000000,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+        "observations_sha256": "011775017db2a7bc2ffb6a97dc41e2b3cfdab3490381ee0284f61079a6e63320",
+        "selected_id": "cancel",
+        "admitted": true,
+        "reason": "fresh_proof_and_robust_cost_gate_passed",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "a"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 95556762647,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 3443237353,
+          "total_search_ns": 3443237353,
+          "search_at_native_rank_ns": 2256913302,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "runtime_ns": 1000,
+              "uncertainty_ns": 0,
+              "search_ns": 0
+            },
+            "equivalence_proved": true,
+            "proof": {
+              "schema": "hepta.hia.translation-validation.v1",
+              "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+              "status": "proved",
+              "function": "calculate",
+              "scope": "selected_public_scalar_function",
+              "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+              "after_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+              "after_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "validator_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b",
+              "structural_verification": {
+                "before": true,
+                "after": true
+              },
+              "reason": "all_input_behavior_difference_unsatisfiable",
+              "counterexample": null,
+              "solver": {
+                "name": "hia-native-cnf-translation",
+                "version": "1",
+                "result": "unsat",
+                "timeout_ms": 2000,
+                "identity": {
+                  "native_closure_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+                },
+                "discharge": {
+                  "method": "native_hia_cnf",
+                  "formula_sha256": "b124dfcc34951a73f91eb4941631f5ff46e949b35607b41b489a326b2fa8c78d",
+                  "variables": 65,
+                  "clauses": 2,
+                  "assignments_checked": 0,
+                  "nodes": 7
+                }
+              },
+              "claims": {
+                "all_input_behavior_equivalence_proved": true,
+                "first_trap_code_preserved": true,
+                "canonical_core_reverified": true,
+                "resource_bounds_proved": false,
+                "encoder_refinement_machine_proved": false,
+                "whole_language_soundness_proved": false,
+                "backend_refinement_proved": false,
+                "global_optimality_proved": false,
+                "serialized_receipt_authorizes_execution": false,
+                "all_programs_of_this_profile_proved": false,
+                "native_backend_refinement_proved": false
+              },
+              "limits": [
+                "Only the selected public scalar function is covered.",
+                "Acyclic v1-v7 scalar Core; calls, resources and floating point are outside this primitive profile.",
+                "All stages use one proof deadline, including admission, encoding, search, replay and identity closure; this is not a hard process timeout.",
+                "Exact native code bytes and all externally loaded objects need separate custody and lifetime validation.",
+                "A consumer must recompute fresh proof results at the point of use."
+              ],
+              "wall_ns": 816553531,
+              "proof_scope_schema": "hepta.hia.scalar-proof-scope.v1",
+              "proved_meaning": "The identified native HIA checker established only the stated property for the exact Core subject within this scalar profile. Implementation soundness, whole-language safety and execution authority are not established.",
+              "subject": {
+                "kind": "canonical_core_comparison",
+                "function": "calculate",
+                "selection": "selected_public_scalar_function",
+                "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+                "after_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+                "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+                "after_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0"
+              },
+              "property": {
+                "id": "all_input_return_and_first_trap_equivalence",
+                "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+              },
+              "assumptions": [
+                {
+                  "id": "typed_inputs",
+                  "statement": "Every quantified argument has the selected freshly verified Core signature."
+                },
+                {
+                  "id": "core_semantics",
+                  "statement": "The primitive v1-v7 scalar semantics, first-trap ordering and declared profile define observations."
+                },
+                {
+                  "id": "trusted_implementation",
+                  "statement": "The native HIA verifier, graph projection, solver, and independent Core interpreter are trusted implementations, not machine-proved."
+                },
+                {
+                  "id": "loaded_source",
+                  "statement": "The actual embedded native closure is read-only, hashed before and after checking, and executes without hostile process or hardware modification."
+                },
+                {
+                  "id": "point_of_use",
+                  "statement": "Consumers rebind exact inputs and recompute; a serialized receipt grants no execution authority."
+                }
+              ],
+              "unproved_obligations": [
+                {
+                  "id": "checker_soundness",
+                  "statement": "Machine-checked implementation correctness remains open."
+                },
+                {
+                  "id": "whole_language",
+                  "statement": "Programs and constructs outside this selected scalar profile are not covered."
+                },
+                {
+                  "id": "other_exports",
+                  "statement": "Other public exports require independent checks."
+                },
+                {
+                  "id": "core_to_machine",
+                  "statement": "Compilation and actual machine-code refinement require separate validation."
+                },
+                {
+                  "id": "abi_ffi_loading",
+                  "statement": "ABI, FFI, image custody, mapping and lifetime require separate validation."
+                },
+                {
+                  "id": "resources",
+                  "statement": "Physical resource, instruction, wall-time, energy and performance bounds are not proved."
+                },
+                {
+                  "id": "concurrency",
+                  "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside the proof."
+                },
+                {
+                  "id": "normal_return_totality",
+                  "statement": "Equivalence may preserve a trap and does not imply normal return for every input."
+                }
+              ],
+              "checker": {
+                "name": "hepta.hia_translation_validation.validate_translation",
+                "kind": "trusted_executable_hia_scalar_checker",
+                "method": "native_hia_cnf",
+                "source_identity": {
+                  "native-closure.image.bin": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+                },
+                "source_identity_sha256": "52d973dbf21dee39e2eeb6cbbdc3d0ac15e0314897edfcf1a2976bd39c165d10",
+                "runtime": {
+                  "implementation": "HIA-native",
+                  "version": "1"
+                },
+                "machine_checked_implementation": false
+              },
+              "execution_authority": false,
+              "after_request_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+              "before_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+            },
+            "preproof_cost_lower_bound_ns": 673729895,
+            "proof_remaining_budget_ns": 4326270105,
+            "proof_remaining_margin_ns": 98326270105,
+            "proof_timeout_ms": 2000,
+            "proof_wall_ns": 830087111,
+            "reason": "proved"
+          },
+          {
+            "id": "wrong",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "fd4bed1607a5857bc06ac786cc95d756d8d28ba5679606430325c05999ae5913",
+              "runtime_ns": 0,
+              "uncertainty_ns": 0,
+              "search_ns": 0
+            },
+            "equivalence_proved": false,
+            "proof": {
+              "schema": "hepta.hia.translation-validation.v1",
+              "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+              "status": "disproved",
+              "function": "calculate",
+              "scope": "selected_public_scalar_function",
+              "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+              "after_sha256": "fd4bed1607a5857bc06ac786cc95d756d8d28ba5679606430325c05999ae5913",
+              "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+              "after_input_sha256": "fd4bed1607a5857bc06ac786cc95d756d8d28ba5679606430325c05999ae5913",
+              "validator_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b",
+              "structural_verification": {
+                "before": true,
+                "after": true
+              },
+              "reason": "behavioral_counterexample_replayed",
+              "counterexample": {
+                "arguments": [
+                  4294967295,
+                  4294967295
+                ],
+                "parameter_types": [
+                  "u32",
+                  "u32"
+                ],
+                "before": {
+                  "status": "returned",
+                  "values": [
+                    4294967295
+                  ]
+                },
+                "after": {
+                  "status": "returned",
+                  "values": [
+                    0
+                  ]
+                }
+              },
+              "solver": {
+                "name": "hia-native-cnf-translation",
+                "version": "1",
+                "result": "sat",
+                "timeout_ms": 2000,
+                "identity": {
+                  "native_closure_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+                },
+                "discharge": {
+                  "method": "native_hia_cnf",
+                  "formula_sha256": "b013d4c1a716eebdfe98107edbb2554f9cfb73541cd5fa67fb3bbdc719128ac5",
+                  "variables": 283,
+                  "clauses": 751,
+                  "assignments_checked": 0,
+                  "nodes": 8
+                }
+              },
+              "claims": {
+                "all_input_behavior_equivalence_proved": false,
+                "first_trap_code_preserved": false,
+                "canonical_core_reverified": true,
+                "resource_bounds_proved": false,
+                "encoder_refinement_machine_proved": false,
+                "whole_language_soundness_proved": false,
+                "backend_refinement_proved": false,
+                "global_optimality_proved": false,
+                "serialized_receipt_authorizes_execution": false,
+                "all_programs_of_this_profile_proved": false,
+                "native_backend_refinement_proved": false
+              },
+              "limits": [
+                "Only the selected public scalar function is covered.",
+                "Acyclic v1-v7 scalar Core; calls, resources and floating point are outside this primitive profile.",
+                "All stages use one proof deadline, including admission, encoding, search, replay and identity closure; this is not a hard process timeout.",
+                "Exact native code bytes and all externally loaded objects need separate custody and lifetime validation.",
+                "A consumer must recompute fresh proof results at the point of use."
+              ],
+              "wall_ns": 740512624,
+              "proof_scope_schema": "hepta.hia.scalar-proof-scope.v1",
+              "proved_meaning": "The identified native HIA checker established only the stated property for the exact Core subject within this scalar profile. Implementation soundness, whole-language safety and execution authority are not established.",
+              "subject": {
+                "kind": "canonical_core_comparison",
+                "function": "calculate",
+                "selection": "selected_public_scalar_function",
+                "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+                "after_sha256": "fd4bed1607a5857bc06ac786cc95d756d8d28ba5679606430325c05999ae5913",
+                "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+                "after_input_sha256": "fd4bed1607a5857bc06ac786cc95d756d8d28ba5679606430325c05999ae5913"
+              },
+              "property": {
+                "id": "all_input_return_and_first_trap_equivalence",
+                "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+              },
+              "assumptions": [
+                {
+                  "id": "typed_inputs",
+                  "statement": "Every quantified argument has the selected freshly verified Core signature."
+                },
+                {
+                  "id": "core_semantics",
+                  "statement": "The primitive v1-v7 scalar semantics, first-trap ordering and declared profile define observations."
+                },
+                {
+                  "id": "trusted_implementation",
+                  "statement": "The native HIA verifier, graph projection, solver, and independent Core interpreter are trusted implementations, not machine-proved."
+                },
+                {
+                  "id": "loaded_source",
+                  "statement": "The actual embedded native closure is read-only, hashed before and after checking, and executes without hostile process or hardware modification."
+                },
+                {
+                  "id": "point_of_use",
+                  "statement": "Consumers rebind exact inputs and recompute; a serialized receipt grants no execution authority."
+                }
+              ],
+              "unproved_obligations": [
+                {
+                  "id": "checker_soundness",
+                  "statement": "Machine-checked implementation correctness remains open."
+                },
+                {
+                  "id": "whole_language",
+                  "statement": "Programs and constructs outside this selected scalar profile are not covered."
+                },
+                {
+                  "id": "other_exports",
+                  "statement": "Other public exports require independent checks."
+                },
+                {
+                  "id": "core_to_machine",
+                  "statement": "Compilation and actual machine-code refinement require separate validation."
+                },
+                {
+                  "id": "abi_ffi_loading",
+                  "statement": "ABI, FFI, image custody, mapping and lifetime require separate validation."
+                },
+                {
+                  "id": "resources",
+                  "statement": "Physical resource, instruction, wall-time, energy and performance bounds are not proved."
+                },
+                {
+                  "id": "concurrency",
+                  "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside the proof."
+                },
+                {
+                  "id": "normal_return_totality",
+                  "statement": "Equivalence may preserve a trap and does not imply normal return for every input."
+                },
+                {
+                  "id": "requested_property",
+                  "statement": "The requested property is not established; inspect the status, reason and any replayed counterexample."
+                }
+              ],
+              "checker": {
+                "name": "hepta.hia_translation_validation.validate_translation",
+                "kind": "trusted_executable_hia_scalar_checker",
+                "method": "native_hia_cnf",
+                "source_identity": {
+                  "native-closure.image.bin": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+                },
+                "source_identity_sha256": "52d973dbf21dee39e2eeb6cbbdc3d0ac15e0314897edfcf1a2976bd39c165d10",
+                "runtime": {
+                  "implementation": "HIA-native",
+                  "version": "1"
+                },
+                "machine_checked_implementation": false
+              },
+              "execution_authority": false,
+              "after_request_input_sha256": "fd4bed1607a5857bc06ac786cc95d756d8d28ba5679606430325c05999ae5913",
+              "before_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+            },
+            "preproof_cost_lower_bound_ns": 1504617808,
+            "proof_remaining_budget_ns": 3495382192,
+            "proof_remaining_margin_ns": 98495382192,
+            "proof_timeout_ms": 2000,
+            "proof_wall_ns": 752235737,
+            "reason": "behavior_not_proved"
+          }
+        ],
+        "selected_fresh_proof": {
+          "schema": "hepta.hia.translation-validation.v1",
+          "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+          "status": "proved",
+          "function": "calculate",
+          "scope": "selected_public_scalar_function",
+          "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+          "after_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+          "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+          "after_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+          "validator_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b",
+          "structural_verification": {
+            "before": true,
+            "after": true
+          },
+          "reason": "all_input_behavior_difference_unsatisfiable",
+          "counterexample": null,
+          "solver": {
+            "name": "hia-native-cnf-translation",
+            "version": "1",
+            "result": "unsat",
+            "timeout_ms": 2000,
+            "identity": {
+              "native_closure_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+            },
+            "discharge": {
+              "method": "native_hia_cnf",
+              "formula_sha256": "31ce8a02c1e5294a9677f669c332c85397187ee82c318d4bb79a30a6263d7f7d",
+              "variables": 65,
+              "clauses": 2,
+              "assignments_checked": 0,
+              "nodes": 7
+            }
+          },
+          "claims": {
+            "all_input_behavior_equivalence_proved": true,
+            "first_trap_code_preserved": true,
+            "canonical_core_reverified": true,
+            "resource_bounds_proved": false,
+            "encoder_refinement_machine_proved": false,
+            "whole_language_soundness_proved": false,
+            "backend_refinement_proved": false,
+            "global_optimality_proved": false,
+            "serialized_receipt_authorizes_execution": false,
+            "all_programs_of_this_profile_proved": false,
+            "native_backend_refinement_proved": false
+          },
+          "limits": [
+            "Only the selected public scalar function is covered.",
+            "Acyclic v1-v7 scalar Core; calls, resources and floating point are outside this primitive profile.",
+            "All stages use one proof deadline, including admission, encoding, search, replay and identity closure; this is not a hard process timeout.",
+            "Exact native code bytes and all externally loaded objects need separate custody and lifetime validation.",
+            "A consumer must recompute fresh proof results at the point of use."
+          ],
+          "wall_ns": 854762103,
+          "proof_scope_schema": "hepta.hia.scalar-proof-scope.v1",
+          "proved_meaning": "The identified native HIA checker established only the stated property for the exact Core subject within this scalar profile. Implementation soundness, whole-language safety and execution authority are not established.",
+          "subject": {
+            "kind": "canonical_core_comparison",
+            "function": "calculate",
+            "selection": "selected_public_scalar_function",
+            "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+            "after_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+            "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+            "after_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0"
+          },
+          "property": {
+            "id": "all_input_return_and_first_trap_equivalence",
+            "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+          },
+          "assumptions": [
+            {
+              "id": "typed_inputs",
+              "statement": "Every quantified argument has the selected freshly verified Core signature."
+            },
+            {
+              "id": "core_semantics",
+              "statement": "The primitive v1-v7 scalar semantics, first-trap ordering and declared profile define observations."
+            },
+            {
+              "id": "trusted_implementation",
+              "statement": "The native HIA verifier, graph projection, solver, and independent Core interpreter are trusted implementations, not machine-proved."
+            },
+            {
+              "id": "loaded_source",
+              "statement": "The actual embedded native closure is read-only, hashed before and after checking, and executes without hostile process or hardware modification."
+            },
+            {
+              "id": "point_of_use",
+              "statement": "Consumers rebind exact inputs and recompute; a serialized receipt grants no execution authority."
+            }
+          ],
+          "unproved_obligations": [
+            {
+              "id": "checker_soundness",
+              "statement": "Machine-checked implementation correctness remains open."
+            },
+            {
+              "id": "whole_language",
+              "statement": "Programs and constructs outside this selected scalar profile are not covered."
+            },
+            {
+              "id": "other_exports",
+              "statement": "Other public exports require independent checks."
+            },
+            {
+              "id": "core_to_machine",
+              "statement": "Compilation and actual machine-code refinement require separate validation."
+            },
+            {
+              "id": "abi_ffi_loading",
+              "statement": "ABI, FFI, image custody, mapping and lifetime require separate validation."
+            },
+            {
+              "id": "resources",
+              "statement": "Physical resource, instruction, wall-time, energy and performance bounds are not proved."
+            },
+            {
+              "id": "concurrency",
+              "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside the proof."
+            },
+            {
+              "id": "normal_return_totality",
+              "statement": "Equivalence may preserve a trap and does not imply normal return for every input."
+            }
+          ],
+          "checker": {
+            "name": "hepta.hia_translation_validation.validate_translation",
+            "kind": "trusted_executable_hia_scalar_checker",
+            "method": "native_hia_cnf",
+            "source_identity": {
+              "native-closure.image.bin": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+            },
+            "source_identity_sha256": "52d973dbf21dee39e2eeb6cbbdc3d0ac15e0314897edfcf1a2976bd39c165d10",
+            "runtime": {
+              "implementation": "HIA-native",
+              "version": "1"
+            },
+            "machine_checked_implementation": false
+          },
+          "execution_authority": false,
+          "after_request_input_sha256": "6cffc336fc5c57b131f9ad7b73114e4e605da3f647e7ee4c077aa78a3126ecd0",
+          "before_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+        },
+        "selected_proof_admission": {
+          "candidate_id": "cancel",
+          "spent_search_ns": 2575347395,
+          "remaining_budget_ns": 2424652605,
+          "remaining_margin_ns": 96424652605,
+          "solver_started": true,
+          "timeout_ms": 2000,
+          "wall_ns": 867841309
+        },
+        "native_rank_admission": {
+          "invoked": true,
+          "remaining_budget_ns": 2702049094,
+          "timeout_s": 2.702049094,
+          "reason": "actual_native_response_received"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "generation": 1,
+          "resource_cap_q32": 21474836480000,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "ae7ec58c27a9ae6dc418f335e4cb1f85e5c74a478da01317dbf0f2ccd7a94c80"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 13988336117997,
+              "uncertainty_q32": 0,
+              "resource_q32": 9693368821997,
+              "hard_violation": false,
+              "support_sha256": "20122f5449be5c77007607e82b9a2808cfd102c280b02b64bb09f4279039a707"
+            },
+            {
+              "id": "wrong",
+              "cost_q32": 9693368821997,
+              "uncertainty_q32": 0,
+              "resource_q32": 9693368821997,
+              "hard_violation": true,
+              "support_sha256": "6bb4ec091f983155118ee34525409c5b4a174fa46f0a7a54fe732955e887a930"
+            }
+          ]
+        },
+        "request_sha256": "c6c32b4c308c2a48dec246411ac400e4d76308f3fa039ab37dfffc468035d2f0",
+        "native_response": {
+          "advisory_recommendation": "cancel",
+          "authority": "ADVISORY_ONLY",
+          "disposition": "UniqueParetoRecommendation",
+          "entry_point": "hepta.hia.ndu_evaluator.v1",
+          "evaluation_digest_v2": "1fe93984e2c341c03aaa7144bef1b7fbbcc023f4bdf4ba1f034e77bc87022933",
+          "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+          "generation": 1,
+          "global_optimality_established": false,
+          "objective_sha256": "463883e29cb96b7fdc357762756c2a1a238624237509a4f5bc692fa731bf7e95",
+          "pareto_frontier": [
+            "cancel"
+          ],
+          "proves_program_safety": false,
+          "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+          "rejected": [
+            {
+              "id": "wrong",
+              "reasons": "[HardConstraintViolation]"
+            }
+          ],
+          "request_sha256": "c6c32b4c308c2a48dec246411ac400e4d76308f3fa039ab37dfffc468035d2f0",
+          "schema": "hepta.hia.ndu-native-response.v1",
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "utility_profile_digest": "5566e75d63a80a7a9fe8513b58896f4417f5ede8c1367f326f18e2b08efc94d0"
+        },
+        "bridge": {
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+          "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+          "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+          "source_attestation": "trusted_local_native_build_receipt"
+        },
+        "selection_resolution": {
+          "schema": "hepta.hia.ndu-scalar-selection.v1",
+          "profile": "hia-total-cost-ms-v1",
+          "request_sha256": "c6c32b4c308c2a48dec246411ac400e4d76308f3fa039ab37dfffc468035d2f0",
+          "native_response_sha256": "6bd6900f48c4b0b96b4705371ebc4938af34ccdfce24d30d04f823c8fff52339",
+          "native_disposition": "UniqueParetoRecommendation",
+          "native_recommendation": "cancel",
+          "validated_pareto_frontier": [
+            "cancel"
+          ],
+          "selected_id": "cancel",
+          "selection_source": "native_unique_pareto",
+          "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+          "caller_tie_policy_applied": false,
+          "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+          "assumptions": [
+            "caller already admitted the unchanged native bridge source and executable",
+            "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+          ],
+          "native_identity_validated_here": false,
+          "authority": "ADVISORY_ONLY",
+          "proves_program_safety": false,
+          "forecast_is_observed_benefit": false,
+          "incremental_ndu_advantage_established": false
+        },
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    },
+    {
+      "method": "test_unselected_export_cannot_change_behind_a_selected_function_proof (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_unselected_export_cannot_change_behind_a_selected_function_proof)",
+      "return_kind": "result",
+      "value": {
+        "schema": "hepta.hia.ndu-optimization.v1",
+        "before_sha256": "7f89a73cab4a2252bc3e77951e2f0ac65e01051910aac3f96c93bcbcc01d99a0",
+        "before_input_sha256": "7f89a73cab4a2252bc3e77951e2f0ac65e01051910aac3f96c93bcbcc01d99a0",
+        "function": "calculate",
+        "generation": 1,
+        "objective": {
+          "expected_calls": 1000000,
+          "measurement_profile": "synthetic-cost-admission-test",
+          "resource_cap_ns": 5000000000,
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "objective_sha256": "488051b1e62a70e49dca47414d4e79ae1c556fb1b9b3ebfda3908ef679402246",
+        "observations_sha256": "3202a50a8b1710e5986087b35549173a777503e313c41a2f73f622fcb161608c",
+        "selected_id": "abstain",
+        "admitted": false,
+        "reason": "native_evaluator_abstained",
+        "selected_program": {
+          "functions": [
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [
+                    {
+                      "args": [
+                        "a",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.add.wrap",
+                      "out": [
+                        {
+                          "name": "r",
+                          "type": "u32"
+                        }
+                      ]
+                    },
+                    {
+                      "args": [
+                        "r",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.sub.wrap",
+                      "out": [
+                        {
+                          "name": "cancel",
+                          "type": "u32"
+                        }
+                      ]
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "cancel"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "calculate",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            },
+            {
+              "blocks": [
+                {
+                  "id": "entry",
+                  "ops": [
+                    {
+                      "args": [
+                        "a",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.add.wrap",
+                      "out": [
+                        {
+                          "name": "r",
+                          "type": "u32"
+                        }
+                      ]
+                    },
+                    {
+                      "args": [
+                        "r",
+                        "z"
+                      ],
+                      "attrs": {},
+                      "op": "int.sub.wrap",
+                      "out": [
+                        {
+                          "name": "cancel",
+                          "type": "u32"
+                        }
+                      ]
+                    }
+                  ],
+                  "params": [
+                    {
+                      "name": "a",
+                      "type": "u32"
+                    },
+                    {
+                      "name": "z",
+                      "type": "u32"
+                    }
+                  ],
+                  "term": {
+                    "op": "ret",
+                    "values": [
+                      "cancel"
+                    ]
+                  }
+                }
+              ],
+              "effects": [
+                "trap"
+              ],
+              "entry": "entry",
+              "name": "other",
+              "params": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "z",
+                  "type": "u32"
+                }
+              ],
+              "returns": [
+                "u32"
+              ]
+            }
+          ],
+          "module": "standalone_test",
+          "schema": "hepta.hia.program.v1"
+        },
+        "net_margin_ns": 0,
+        "costs": {
+          "supplied_search_ns": 0,
+          "actual_adapter_ns": 826181787,
+          "total_search_ns": 826181787,
+          "search_at_native_rank_ns": 556246639,
+          "publication_preparation_included": false
+        },
+        "candidate_reports": [
+          {
+            "id": "cancel",
+            "action": "wrapping-add-sub-cancel",
+            "core_verified": true,
+            "observation": {
+              "program_sha256": "e1bf1aa18ff224b365fe4b2340f863a8d70a433d9509e865b4f935811c9582b6",
+              "runtime_ns": 0,
+              "uncertainty_ns": 0,
+              "search_ns": 0
+            },
+            "equivalence_proved": false,
+            "proof": null,
+            "reason": "unselected_function_or_module_changed"
+          }
+        ],
+        "selected_fresh_proof": null,
+        "selected_proof_admission": null,
+        "native_rank_admission": {
+          "invoked": true,
+          "remaining_budget_ns": 4441379514,
+          "timeout_s": 4.441379514,
+          "reason": "actual_native_response_received"
+        },
+        "native_request": {
+          "schema": "hepta.hia.ndu-request.v1",
+          "objective_sha256": "488051b1e62a70e49dca47414d4e79ae1c556fb1b9b3ebfda3908ef679402246",
+          "generation": 1,
+          "resource_cap_q32": 21474836480000,
+          "candidates": [
+            {
+              "id": "abstain",
+              "cost_q32": 429496729600000,
+              "uncertainty_q32": 0,
+              "resource_q32": 0,
+              "hard_violation": false,
+              "support_sha256": "a4b84a777eab155c48c98a669a1a45ddde279e264d992435b43d7bfc552a10ff"
+            },
+            {
+              "id": "cancel",
+              "cost_q32": 2389061123015,
+              "uncertainty_q32": 0,
+              "resource_q32": 2389061123015,
+              "hard_violation": true,
+              "support_sha256": "c03fadcd576553f2c749d0f6c4971ad1905d05a23f0c732416a60a37183d6636"
+            }
+          ]
+        },
+        "request_sha256": "a9a221fa02b6f67a6fffc7cc26e591bb55a9e06f00f56656a2133a70e4edeb5c",
+        "native_response": {
+          "advisory_recommendation": "abstain",
+          "authority": "ADVISORY_ONLY",
+          "disposition": "InfeasibleExplicitAbstain",
+          "entry_point": "hepta.hia.ndu_evaluator.v1",
+          "evaluation_digest_v2": "56f0b0b14a3593bf472400a5960d0516d9e0c9aacb0d0d4338f9672d0dc595aa",
+          "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+          "generation": 1,
+          "global_optimality_established": false,
+          "objective_sha256": "488051b1e62a70e49dca47414d4e79ae1c556fb1b9b3ebfda3908ef679402246",
+          "pareto_frontier": [
+            "abstain"
+          ],
+          "proves_program_safety": false,
+          "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+          "rejected": [
+            {
+              "id": "cancel",
+              "reasons": "[HardConstraintViolation]"
+            }
+          ],
+          "request_sha256": "a9a221fa02b6f67a6fffc7cc26e591bb55a9e06f00f56656a2133a70e4edeb5c",
+          "schema": "hepta.hia.ndu-native-response.v1",
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "utility_profile_digest": "5566e75d63a80a7a9fe8513b58896f4417f5ede8c1367f326f18e2b08efc94d0"
+        },
+        "bridge": {
+          "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+          "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+          "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+          "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+          "source_attestation": "trusted_local_native_build_receipt"
+        },
+        "selection_resolution": {
+          "schema": "hepta.hia.ndu-scalar-selection.v1",
+          "profile": "hia-total-cost-ms-v1",
+          "request_sha256": "a9a221fa02b6f67a6fffc7cc26e591bb55a9e06f00f56656a2133a70e4edeb5c",
+          "native_response_sha256": "2b0dca6afc47fe198efd3785549f64ba1b0d190f088c1c0cd39bd96448d662d9",
+          "native_disposition": "InfeasibleExplicitAbstain",
+          "native_recommendation": "abstain",
+          "validated_pareto_frontier": [
+            "abstain"
+          ],
+          "selected_id": "abstain",
+          "selection_source": "native_explicit_abstain",
+          "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+          "caller_tie_policy_applied": false,
+          "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+          "assumptions": [
+            "caller already admitted the unchanged native bridge source and executable",
+            "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+          ],
+          "native_identity_validated_here": false,
+          "authority": "ADVISORY_ONLY",
+          "proves_program_safety": false,
+          "forecast_is_observed_benefit": false,
+          "incremental_ndu_advantage_established": false
+        },
+        "claims": {
+          "ndu_is_advisory": true,
+          "unproved_candidate_admitted": false,
+          "all_other_functions_unchanged": true,
+          "resource_bounds_proved": false,
+          "measurements_independently_attested": false,
+          "native_backend_refinement_proved": false,
+          "global_optimality_established": false,
+          "incremental_advantage_established": false
+        },
+        "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+      }
+    }
+  ]
+}

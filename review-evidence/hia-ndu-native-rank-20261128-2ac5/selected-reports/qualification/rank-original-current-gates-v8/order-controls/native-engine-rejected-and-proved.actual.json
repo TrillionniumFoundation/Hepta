@@ -1,0 +1,543 @@
+{
+  "schema": "hepta.hia.ndu-optimization.v1",
+  "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+  "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+  "function": "calculate",
+  "generation": 1,
+  "objective": {
+    "expected_calls": 100,
+    "measurement_profile": "measure",
+    "resource_cap_ns": 5000000000,
+    "target": "host"
+  },
+  "objective_sha256": "f214146d08354e2ca78445c1c7d4cc26faba2e78fce1608c025808ff858ca69f",
+  "observations_sha256": "219346c91c4e769825970453bdbc64e4ba6c7730bd82d1d12713d43804ffdeaf",
+  "selected_id": "B",
+  "admitted": true,
+  "reason": "fresh_proof_and_robust_cost_gate_passed",
+  "selected_program": {
+    "functions": [
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a",
+                  "z"
+                ],
+                "attrs": {},
+                "op": "int.add.wrap",
+                "out": [
+                  {
+                    "name": "r",
+                    "type": "u32"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "r",
+                  "z"
+                ],
+                "attrs": {},
+                "op": "int.sub.wrap",
+                "out": [
+                  {
+                    "name": "cancel",
+                    "type": "u32"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "u32"
+              },
+              {
+                "name": "z",
+                "type": "u32"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "cancel"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "calculate",
+        "params": [
+          {
+            "name": "a",
+            "type": "u32"
+          },
+          {
+            "name": "z",
+            "type": "u32"
+          }
+        ],
+        "returns": [
+          "u32"
+        ]
+      }
+    ],
+    "module": "standalone_test",
+    "schema": "hepta.hia.program.v1"
+  },
+  "net_margin_ns": 97132193839,
+  "costs": {
+    "supplied_search_ns": 0,
+    "actual_adapter_ns": 2867706061,
+    "total_search_ns": 2867706061,
+    "search_at_native_rank_ns": 1169739266,
+    "publication_preparation_included": false
+  },
+  "candidate_reports": [
+    {
+      "id": "A",
+      "action": "identity",
+      "core_verified": false,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "reason": "canonical_verifier_rejected",
+      "detail": "E_HIA_FORMAT: program: expected exactly functions, module, schema"
+    },
+    {
+      "id": "B",
+      "action": "second",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 1,
+        "uncertainty_ns": 0,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": true,
+      "proof": {
+        "schema": "hepta.hia.translation-validation.v1",
+        "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+        "status": "proved",
+        "function": "calculate",
+        "scope": "selected_public_scalar_function",
+        "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "after_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "after_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "validator_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b",
+        "structural_verification": {
+          "before": true,
+          "after": true
+        },
+        "reason": "all_input_behavior_difference_unsatisfiable",
+        "counterexample": null,
+        "solver": {
+          "name": "hia-native-graph-identity",
+          "version": "1",
+          "result": "unsat",
+          "timeout_ms": 2000,
+          "identity": {
+            "native_closure_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+          },
+          "discharge": {
+            "method": "native_hia_typed_graph_identity",
+            "formula_sha256": "62aea066594564fdbd808dfc7b7b3390039a2f02defd96347421e6645d63edaa",
+            "variables": 0,
+            "clauses": 0,
+            "assignments_checked": 0,
+            "nodes": 0
+          }
+        },
+        "claims": {
+          "all_input_behavior_equivalence_proved": true,
+          "first_trap_code_preserved": true,
+          "canonical_core_reverified": true,
+          "resource_bounds_proved": false,
+          "encoder_refinement_machine_proved": false,
+          "whole_language_soundness_proved": false,
+          "backend_refinement_proved": false,
+          "global_optimality_proved": false,
+          "serialized_receipt_authorizes_execution": false,
+          "all_programs_of_this_profile_proved": false,
+          "native_backend_refinement_proved": false
+        },
+        "limits": [
+          "Only the selected public scalar function is covered.",
+          "Acyclic v1-v7 scalar Core; calls, resources and floating point are outside this primitive profile.",
+          "All stages use one proof deadline, including admission, encoding, search, replay and identity closure; this is not a hard process timeout.",
+          "Exact native code bytes and all externally loaded objects need separate custody and lifetime validation.",
+          "A consumer must recompute fresh proof results at the point of use."
+        ],
+        "wall_ns": 1107436828,
+        "proof_scope_schema": "hepta.hia.scalar-proof-scope.v1",
+        "proved_meaning": "The identified native HIA checker established only the stated property for the exact Core subject within this scalar profile. Implementation soundness, whole-language safety and execution authority are not established.",
+        "subject": {
+          "kind": "canonical_core_comparison",
+          "function": "calculate",
+          "selection": "selected_public_scalar_function",
+          "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+          "after_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+          "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+          "after_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+        },
+        "property": {
+          "id": "all_input_return_and_first_trap_equivalence",
+          "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+        },
+        "assumptions": [
+          {
+            "id": "typed_inputs",
+            "statement": "Every quantified argument has the selected freshly verified Core signature."
+          },
+          {
+            "id": "core_semantics",
+            "statement": "The primitive v1-v7 scalar semantics, first-trap ordering and declared profile define observations."
+          },
+          {
+            "id": "trusted_implementation",
+            "statement": "The native HIA verifier, graph projection, solver, and independent Core interpreter are trusted implementations, not machine-proved."
+          },
+          {
+            "id": "loaded_source",
+            "statement": "The actual embedded native closure is read-only, hashed before and after checking, and executes without hostile process or hardware modification."
+          },
+          {
+            "id": "point_of_use",
+            "statement": "Consumers rebind exact inputs and recompute; a serialized receipt grants no execution authority."
+          }
+        ],
+        "unproved_obligations": [
+          {
+            "id": "checker_soundness",
+            "statement": "Machine-checked implementation correctness remains open."
+          },
+          {
+            "id": "whole_language",
+            "statement": "Programs and constructs outside this selected scalar profile are not covered."
+          },
+          {
+            "id": "other_exports",
+            "statement": "Other public exports require independent checks."
+          },
+          {
+            "id": "core_to_machine",
+            "statement": "Compilation and actual machine-code refinement require separate validation."
+          },
+          {
+            "id": "abi_ffi_loading",
+            "statement": "ABI, FFI, image custody, mapping and lifetime require separate validation."
+          },
+          {
+            "id": "resources",
+            "statement": "Physical resource, instruction, wall-time, energy and performance bounds are not proved."
+          },
+          {
+            "id": "concurrency",
+            "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside the proof."
+          },
+          {
+            "id": "normal_return_totality",
+            "statement": "Equivalence may preserve a trap and does not imply normal return for every input."
+          }
+        ],
+        "checker": {
+          "name": "hepta.hia_translation_validation.validate_translation",
+          "kind": "trusted_executable_hia_scalar_checker",
+          "method": "native_hia_typed_graph_identity",
+          "source_identity": {
+            "native-closure.image.bin": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+          },
+          "source_identity_sha256": "52d973dbf21dee39e2eeb6cbbdc3d0ac15e0314897edfcf1a2976bd39c165d10",
+          "runtime": {
+            "implementation": "HIA-native",
+            "version": "1"
+          },
+          "machine_checked_implementation": false
+        },
+        "execution_authority": false,
+        "after_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+        "before_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "preproof_cost_lower_bound_ns": 53038740,
+      "proof_remaining_budget_ns": 4946961260,
+      "proof_remaining_margin_ns": 99946861160,
+      "proof_timeout_ms": 2000,
+      "proof_wall_ns": 1116637969,
+      "reason": "proved"
+    }
+  ],
+  "selected_fresh_proof": {
+    "schema": "hepta.hia.translation-validation.v1",
+    "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+    "status": "proved",
+    "function": "calculate",
+    "scope": "selected_public_scalar_function",
+    "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+    "after_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+    "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+    "after_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+    "validator_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b",
+    "structural_verification": {
+      "before": true,
+      "after": true
+    },
+    "reason": "all_input_behavior_difference_unsatisfiable",
+    "counterexample": null,
+    "solver": {
+      "name": "hia-native-graph-identity",
+      "version": "1",
+      "result": "unsat",
+      "timeout_ms": 2000,
+      "identity": {
+        "native_closure_sha256": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+      },
+      "discharge": {
+        "method": "native_hia_typed_graph_identity",
+        "formula_sha256": "62aea066594564fdbd808dfc7b7b3390039a2f02defd96347421e6645d63edaa",
+        "variables": 0,
+        "clauses": 0,
+        "assignments_checked": 0,
+        "nodes": 0
+      }
+    },
+    "claims": {
+      "all_input_behavior_equivalence_proved": true,
+      "first_trap_code_preserved": true,
+      "canonical_core_reverified": true,
+      "resource_bounds_proved": false,
+      "encoder_refinement_machine_proved": false,
+      "whole_language_soundness_proved": false,
+      "backend_refinement_proved": false,
+      "global_optimality_proved": false,
+      "serialized_receipt_authorizes_execution": false,
+      "all_programs_of_this_profile_proved": false,
+      "native_backend_refinement_proved": false
+    },
+    "limits": [
+      "Only the selected public scalar function is covered.",
+      "Acyclic v1-v7 scalar Core; calls, resources and floating point are outside this primitive profile.",
+      "All stages use one proof deadline, including admission, encoding, search, replay and identity closure; this is not a hard process timeout.",
+      "Exact native code bytes and all externally loaded objects need separate custody and lifetime validation.",
+      "A consumer must recompute fresh proof results at the point of use."
+    ],
+    "wall_ns": 1273794025,
+    "proof_scope_schema": "hepta.hia.scalar-proof-scope.v1",
+    "proved_meaning": "The identified native HIA checker established only the stated property for the exact Core subject within this scalar profile. Implementation soundness, whole-language safety and execution authority are not established.",
+    "subject": {
+      "kind": "canonical_core_comparison",
+      "function": "calculate",
+      "selection": "selected_public_scalar_function",
+      "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+      "after_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+      "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+      "after_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+    },
+    "property": {
+      "id": "all_input_return_and_first_trap_equivalence",
+      "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+    },
+    "assumptions": [
+      {
+        "id": "typed_inputs",
+        "statement": "Every quantified argument has the selected freshly verified Core signature."
+      },
+      {
+        "id": "core_semantics",
+        "statement": "The primitive v1-v7 scalar semantics, first-trap ordering and declared profile define observations."
+      },
+      {
+        "id": "trusted_implementation",
+        "statement": "The native HIA verifier, graph projection, solver, and independent Core interpreter are trusted implementations, not machine-proved."
+      },
+      {
+        "id": "loaded_source",
+        "statement": "The actual embedded native closure is read-only, hashed before and after checking, and executes without hostile process or hardware modification."
+      },
+      {
+        "id": "point_of_use",
+        "statement": "Consumers rebind exact inputs and recompute; a serialized receipt grants no execution authority."
+      }
+    ],
+    "unproved_obligations": [
+      {
+        "id": "checker_soundness",
+        "statement": "Machine-checked implementation correctness remains open."
+      },
+      {
+        "id": "whole_language",
+        "statement": "Programs and constructs outside this selected scalar profile are not covered."
+      },
+      {
+        "id": "other_exports",
+        "statement": "Other public exports require independent checks."
+      },
+      {
+        "id": "core_to_machine",
+        "statement": "Compilation and actual machine-code refinement require separate validation."
+      },
+      {
+        "id": "abi_ffi_loading",
+        "statement": "ABI, FFI, image custody, mapping and lifetime require separate validation."
+      },
+      {
+        "id": "resources",
+        "statement": "Physical resource, instruction, wall-time, energy and performance bounds are not proved."
+      },
+      {
+        "id": "concurrency",
+        "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside the proof."
+      },
+      {
+        "id": "normal_return_totality",
+        "statement": "Equivalence may preserve a trap and does not imply normal return for every input."
+      }
+    ],
+    "checker": {
+      "name": "hepta.hia_translation_validation.validate_translation",
+      "kind": "trusted_executable_hia_scalar_checker",
+      "method": "native_hia_typed_graph_identity",
+      "source_identity": {
+        "native-closure.image.bin": "1bef788c1aa3a0e3f111730b2cf36926153582ccc78e2e4bdbdd17da7c9cb52b"
+      },
+      "source_identity_sha256": "52d973dbf21dee39e2eeb6cbbdc3d0ac15e0314897edfcf1a2976bd39c165d10",
+      "runtime": {
+        "implementation": "HIA-native",
+        "version": "1"
+      },
+      "machine_checked_implementation": false
+    },
+    "execution_authority": false,
+    "after_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+    "before_request_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+  },
+  "selected_proof_admission": {
+    "candidate_id": "B",
+    "spent_search_ns": 1570113882,
+    "remaining_budget_ns": 3429886118,
+    "remaining_margin_ns": 98429786018,
+    "solver_started": true,
+    "timeout_ms": 2000,
+    "wall_ns": 1297536971
+  },
+  "native_rank_admission": {
+    "invoked": true,
+    "remaining_budget_ns": 3804857525,
+    "timeout_s": 3.804857525,
+    "reason": "actual_native_response_received"
+  },
+  "native_request": {
+    "schema": "hepta.hia.ndu-request.v1",
+    "objective_sha256": "f214146d08354e2ca78445c1c7d4cc26faba2e78fce1608c025808ff858ca69f",
+    "generation": 1,
+    "resource_cap_q32": 21474836480000,
+    "candidates": [
+      {
+        "id": "abstain",
+        "cost_q32": 429496300103270,
+        "uncertainty_q32": 429496730,
+        "resource_q32": 0,
+        "hard_violation": false,
+        "support_sha256": "846b7981c834ee246e9b4c1236c3eb8df06201e80189aa7700ac8176210b4e81"
+      },
+      {
+        "id": "A",
+        "cost_q32": 5023992321814,
+        "uncertainty_q32": 0,
+        "resource_q32": 5023991892317,
+        "hard_violation": true,
+        "support_sha256": "6895c903077ffedb15db3a1db0951dd8de3b09e6b0a754a072bce2b15252ad1b"
+      },
+      {
+        "id": "B",
+        "cost_q32": 5023992321814,
+        "uncertainty_q32": 0,
+        "resource_q32": 5023991892317,
+        "hard_violation": false,
+        "support_sha256": "eafee33b52c088cc9bb802902a31fed853f5c09e5e932e04bc97719675ae7e3b"
+      }
+    ]
+  },
+  "request_sha256": "faa58862736ff529cf79f4d87a0c21e2203b7ca9dd36a281b8737a0c17f553d7",
+  "native_response": {
+    "advisory_recommendation": "B",
+    "authority": "ADVISORY_ONLY",
+    "disposition": "UniqueParetoRecommendation",
+    "entry_point": "hepta.hia.ndu_evaluator.v1",
+    "evaluation_digest_v2": "1991a5759ea5edc9025d7ab606028af19a4dcc9aa24ec433fac8fe3df5b9298c",
+    "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+    "generation": 1,
+    "global_optimality_established": false,
+    "objective_sha256": "f214146d08354e2ca78445c1c7d4cc26faba2e78fce1608c025808ff858ca69f",
+    "pareto_frontier": [
+      "B"
+    ],
+    "proves_program_safety": false,
+    "reference_entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+    "rejected": [
+      {
+        "id": "A",
+        "reasons": "[HardConstraintViolation]"
+      }
+    ],
+    "request_sha256": "faa58862736ff529cf79f4d87a0c21e2203b7ca9dd36a281b8737a0c17f553d7",
+    "schema": "hepta.hia.ndu-native-response.v1",
+    "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+    "utility_profile_digest": "5566e75d63a80a7a9fe8513b58896f4417f5ede8c1367f326f18e2b08efc94d0"
+  },
+  "bridge": {
+    "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+    "binary_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+    "build_receipt_sha256": "9d04ec9fab8a0f0ce2d467a951793fc92a890baae8cae985ab9cbfe7476b89a2",
+    "build_inputs_sha256": "46e737deb6f6c5e36134d3587ce50552170003e7cd2cc6c4116919cadf0651fb",
+    "source_attestation": "trusted_local_native_build_receipt"
+  },
+  "selection_resolution": {
+    "schema": "hepta.hia.ndu-scalar-selection.v1",
+    "profile": "hia-total-cost-ms-v1",
+    "request_sha256": "faa58862736ff529cf79f4d87a0c21e2203b7ca9dd36a281b8737a0c17f553d7",
+    "native_response_sha256": "35b9680c2eef2a8b1f927e9948df14bf93ba302272f1b00d18a792a742c6820e",
+    "native_disposition": "UniqueParetoRecommendation",
+    "native_recommendation": "B",
+    "validated_pareto_frontier": [
+      "B"
+    ],
+    "selected_id": "B",
+    "selection_source": "native_unique_pareto",
+    "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+    "caller_tie_policy_applied": false,
+    "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+    "assumptions": [
+      "caller already admitted the unchanged native bridge source and executable",
+      "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+    ],
+    "native_identity_validated_here": false,
+    "authority": "ADVISORY_ONLY",
+    "proves_program_safety": false,
+    "forecast_is_observed_benefit": false,
+    "incremental_ndu_advantage_established": false
+  },
+  "claims": {
+    "ndu_is_advisory": true,
+    "unproved_candidate_admitted": false,
+    "all_other_functions_unchanged": true,
+    "resource_bounds_proved": false,
+    "measurements_independently_attested": false,
+    "native_backend_refinement_proved": false,
+    "global_optimality_established": false,
+    "incremental_advantage_established": false
+  },
+  "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+}

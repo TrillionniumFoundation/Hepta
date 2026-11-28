@@ -1,0 +1,194 @@
+{
+  "schema": "hepta.hia.ndu-optimization.v1",
+  "before_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+  "before_input_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444",
+  "function": "calculate",
+  "generation": 1,
+  "objective": {
+    "expected_calls": 1,
+    "measurement_profile": "measure",
+    "resource_cap_ns": 0,
+    "target": "host"
+  },
+  "objective_sha256": "043aa3de44f968a09899c496cc7b48ffc95d069bd8fbb696be9a350cf4f4c595",
+  "observations_sha256": "e0580a8c32a8c779a259dd0d4c59200296111d18d0e5cd99f43689086660a2e8",
+  "selected_id": "abstain",
+  "admitted": false,
+  "reason": "search_budget_exhausted_before_native",
+  "selected_program": {
+    "functions": [
+      {
+        "blocks": [
+          {
+            "id": "entry",
+            "ops": [
+              {
+                "args": [
+                  "a",
+                  "z"
+                ],
+                "attrs": {},
+                "op": "int.add.wrap",
+                "out": [
+                  {
+                    "name": "r",
+                    "type": "u32"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "r",
+                  "z"
+                ],
+                "attrs": {},
+                "op": "int.sub.wrap",
+                "out": [
+                  {
+                    "name": "cancel",
+                    "type": "u32"
+                  }
+                ]
+              }
+            ],
+            "params": [
+              {
+                "name": "a",
+                "type": "u32"
+              },
+              {
+                "name": "z",
+                "type": "u32"
+              }
+            ],
+            "term": {
+              "op": "ret",
+              "values": [
+                "cancel"
+              ]
+            }
+          }
+        ],
+        "effects": [
+          "trap"
+        ],
+        "entry": "entry",
+        "name": "calculate",
+        "params": [
+          {
+            "name": "a",
+            "type": "u32"
+          },
+          {
+            "name": "z",
+            "type": "u32"
+          }
+        ],
+        "returns": [
+          "u32"
+        ]
+      }
+    ],
+    "module": "standalone_test",
+    "schema": "hepta.hia.program.v1"
+  },
+  "net_margin_ns": 0,
+  "costs": {
+    "supplied_search_ns": 0,
+    "actual_adapter_ns": 62562999,
+    "total_search_ns": 62562999,
+    "search_at_native_rank_ns": 57277812,
+    "publication_preparation_included": false
+  },
+  "candidate_reports": [
+    {
+      "id": "A",
+      "action": "identity",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 100000,
+        "uncertainty_ns": 1,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 56439041,
+      "proof_remaining_budget_ns": -56439041,
+      "proof_remaining_margin_ns": -56439043,
+      "reason": "search_budget_exhausted_before_proof"
+    },
+    {
+      "id": "B",
+      "action": "second",
+      "core_verified": true,
+      "observation": {
+        "runtime_ns": 100000,
+        "uncertainty_ns": 1,
+        "search_ns": 0,
+        "program_sha256": "1bcae3c7920ff53ed88a4ba0494b38a59fe58e03222de619462e348cfea22444"
+      },
+      "equivalence_proved": false,
+      "proof": null,
+      "preproof_cost_lower_bound_ns": 57247473,
+      "proof_remaining_budget_ns": -57247473,
+      "proof_remaining_margin_ns": -57247475,
+      "reason": "search_budget_exhausted_before_proof"
+    }
+  ],
+  "selected_fresh_proof": null,
+  "selected_proof_admission": null,
+  "native_rank_admission": {
+    "invoked": false,
+    "remaining_budget_ns": -62530180,
+    "timeout_s": null,
+    "reason": "search_budget_exhausted_before_native"
+  },
+  "native_request": {
+    "schema": "hepta.hia.ndu-request.v1",
+    "objective_sha256": "043aa3de44f968a09899c496cc7b48ffc95d069bd8fbb696be9a350cf4f4c595",
+    "generation": 1,
+    "resource_cap_q32": 0,
+    "candidates": [
+      {
+        "id": "abstain",
+        "cost_q32": 429492435,
+        "uncertainty_q32": 4295,
+        "resource_q32": 0,
+        "hard_violation": false,
+        "support_sha256": "67ac920d807c44f3a4b6487c96276bec33f93e556b4cea023a9382bb0dd890e7"
+      },
+      {
+        "id": "A",
+        "cost_q32": 246435830351,
+        "uncertainty_q32": 4295,
+        "resource_q32": 246006329326,
+        "hard_violation": true,
+        "support_sha256": "01c9ed03248c5b851f80f8d35fd4cdc0b946bf44604685f29c0e7e2c751ed5d5"
+      },
+      {
+        "id": "B",
+        "cost_q32": 246435830351,
+        "uncertainty_q32": 4295,
+        "resource_q32": 246006329326,
+        "hard_violation": true,
+        "support_sha256": "0c7e0e085c514de1f52a3dae573c96a491a6893004ac02d873ec329191f27acb"
+      }
+    ]
+  },
+  "request_sha256": "2e41e77ff730ffb3208e3da754380dd66d2c030db5179bda7bdeadbc3e353d43",
+  "native_response": null,
+  "bridge": null,
+  "selection_resolution": null,
+  "claims": {
+    "ndu_is_advisory": true,
+    "unproved_candidate_admitted": false,
+    "all_other_functions_unchanged": true,
+    "resource_bounds_proved": false,
+    "measurements_independently_attested": false,
+    "native_backend_refinement_proved": false,
+    "global_optimality_established": false,
+    "incremental_advantage_established": false
+  },
+  "cost_model": "incumbent lower bound versus candidate upper bound; all search charged once; trusted host observations"
+}

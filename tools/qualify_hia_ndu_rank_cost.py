@@ -4,7 +4,8 @@ import ctypes as C,fcntl,json,os,random,resource,struct,sys,time
 import argparse
 parser=argparse.ArgumentParser();parser.add_argument('--flat',type=Path,required=True);parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
 P=Path(__file__).resolve().parents[1];D=args.output;D.mkdir(parents=True,exist_ok=False);sys.path.insert(0,str(P));resource.setrlimit(resource.RLIMIT_CORE,(0,0))
-from hepta.hia_ndu_optimizer import ns_to_ms_q32,OptimizationRejected
+from tools.hia_ndu_policy_reference import policy_namespace
+original_policy=policy_namespace(P);ns_to_ms_q32=original_policy.ns_to_ms_q32;OptimizationRejected=original_policy.OptimizationRejected
 raw=args.flat.read_bytes();pin=sha256(raw).hexdigest();assert pin=='f6c4aa1ac0f0de5e0971456d615407d8d67954b6be58fc609e5cdbe7f441d29b'
 fd=os.memfd_create('native-ndu-rank-exact-cost',os.MFD_ALLOW_SEALING);os.write(fd,raw);fcntl.fcntl(fd,fcntl.F_ADD_SEALS,15)
 lib=C.CDLL(None);lib.mmap.argtypes=(C.c_void_p,C.c_size_t,C.c_int,C.c_int,C.c_int,C.c_long);lib.mmap.restype=C.c_void_p
@@ -75,4 +76,5 @@ for off,value in [(0,0),(8,4),(16,1<<63),(24,1<<63),(32,1<<63),(40,1<<63),(48,0)
  data=bytearray(base);struct.pack_into('<Q',data,off,value);run('bad-frame-'+str(off)+'-'+str(value),bytes(data),None,code=0xfffffffd,group='atomic_guards')
 run('trailing-data',base+b'0',None,code=0xfffffffd,group='atomic_guards')
 run('short-work',base,None,code=0xfffffffd,work_capacity=255,group='atomic_guards')
+original_policy.unchanged();report.update(original_policy_sha256=original_policy.source_sha256,original_policy_commit=original_policy.original_commit)
 report.update(passed=True,count=len(rows),maximum_exact_product_bits=127,original_q32_used=True,original_budget_reason_priority=True,seed=2026112502);save();print('NDU_RANK_COST_ALL_PASS',len(rows),counts,flush=True)
