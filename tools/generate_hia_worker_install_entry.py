@@ -393,9 +393,17 @@ def render(protocol='03'):
     from tools.hia_worker_protocols import protocol as selected_protocol
     selected = selected_protocol(protocol)
     with tempfile.TemporaryDirectory(prefix='hia-worker-entry-author-') as directory:
-        return shared._render(Path(directory), policy_source=policy_source(protocol),
-                              module_prefix=selected.install_stem+'_entry',
-                              adapter_source=ROOT / 'tools/hia_worker_install_entry_syscalls.S')
+        outputs, metadata = shared._render(
+            Path(directory), policy_source=policy_source(protocol),
+            module_prefix='worker_install_entry',
+            adapter_source=ROOT / 'tools/hia_worker_install_entry_syscalls.S')
+        expected = {'worker_install_entry', 'worker_install_entry_packer',
+                    'worker_install_entry_bind'}
+        if set(outputs) != expected:
+            raise ValueError('shared Worker entry author changed its canonical source domain')
+        physical = {selected.install_stem + name[len('worker_install'):]: text
+                    for name, text in outputs.items()}
+        return physical, metadata
 
 
 def main():

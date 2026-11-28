@@ -172,11 +172,11 @@ def packer_source():
     finally:base.template=old
 
 def main():
-    from tools.hia_worker_protocols import protocol, PROTOCOLS
+    from tools.hia_worker_protocols import protocol, PROTOCOLS, canonical_module
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');p.add_argument('--protocol',choices=PROTOCOLS,default='03');a=p.parse_args()
     selected=protocol(a.protocol)
     for name,source in ((selected.install_stem+'_owner',policy_source(protocol=a.protocol)),(selected.install_stem+'_dag',policy_source(stage=True,protocol=a.protocol)),(selected.install_stem+'_owner_packer',packer_source())):
-        doc=document(source,name);raw=render_assembly(doc).encode();path=ROOT/'examples/hia_bootstrap'/(name+'.hepta')
+        doc=document(source,canonical_module(a.protocol,name));raw=render_assembly(doc).encode();path=ROOT/'examples/hia_bootstrap'/(name+'.hepta')
         if a.check:
             if path.read_bytes()!=raw:raise SystemExit(name+' differs')
         else:path.write_bytes(raw)

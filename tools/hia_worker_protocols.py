@@ -62,3 +62,20 @@ def recipe_path(number: str, kind: str) -> str:
     if type(kind) is not str or kind not in STAGES:
         raise ValueError("unknown Worker installation stage")
     return "examples/hia_bootstrap/" + selected.install_stem + "_" + kind + ".hiastd"
+
+
+# Source filter roles have fixed canonical module and named-source identities.
+# Protocol-specific bytes and paths remain separate; no captured source is rewritten.
+def canonical_module(number: str, physical_module: str) -> str:
+    selected = protocol(number)
+    kinds = ("owner", "dag", "owner_packer", "entry", "entry_packer", "entry_bind")
+    for kind in kinds:
+        if type(physical_module) is str and physical_module == selected.install_stem + "_" + kind:
+            return "worker_install_" + kind
+    raise ValueError("unknown physical Worker module for this protocol")
+
+
+def member_source_map(number: str) -> dict[str, str]:
+    selected = protocol(number)
+    return {"worker_install_" + kind + ".hepta": selected.install_stem + "_" + kind + ".hepta"
+            for kind in ("owner", "dag", "owner_packer")}

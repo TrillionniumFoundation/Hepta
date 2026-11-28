@@ -76,6 +76,25 @@ class WorkerProtocolDomainTests(unittest.TestCase):
             with self.subTest(field=field),self.assertRaisesRegex(ValueError,"installed aggregate binding"):
                 check_original_aggregate(changed,**kwargs)
 
+    def test_fixed_filter_stays_exact_and_physical_mapping_is_closed(self):
+        from tools.hia_worker_protocols import canonical_module, member_source_map, protocol
+        self.assertEqual(hashlib.sha256((ROOT/"examples/hia_bootstrap/source_filter_member.hepta").read_bytes()).hexdigest(),
+                         "7f2c8e916bc0d7ce419e23f688d2653cdc0c2703e023fcfd5e421ed97200f51b")
+        for number in ("01", "02", "03"):
+            p=protocol(number)
+            self.assertEqual(member_source_map(number),
+                {"worker_install_"+kind+".hepta":p.install_stem+"_"+kind+".hepta"
+                 for kind in ("owner","dag","owner_packer")})
+            for kind in ("owner","dag","owner_packer","entry","entry_bind","entry_packer"):
+                self.assertEqual(canonical_module(number,p.install_stem+"_"+kind),"worker_install_"+kind)
+            for bad in ("../worker_install_owner", p.install_stem+"_other", None,
+                        p.install_stem+"_owner.hepta", b"worker_install_owner"):
+                with self.subTest(number=number,bad=bad),self.assertRaises(ValueError):
+                    canonical_module(number,bad)
+        for number in (None, 1, True, "3", "../03"):
+            with self.subTest(number=number),self.assertRaises(ValueError):
+                member_source_map(number)
+
     def test_all_sixteen_graph_paths_are_separate(self):
         from tools.hia_worker_protocols import recipe_path
         from tools.generate_hia_worker_install_owner import STAGES

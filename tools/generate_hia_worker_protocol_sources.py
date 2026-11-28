@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def generated_files(native_source_authority=None):
     if native_source_authority is None:
         raise ValueError("native Worker products require an explicit native source authority")
-    from tools.hia_worker_protocols import PROTOCOLS, protocol, recipe_path
+    from tools.hia_worker_protocols import PROTOCOLS, protocol, recipe_path, canonical_module
     from tools.generate_hia_worker_protocol_manifest import generated_files as manifest_files
     from tools.generate_hia_worker_install_recipes import recipes
     from tools import generate_hia_worker_install_owner as owner
@@ -60,7 +60,7 @@ def generated_files(native_source_authority=None):
             (selected.install_stem + "_owner_packer", mechanical_packer),
         )
         for name, source in sources:
-            value = document(source, name)
+            value = document(source, canonical_module(number, name))
             verify_program(value)
             add("examples/hia_bootstrap/" + name + ".hepta",
                 render_assembly(value).encode("ascii"))
