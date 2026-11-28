@@ -121,8 +121,21 @@ class CoreCompanionReleaseSourceTests(unittest.TestCase):
                 paths.add(raw[at:at + path_len].decode())
                 at += path_len
             self.assertEqual(at, len(raw))
+        from tools.hia_core_host_custody import (
+            ARCHIVE_PATH, DECODER_SOURCE, ENTRIES, REQUEST_MAGIC, parse_archive)
+        self.assertIn(ARCHIVE_PATH, paths)
+        self.assertIn(DECODER_SOURCE, paths)
+        records = parse_archive((ROOT / ARCHIVE_PATH).read_bytes())
+        self.assertEqual([(r['role'], r['kind'], r['path']) for r in records], list(ENTRIES))
+        for row in records:
+            self.assertEqual(row['raw'], (ROOT / row['path']).read_bytes())
         for _, family in COMPANIONS:
-            self.assertTrue(set(inputs(family)) <= paths)
+            self.assertTrue(set(inputs(family)[:2]) <= paths)
+            self.assertFalse(set(inputs(family)[2:]) & paths)
+        self.assertFalse(any(path.endswith('.py') for path in paths))
+        requests = [struct.unpack('<8s2Q', raw) for operation, _, _, raw in recipe.nodes
+                    if operation == 12 and raw.startswith(REQUEST_MAGIC)]
+        self.assertEqual(requests, [(REQUEST_MAGIC, role, kind) for role, _ in COMPANIONS for kind in (1, 2)])
         self.assertIn("examples/hia_bootstrap/" + release.OWNER, paths)
         self.assertIn("examples/hia_bootstrap/" + release.CHECKER, paths)
         self.assertFalse({operation for operation, _, _, _ in recipe.nodes} & {5, 10})

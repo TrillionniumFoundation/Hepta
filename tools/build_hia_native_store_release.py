@@ -241,6 +241,47 @@ def _stage_extended_helper_images(work, seed, compile_sources, call, compiler, p
         publish(image_path, expected=expected['image_sha256'])
 
 
+
+def _stage_agent_helper_images(work, seed, compile_sources, call, compiler, publish):
+    """Rebuild and independently check the complete HIAHLM03 Agent group."""
+    from tools.build_hia_worker_release import AGENT_INSTALLED_HELPERS
+    builds = release_sources(seed, compile_sources, call)
+    author, owner_images, owner_sources = builds.kit_objects(
+        'source_agent_helper_manifest.hepta', 'source_build_packer.hepta')
+    checker, check_images, _ = builds.kit_objects(
+        'source_agent_helper_stage.hepta', 'source_build_packer.hepta')
+    if (owner_images['selfhost.hepta'] != compiler
+            or check_images['selfhost.hepta'] != compiler):
+        raise ValueError('Agent helper kit compiler differs from the admitted cold compiler')
+    selfhost = owner_sources['selfhost.hepta']
+    names = [CANDIDATES[kind][0] + '.hepta' for _, kind in AGENT_INSTALLED_HELPERS]
+    _, images, sources = builds({name: name for name in names})
+    compiler_sha = sha256(compiler).hexdigest()
+    for (role, kind), name in zip(AGENT_INSTALLED_HELPERS, names, strict=True):
+        source, image = sources[name], images[name]
+        header = struct.pack('<8s5Q', b'HIAHLM03', role,
+                             len(source), len(image), len(selfhost), len(compiler))
+        raw = call(author, 'build', header + source + image + selfhost + compiler)
+        parts = (raw, source, image, compiler)
+        request = (struct.pack('<8s4Q', b'HIASTC01', 15, role, 4, 0)
+                   + b''.join(struct.pack('<Q', len(part)) + part for part in parts))
+        checked = call(checker, 'build', request)
+        if checked != struct.pack('<8s3Q', b'HIASTOK1', 15, role, len(raw)):
+            raise ValueError('independent native Agent helper checker rejected: ' + kind)
+        protocol = CANDIDATES[kind][1]
+        image_name = protocol + '.image.bin'
+        expected = _image_manifest(kind, protocol, source, image, image_name, compiler_sha)
+        if json.loads(raw) != expected:
+            raise ValueError('native Agent helper manifest differs from captured inputs: ' + kind)
+        manifest_path, image_path = work / (kind + '-manifest.json'), work / image_name
+        with manifest_path.open('xb') as stream:
+            stream.write(raw)
+        with image_path.open('xb') as stream:
+            stream.write(image)
+        publish(manifest_path)
+        publish(image_path, expected=expected['image_sha256'])
+
+
 def _stage_safe_proof(work, seed, compile_sources, call, admitted, publish):
     """Recompile and authenticate the five nested proof programs before publishing their verifier."""
     from tools.build_hia_agent_batch_commit import verify_placement
@@ -1051,6 +1092,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     _stage_helper_images(work, seed, builds, call, compiler_bytes, publish)
     _stage_extended_helper_images(work, seed, builds, call, compiler_bytes, publish)
+    _stage_agent_helper_images(work, seed, builds, call, compiler_bytes, publish)
     from tools.hia_core_companion_release import stage_core_companions
     stage_core_companions(work, seed, builds, call, compiler_bytes, publish)
     _stage_agent_store(work, seed, builds, call, compiler_bytes, admitted, publish)

@@ -4,6 +4,7 @@ from __future__ import annotations
 import struct
 
 from tools.hia_core_companion_release import COMPANIONS, OWNER, CHECKER, inputs
+from tools.hia_core_host_custody import ARCHIVE_PATH, DECODER_SOURCE, REQUEST_MAGIC as CUSTODY_REQUEST_MAGIC
 from tools.generate_hia_core_companion_worker_manifest import REQUEST_MAGIC, TABLE_PATH
 
 
@@ -12,12 +13,17 @@ def publish_core(recipe):
     recipe.compile_paths(paths)
     owner = recipe.leaf(OWNER)
     checker = recipe.leaf(CHECKER)
+    decoder = recipe.leaf(DECODER_SOURCE)
+    custody = recipe.source(ARCHIVE_PATH)
     selfhost = recipe.source("examples/hia_bootstrap/selfhost.hepta")
     compiler = recipe.compiler()
     for role, family in COMPANIONS:
         path = inputs(family)[0]
         source, image = recipe.source_views[path], recipe.compiled[path]
-        abi, bridge, selection = (recipe.source(name) for name in inputs(family)[1:])
+        abi = recipe.source(inputs(family)[1])
+        bridge, selection = (recipe.run(decoder, recipe.concat(
+            recipe.literal(struct.pack("<8s2Q", CUSTODY_REQUEST_MAGIC, role, kind)), custody))
+            for kind in (1, 2))
         parts = (source, image, selfhost, compiler, abi, bridge, selection)
         request = recipe.concat(
             recipe.literal(struct.pack("<8sQ", b"HIACCM01", role)),
